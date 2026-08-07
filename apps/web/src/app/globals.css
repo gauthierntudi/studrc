@@ -1,0 +1,81 @@
+/* Pas de preflight Tailwind : le site public réutilise Bootstrap + style.css legacy. */
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/utilities" layer(utilities);
+@import "../components/site/category-colors.css";
+
+
+:root {
+  --opt-cyan: #02d0d1;
+  --opt-red: #e9262a;
+  --opt-navy: #0d203d;
+  --opt-navy-deep: #050a23;
+  --opt-gold: #fcbf04;
+
+  /* Magazine sans — Google Fonts via next/font */
+  --opt-font-sans: var(--font-opt-sans), "Plus Jakarta Sans", system-ui, sans-serif;
+  --opt-font-display: var(--font-opt-display), Archivo, system-ui, sans-serif;
+
+  --admin-top-from: #021762;
+  --admin-top-mid: #023187;
+  --admin-top-to: #037d95;
+  --admin-page: #f4f6f9;
+  --admin-nav: #607d8b;
+}
+
+body {
+  font-family: var(--opt-font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+}
+
+/* Ne pas laisser Toastify réserver de hauteur sous le footer (surtout mobile) */
+.Toastify {
+  display: contents;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--opt-font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Remap des alias Kelson legacy → stack magazine moderne */
+[style*="KelsonBd"],
+[style*="kelsonBd"],
+.magPrice,
+.blog_heading,
+.widget_title,
+.opt-menu__title,
+.auth-modal__title {
+  font-family: var(--opt-font-display) !important;
+}
+
+[style*="KelsonRg"],
+[style*="KelsonLt"],
+[style*="kelsonRg"],
+[style*="kelsonLt"],
+.blog_tags,
+.blog_meta,
+.cat_title,
+.font-1,
+.font-2,
+.contenuNews,
+.auth-modal__subtitle {
+  font-family: var(--opt-font-sans) !important;
+}
+
+/* Utilitaires admin / auth (hors CSS Material Pro complet) */
+.admin-topbar {
+  background: linear-gradient(
+    90deg,
+    rgba(2, 23, 98, 0.997) 0%,
+    rgba(2, 49, 135, 1) 35%,
+    rgba(3, 125, 149, 1) 100%
+  );
+}

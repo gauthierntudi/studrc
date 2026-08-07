@@ -1,0 +1,89 @@
+.opt-email-banner {
+  border-top: 1px solid rgba(233, 38, 42, 0.18);
+  background: #fff4f4;
+  color: #3b1214;
+  font-family: var(--opt-font-sans, "Plus Jakarta Sans", system-ui, sans-serif);
+}
+
+.opt-email-banner__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem 0.85rem;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0.65rem 1.25rem;
+}
+
+.opt-email-banner__inner > svg {
+  flex: 0 0 auto;
+  color: #e9262a;
+}
+
+.opt-email-banner__text {
+  margin: 0;
+  flex: 1 1 14rem;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.opt-email-banner__text strong {
+  font-weight: 700;
+  word-break: break-all;
+}
+
+.opt-email-banner__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+  min-height: 2.15rem;
+  padding: 0.4rem 0.95rem;
+  border: 0;
+  border-radius: 999px;
+  background: #e9262a;
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 750;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.opt-email-banner__btn:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.opt-email-banner__btn:disabled {
+  opacity: 0.75;
+  cursor: wait;
+}
+
+.opt-email-banner__spin {
+  animation: opt-email-banner-spin 0.8s linear infinite;
+}
+
+@keyframes opt-email-banner-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 640px) {
+  .opt-email-banner__inner {
+    justify-content: flex-start;
+  }
+
+  .opt-email-banner__btn {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opt-email-banner__spin {
+    animation: none;
+  }
+}
