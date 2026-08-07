@@ -219,6 +219,7 @@ export function AdminArticleForm({ mode, articleId }: AdminArticleFormProps) {
             return [
               {
                 id: linked.id,
+                legacyId: null,
                 title: linked.title,
                 issueNumber: linked.issueNumber,
                 description: null,
