@@ -20,6 +20,9 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.opt1mum.com}
     env_file: .env
+    environment:
+      # SSR → API sur le réseau Docker (pas via HTTPS public)
+      API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:3001}
     expose:
       - "3000"
     restart: unless-stopped

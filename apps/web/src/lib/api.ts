@@ -1,7 +1,14 @@
 import { notifyAdminActivityRefresh } from "@/lib/admin-activity-bus";
 
+/**
+ * Côté navigateur : URL publique (NEXT_PUBLIC_*).
+ * Côté serveur (SSR Docker) : préférer API_INTERNAL_URL (ex. http://api:3001)
+ * pour éviter le hairpin NAT vers api.opt1mum.com.
+ */
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+  (typeof window === "undefined"
+    ? process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL
+    : process.env.NEXT_PUBLIC_API_URL) ?? "http://localhost:3001";
 
 /** Après une mutation admin réussie, le rail d’activités se rafraîchit. */
 function maybeNotifyAdminActivity(path: string, method?: string) {
@@ -159,9 +166,16 @@ async function parseApiError(res: Response): Promise<string> {
 async function apiFetch<T>(path: string, init?: ApiFetchInit): Promise<T> {
   const retried = Boolean(init?.__retried);
   const { __retried: _, ...fetchInit } = init ?? {};
+  const hasExplicitCache =
+    fetchInit.cache != null ||
+    (fetchInit as RequestInit & { next?: unknown }).next != null;
 
   const res = await fetch(`${API_URL}/api${path}`, {
     ...fetchInit,
+    // SSR : ne pas garder un HTML figé avec le fallback démo
+    ...(typeof window === "undefined" && !hasExplicitCache
+      ? { cache: "no-store" as RequestCache }
+      : {}),
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
