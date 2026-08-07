@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "cdn.egouv.online",
       },
+      {
+        protocol: "https",
+        hostname: "cdn.opt1mum.com",
+      },
     ],
   },
 };

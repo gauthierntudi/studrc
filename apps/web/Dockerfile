@@ -17,14 +17,16 @@ ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN pnpm build
 
+# Monorepo standalone → server.js sous apps/web/
 FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
-COPY --from=build /app/apps/web/public ./public
 COPY --from=build /app/apps/web/.next/standalone ./
-COPY --from=build /app/apps/web/.next/static ./.next/static
+COPY --from=build /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=build /app/apps/web/public ./apps/web/public
 USER nextjs
 EXPOSE 3000
-CMD ["node", "server.js"]
+CMD ["node", "apps/web/server.js"]
