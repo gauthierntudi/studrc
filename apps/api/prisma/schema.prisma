@@ -1,0 +1,384 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccessType {
+  FREE
+  PAID
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum PaymentProvider {
+  STRIPE
+  FLEXPAIE
+  LEGACY
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentPurpose {
+  SUBSCRIPTION
+  PURCHASE
+}
+
+enum AdminRole {
+  SUPERADMIN
+  ADMIN
+  EDITOR
+  REDACTEUR
+}
+
+enum ActivityActorType {
+  ADMIN
+  SUBSCRIBER
+  SYSTEM
+}
+
+model Subscriber {
+  id                        String    @id @default(cuid())
+  legacyId                  Int?      @unique
+  name                      String
+  email                     String    @unique
+  phone                     String?
+  passwordHash              String
+  country                   String?
+  countryCode               String?
+  address                   String?
+  subscriberCode            String?
+  avatarKey                 String?
+  emailVerifiedAt           DateTime?
+  isActive                  Boolean   @default(true)
+  passwordResetOtpHash      String?
+  passwordResetOtpExpiresAt DateTime?
+  passwordResetOtpAttempts  Int       @default(0)
+  /// Fallback legacy : items créés avant cette date = lus (sans ligne notification_reads)
+  notificationsSeenAt       DateTime?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  subscriptions     Subscription[]
+  purchases         Purchase[]
+  payments          Payment[]
+  comments          Comment[]
+  activityLogs      ActivityLog[]
+  notificationReads NotificationRead[]
+
+  @@map("subscribers")
+}
+
+model NotificationRead {
+  id             String   @id @default(cuid())
+  subscriberId   String
+  /// Id composite ex. ARTICLE:cuid, PAYMENT_SUCCESS:cuid
+  notificationId String
+  readAt         DateTime @default(now())
+
+  subscriber Subscriber @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+
+  @@unique([subscriberId, notificationId])
+  @@index([subscriberId])
+  @@map("notification_reads")
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  legacyId     Int?      @unique
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         AdminRole @default(EDITOR)
+  title        String?
+  phone        String?
+  avatarKey    String?
+  isActive     Boolean   @default(true)
+  /// OTP actions sensibles (ex. forcer un paiement)
+  sensitiveActionOtpHash      String?
+  sensitiveActionOtpExpiresAt DateTime?
+  sensitiveActionOtpAttempts  Int       @default(0)
+  /// Contexte lié à l’OTP, ex. payment:{id}:SUCCESS
+  sensitiveActionOtpContext   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  articles     Article[]
+  activityLogs ActivityLog[]
+
+  @@map("admin_users")
+}
+
+model Plan {
+  id          String   @id @default(cuid())
+  legacyId    Int?     @unique
+  name        String
+  description String?
+  priceCents  Int
+  currency    String   @default("USD")
+  durationDays Int
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  subscriptions Subscription[]
+  payments      Payment[]
+
+  @@map("plans")
+}
+
+model Magazine {
+  id           String     @id @default(cuid())
+  legacyId     Int?       @unique
+  title        String
+  description  String?
+  issueNumber  String?
+  accessType   AccessType @default(PAID)
+  priceCents   Int?
+  currency     String     @default("USD")
+  coverKey     String?
+  pdfKey       String?
+  previewKey   String?
+  downloadKey  String?
+  viewCount    Int        @default(0)
+  theme        Json?
+  highlights   Json?
+  isPublished  Boolean    @default(false)
+  isActive     Boolean    @default(true)
+  publishedAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  purchases Purchase[]
+  payments  Payment[]
+  articles  Article[]
+
+  @@map("magazines")
+}
+
+model Subscription {
+  id              String             @id @default(cuid())
+  legacyId        Int?               @unique
+  subscriberId    String
+  planId          String
+  status          SubscriptionStatus @default(ACTIVE)
+  paymentStatus   PaymentStatus      @default(PENDING)
+  transactionRef  String?
+  startsAt        DateTime
+  expiresAt       DateTime
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  subscriber Subscriber @relation(fields: [subscriberId], references: [id])
+  plan       Plan       @relation(fields: [planId], references: [id])
+
+  @@index([subscriberId])
+  @@index([status, expiresAt])
+  @@map("subscriptions")
+}
+
+model Purchase {
+  id             String        @id @default(cuid())
+  legacyId       Int?          @unique
+  subscriberId   String
+  magazineId     String
+  amountCents    Int
+  currency       String        @default("USD")
+  paymentStatus  PaymentStatus @default(PENDING)
+  transactionRef String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  subscriber Subscriber @relation(fields: [subscriberId], references: [id])
+  magazine   Magazine   @relation(fields: [magazineId], references: [id])
+
+  @@unique([subscriberId, magazineId])
+  @@index([subscriberId])
+  @@map("purchases")
+}
+
+model Payment {
+  id            String          @id @default(cuid())
+  provider      PaymentProvider
+  providerRef   String?
+  amountCents   Int
+  currency      String          @default("USD")
+  status        PaymentStatus   @default(PENDING)
+  purpose       PaymentPurpose
+  subscriberId  String
+  planId        String?
+  magazineId    String?
+  metadata      Json?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  subscriber Subscriber @relation(fields: [subscriberId], references: [id])
+  plan       Plan?      @relation(fields: [planId], references: [id])
+  magazine   Magazine?  @relation(fields: [magazineId], references: [id])
+
+  @@unique([provider, providerRef])
+  @@index([subscriberId])
+  @@index([status])
+  @@map("payments")
+}
+
+model Article {
+  id          String   @id @default(cuid())
+  legacyId    Int?     @unique
+  title       String
+  slug        String   @unique
+  /// Legacy / search mirror — corps réel = `blocks`
+  content     String   @default("")
+  excerpt     String?
+  coverKey    String?
+  /// Légende sous la cover principale
+  coverCaption String?
+  category    String?
+  viewCount   Int      @default(0)
+  isPublished Boolean  @default(false)
+  /// Mis en avant sur l’accueil (« À la une »)
+  isFeatured  Boolean  @default(false)
+  authorId    String?
+  /// Magazine lié (affiché sur l’article + kiosque)
+  magazineId  String?
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author   AdminUser?    @relation(fields: [authorId], references: [id])
+  magazine Magazine?     @relation(fields: [magazineId], references: [id], onDelete: SetNull)
+  comments Comment[]
+  blocks   ArticleBlock[]
+
+  @@index([isPublished, publishedAt])
+  @@index([isFeatured, isPublished])
+  @@index([magazineId])
+  @@map("articles")
+}
+
+/// Sous-section d’un article : sous-titre / sous-cover / sous-description
+model ArticleBlock {
+  id        String   @id @default(cuid())
+  articleId String
+  position  Int      @default(0)
+  title     String?
+  coverKey  String?
+  /// Légende sous la sous-cover
+  coverCaption String?
+  /// HTML riche (sous-description)
+  content   String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@index([articleId, position])
+  @@map("article_blocks")
+}
+
+model Comment {
+  id           String   @id @default(cuid())
+  legacyId     Int?     @unique
+  body         String
+  articleId    String
+  subscriberId String?
+  authorName   String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  article    Article     @relation(fields: [articleId], references: [id])
+  subscriber Subscriber? @relation(fields: [subscriberId], references: [id])
+
+  @@index([articleId])
+  @@map("comments")
+}
+
+model Slide {
+  id        String   @id @default(cuid())
+  legacyId  Int?     @unique
+  imageKey  String
+  linkUrl   String?
+  priority  Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("slides")
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  legacyId  Int?     @unique
+  name      String
+  email     String
+  subject   String?
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("contact_messages")
+}
+
+/** Inscriptions newsletter (formulaire accueil). */
+model NewsletterSubscription {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  acceptedTerms  Boolean   @default(true)
+  isActive       Boolean   @default(true)
+  source         String?   @default("home")
+  unsubscribedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([createdAt])
+  @@index([isActive])
+  @@map("newsletter_subscriptions")
+}
+
+/** Réglages site (singleton) — réseaux sociaux footer, etc. */
+model SiteSettings {
+  id          String   @id @default("default")
+  /** [{ id, network, label, url }] */
+  socialLinks Json     @default("[]")
+  updatedAt   DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+/** Journal d'activité — staff admin et abonnés. */
+model ActivityLog {
+  id           String            @id @default(cuid())
+  actorType    ActivityActorType
+  adminId      String?
+  subscriberId String?
+  action       String
+  entity       String?
+  entityId     String?
+  meta         Json?
+  ip           String?
+  createdAt    DateTime          @default(now())
+
+  admin      AdminUser?  @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  subscriber Subscriber? @relation(fields: [subscriberId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([adminId])
+  @@index([subscriberId])
+  @@index([action])
+  @@index([actorType])
+  @@map("activity_logs")
+}
