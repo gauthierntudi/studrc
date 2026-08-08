@@ -201,16 +201,50 @@
 
 @media (max-width: 991px) {
   .opt-dossiers {
-    padding: 2rem 1rem 2.5rem;
+    padding: 2rem 0 2.5rem;
+  }
+
+  .opt-dossiers__inner {
+    padding: 0;
+  }
+
+  .opt-dossiers__head {
+    padding: 0 1rem;
   }
 
   .opt-dossiers__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    grid-template-columns: none;
+    gap: 0.85rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 1rem;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    padding: 0 1rem 0.35rem;
+    scrollbar-width: none;
+  }
+
+  .opt-dossiers__grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .opt-dossiers__grid > li {
+    flex: 0 0 min(72vw, 16.5rem);
+    scroll-snap-align: start;
+    min-width: 0;
   }
 
   .opt-dossiers__card {
     aspect-ratio: 3 / 4;
-    min-height: 240px;
+    min-height: 0;
+    height: auto;
+  }
+
+  .opt-dossiers__fil {
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 
   .opt-dossiers__fil-list {
@@ -229,12 +263,16 @@
 }
 
 @media (max-width: 575px) {
-  .opt-dossiers__grid {
-    grid-template-columns: 1fr;
+  .opt-dossiers__grid > li {
+    flex-basis: min(78vw, 15.5rem);
   }
 
   .opt-dossiers__card {
-    aspect-ratio: 16 / 10;
+    aspect-ratio: 3 / 4.1;
+  }
+
+  .opt-dossiers__card-title {
+    font-size: 0.95rem;
   }
 }
 
