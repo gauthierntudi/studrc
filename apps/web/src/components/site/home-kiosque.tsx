@@ -1,13 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { A11y, FreeMode } from "swiper/modules";
+import type { Swiper as SwiperType } from "swiper";
 import { DEMO_MAGAZINES } from "@/lib/legacy-demo";
 import { CoverImage } from "@/components/site/cover-image";
+
+import "swiper/css";
+import "swiper/css/free-mode";
 import "./home-kiosque.css";
 
-const GAP = 20;
 const FALLBACK_COVER = "/legacy/covers/1591457791.jpg";
 
 export type HomeKiosqueItem = {
@@ -17,24 +22,6 @@ export type HomeKiosqueItem = {
   dateLabel: string;
 };
 
-function usePerView() {
-  const [perView, setPerView] = useState(4);
-
-  useEffect(() => {
-    const sync = () => {
-      const w = window.innerWidth;
-      if (w < 576) setPerView(2);
-      else if (w < 992) setPerView(3);
-      else setPerView(6);
-    };
-    sync();
-    window.addEventListener("resize", sync);
-    return () => window.removeEventListener("resize", sync);
-  }, []);
-
-  return perView;
-}
-
 const DEMO_ITEMS: HomeKiosqueItem[] = DEMO_MAGAZINES.map((m) => ({
   id: m.id,
   titre: m.titre,
@@ -42,7 +29,7 @@ const DEMO_ITEMS: HomeKiosqueItem[] = DEMO_MAGAZINES.map((m) => ({
   dateLabel: m.dateLabel,
 }));
 
-/** Section kiosque — carousel slide des numéros. */
+/** Section kiosque — carousel Swiper des numéros. */
 export function HomeKiosque({
   magazines,
 }: {
@@ -50,40 +37,14 @@ export function HomeKiosque({
 } = {}) {
   const items =
     magazines && magazines.length > 0 ? magazines : DEMO_ITEMS;
-  const perView = usePerView();
-  const viewportRef = useRef<HTMLDivElement>(null);
-  const [index, setIndex] = useState(0);
-  const [itemW, setItemW] = useState(0);
+  const swiperRef = useRef<SwiperType | null>(null);
+  const [canPrev, setCanPrev] = useState(false);
+  const [canNext, setCanNext] = useState(items.length > 1);
 
-  const maxIndex = Math.max(0, items.length - perView);
-
-  useEffect(() => {
-    setIndex((i) => Math.min(i, maxIndex));
-  }, [maxIndex]);
-
-  useEffect(() => {
-    const el = viewportRef.current;
-    if (!el) return;
-    const sync = () => {
-      const w = el.clientWidth;
-      setItemW((w - GAP * (perView - 1)) / perView);
-    };
-    sync();
-    const ro = new ResizeObserver(sync);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [perView]);
-
-  const go = useCallback(
-    (dir: -1 | 1) => {
-      setIndex((i) => Math.min(maxIndex, Math.max(0, i + dir)));
-    },
-    [maxIndex],
-  );
-
-  const offset = itemW > 0 ? -(index * (itemW + GAP)) : 0;
-  const canPrev = index > 0;
-  const canNext = index < maxIndex;
+  const syncNav = (swiper: SwiperType) => {
+    setCanPrev(!swiper.isBeginning);
+    setCanNext(!swiper.isEnd);
+  };
 
   return (
     <section className="opt-kiosque" aria-labelledby="opt-kiosque-title">
@@ -106,13 +67,17 @@ export function HomeKiosque({
             </p>
           </div>
           <div className="opt-kiosque__head-actions">
-            <div className="opt-kiosque__nav" role="group" aria-label="Parcourir le kiosque">
+            <div
+              className="opt-kiosque__nav"
+              role="group"
+              aria-label="Parcourir le kiosque"
+            >
               <button
                 type="button"
                 className="opt-kiosque__nav-btn"
                 aria-label="Précédent"
                 disabled={!canPrev}
-                onClick={() => go(-1)}
+                onClick={() => swiperRef.current?.slidePrev()}
               >
                 <ChevronLeft size={20} strokeWidth={2} aria-hidden />
               </button>
@@ -121,7 +86,7 @@ export function HomeKiosque({
                 className="opt-kiosque__nav-btn"
                 aria-label="Suivant"
                 disabled={!canNext}
-                onClick={() => go(1)}
+                onClick={() => swiperRef.current?.slideNext()}
               >
                 <ChevronRight size={20} strokeWidth={2} aria-hidden />
               </button>
@@ -133,27 +98,47 @@ export function HomeKiosque({
           </div>
         </header>
 
-        <div className="opt-kiosque__slider" ref={viewportRef}>
-          <ul
-            className="opt-kiosque__track"
-            style={{
-              gap: GAP,
-              transform: itemW > 0 ? `translate3d(${offset}px, 0, 0)` : undefined,
+        <div className="opt-kiosque__slider">
+          <Swiper
+            className="opt-kiosque__swiper"
+            modules={[FreeMode, A11y]}
+            slidesPerView={2}
+            spaceBetween={16}
+            grabCursor
+            freeMode={{
+              enabled: true,
+              sticky: true,
+              momentumRatio: 0.65,
+              momentumVelocityRatio: 0.75,
             }}
+            speed={480}
+            watchOverflow
+            breakpoints={{
+              576: {
+                slidesPerView: 3,
+                spaceBetween: 18,
+              },
+              992: {
+                slidesPerView: 6,
+                spaceBetween: 20,
+              },
+            }}
+            onSwiper={(swiper) => {
+              swiperRef.current = swiper;
+              syncNav(swiper);
+            }}
+            onSlideChange={syncNav}
+            onReachBeginning={syncNav}
+            onReachEnd={syncNav}
+            onFromEdge={syncNav}
+            onResize={syncNav}
           >
             {items.map((mag, i) => (
-              <li
-                key={mag.id}
-                className="opt-kiosque__item"
-                style={
-                  itemW > 0
-                    ? { width: itemW, minWidth: itemW, maxWidth: itemW }
-                    : undefined
-                }
-              >
+              <SwiperSlide key={mag.id} className="opt-kiosque__item">
                 <Link
                   href={`/kiosque?magazine=${encodeURIComponent(String(mag.id))}`}
                   className="opt-kiosque__card"
+                  draggable={false}
                 >
                   <div className="opt-kiosque__cover-wrap">
                     <span className="opt-kiosque__rank" aria-hidden>
@@ -171,9 +156,9 @@ export function HomeKiosque({
                     </div>
                   </div>
                 </Link>
-              </li>
+              </SwiperSlide>
             ))}
-          </ul>
+          </Swiper>
         </div>
 
         <div className="opt-kiosque__cta">
