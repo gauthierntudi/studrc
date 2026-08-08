@@ -31,10 +31,23 @@ export function AuthPanel({
   const [slide, setSlide] = useState(0);
 
   useEffect(() => {
-    const id = window.setInterval(() => {
-      setSlide((s) => (s + 1) % SLIDES.length);
-    }, 5500);
-    return () => window.clearInterval(id);
+    const mq = window.matchMedia("(max-width: 899px)");
+    let id: number | undefined;
+
+    const start = () => {
+      if (id != null) window.clearInterval(id);
+      if (mq.matches) return;
+      id = window.setInterval(() => {
+        setSlide((s) => (s + 1) % SLIDES.length);
+      }, 5500);
+    };
+
+    start();
+    mq.addEventListener("change", start);
+    return () => {
+      if (id != null) window.clearInterval(id);
+      mq.removeEventListener("change", start);
+    };
   }, []);
 
   const current = SLIDES[slide]!;
@@ -80,16 +93,22 @@ export function AuthPanel({
 
         <div className="opt-auth__panel">
           <div className="opt-auth__panel-top">
-            {badgeHref ? (
-              <Link href={badgeHref} className="opt-auth__badge">
-                {badge}
-              </Link>
-            ) : (
-              <span className="opt-auth__badge">{badge}</span>
-            )}
-            <Link href="/abonnement" className="opt-auth__cta-sub">
-              S&apos;abonner
+            <Link href="/" className="opt-auth__panel-logo" aria-label="Opt1mum — accueil">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/legacy/img/logo-hd.png" alt="Opt1mum" />
             </Link>
+            <div className="opt-auth__panel-top-actions">
+              {badgeHref ? (
+                <Link href={badgeHref} className="opt-auth__badge">
+                  {badge}
+                </Link>
+              ) : (
+                <span className="opt-auth__badge">{badge}</span>
+              )}
+              <Link href="/abonnement" className="opt-auth__cta-sub">
+                S&apos;abonner
+              </Link>
+            </div>
           </div>
 
           <div className="opt-auth__panel-inner">
