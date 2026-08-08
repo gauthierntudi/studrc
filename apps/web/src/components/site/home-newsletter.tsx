@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 import { newsletterPublicApi } from "@/lib/api";
 import "./home-newsletter.css";
 
@@ -95,7 +96,10 @@ export function HomeNewsletter() {
                 onChange={(e) => setAccepted(e.target.checked)}
                 disabled={busy}
               />
-              <span>J&apos;accepte les termes et conditions</span>
+              <span>
+                J&apos;accepte les{" "}
+                <Link href="/conditions-utilisation">termes et conditions</Link>
+              </span>
             </label>
 
             {error ? (

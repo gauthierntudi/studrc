@@ -374,6 +374,41 @@ export class ArticlesService {
     };
   }
 
+  /** Fil d’actualités global (tous les articles publiés, paginé). */
+  async listPublishedFeed(take = 12, skip = 0) {
+    const limit = Math.min(Math.max(take, 1), 48);
+    const offset = Math.max(skip, 0);
+    const where = { isPublished: true } as const;
+
+    const [total, items, mostRead] = await this.prisma.$transaction([
+      this.prisma.article.count({ where }),
+      this.prisma.article.findMany({
+        where,
+        orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
+        take: limit,
+        skip: offset,
+        select: this.publicCardSelect,
+      }),
+      this.prisma.article.findMany({
+        where,
+        orderBy: [{ viewCount: 'desc' }, { publishedAt: 'desc' }],
+        take: 5,
+        select: this.publicCardSelect,
+      }),
+    ]);
+
+    return {
+      category: 'actualites',
+      label: 'Actualités',
+      tone: 'red',
+      items: items.map((a) => this.toPublicCard(a)),
+      mostRead: mostRead.map((a) => this.toPublicCard(a)),
+      total,
+      take: limit,
+      skip: offset,
+    };
+  }
+
   /** Catalogue public d’une rubrique (paginé). */
   async listByCategory(rawSlug: string, take = 12, skip = 0) {
     const slug = this.resolveCategorySlug(rawSlug);

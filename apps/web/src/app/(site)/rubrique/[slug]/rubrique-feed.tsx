@@ -11,6 +11,7 @@ import { CoverImage } from "@/components/site/cover-image";
 const BATCH = 8;
 
 type Props = {
+  /** Rubrique (`decryptages`…) ou fil global (`actualites`). */
   categorySlug: string;
   categoryLabel: string;
   initialItems: PublicArticleCard[];
@@ -19,6 +20,8 @@ type Props = {
   /** Nombre d’articles déjà affichés dans le pack du haut (ex. 5). */
   packCount: number;
   showHeading: boolean;
+  /** Si true, charge via `/articles/feed` (toutes actualités). */
+  globalFeed?: boolean;
 };
 
 export function RubriqueFeed({
@@ -29,6 +32,7 @@ export function RubriqueFeed({
   total,
   packCount,
   showHeading,
+  globalFeed = false,
 }: Props) {
   const [items, setItems] = useState(initialItems);
   const [loading, setLoading] = useState(false);
@@ -48,10 +52,12 @@ export function RubriqueFeed({
     setError(null);
     try {
       const skip = packCount + items.length;
-      const res = await articlesPublicApi.byCategory(categorySlug, {
-        take: BATCH,
-        skip,
-      });
+      const res = globalFeed
+        ? await articlesPublicApi.feed({ take: BATCH, skip })
+        : await articlesPublicApi.byCategory(categorySlug, {
+            take: BATCH,
+            skip,
+          });
       const seen = new Set(items.map((a) => a.id));
       const next = res.items.filter((a) => !seen.has(a.id));
       if (next.length === 0 || skip + res.items.length >= res.total) {
@@ -68,7 +74,7 @@ export function RubriqueFeed({
       loadingRef.current = false;
       setLoading(false);
     }
-  }, [categorySlug, done, items.length, packCount]);
+  }, [categorySlug, done, globalFeed, items.length, packCount]);
 
   useEffect(() => {
     const node = sentinelRef.current;

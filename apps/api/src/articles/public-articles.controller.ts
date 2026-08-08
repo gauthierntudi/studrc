@@ -57,6 +57,16 @@ export class PublicArticlesController {
     return this.articles.listMostReadPublished(Number.isFinite(n) ? n : 5);
   }
 
+  @Get('feed')
+  feed(@Query('take') take?: string, @Query('skip') skip?: string) {
+    const t = take ? Number(take) : 12;
+    const s = skip ? Number(skip) : 0;
+    return this.articles.listPublishedFeed(
+      Number.isFinite(t) ? t : 12,
+      Number.isFinite(s) ? s : 0,
+    );
+  }
+
   @Get('category/:slug')
   byCategory(
     @Param('slug') slug: string,

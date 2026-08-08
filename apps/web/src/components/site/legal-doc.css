@@ -1,0 +1,112 @@
+.opt-legal {
+  --legal-ink: #0d203d;
+  --legal-muted: #5a6b7d;
+  --legal-line: rgba(13, 32, 61, 0.12);
+  --legal-accent: #e9262a;
+  --legal-wash: #f4f7fa;
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 4rem;
+  color: var(--legal-ink);
+}
+
+.opt-legal__hero {
+  padding-bottom: 1.75rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--legal-line);
+}
+
+.opt-legal__eyebrow {
+  margin: 0 0 0.75rem;
+  font-family: var(--opt-font-sans), system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--legal-muted);
+}
+
+.opt-legal__eyebrow a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.opt-legal__eyebrow a:hover {
+  color: var(--legal-accent);
+}
+
+.opt-legal__title {
+  margin: 0 0 0.75rem;
+  font-family: var(--opt-font-display), system-ui, sans-serif;
+  font-size: clamp(1.85rem, 4vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.opt-legal__meta {
+  margin: 0;
+  font-family: var(--opt-font-sans), system-ui, sans-serif;
+  font-size: 0.9rem;
+  color: var(--legal-muted);
+}
+
+.opt-legal__body {
+  font-family: var(--opt-font-sans), system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--legal-ink);
+}
+
+.opt-legal__body > p {
+  margin: 0 0 1.15rem;
+}
+
+.opt-legal__body > p:last-child {
+  margin-bottom: 0;
+}
+
+.opt-legal__body h2 {
+  margin: 2.25rem 0 0.85rem;
+  font-family: var(--opt-font-display), system-ui, sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.opt-legal__body h2:first-child {
+  margin-top: 0;
+}
+
+.opt-legal__body ul {
+  margin: 0 0 1.15rem;
+  padding-left: 1.2rem;
+}
+
+.opt-legal__body li {
+  margin-bottom: 0.45rem;
+}
+
+.opt-legal__body a {
+  color: var(--legal-accent);
+  text-underline-offset: 0.15em;
+}
+
+.opt-legal__body a:hover {
+  text-decoration-thickness: 2px;
+}
+
+.opt-legal__note {
+  margin: 1.5rem 0 0;
+  padding: 1rem 1.1rem;
+  background: var(--legal-wash);
+  border-left: 3px solid var(--legal-accent);
+  font-size: 0.92rem;
+  color: var(--legal-muted);
+}
+
+@media (min-width: 768px) {
+  .opt-legal {
+    padding: 3.5rem 1.5rem 5rem;
+  }
+}

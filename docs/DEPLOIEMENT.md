@@ -261,15 +261,61 @@ docker compose exec api npx prisma migrate deploy
 docker compose exec api npx prisma generate   # si besoin
 ```
 
-### CI/CD recommandé (plus tard)
+### CI/CD (GitHub Actions → VPS)
 
-GitHub Actions :
+À chaque push sur `main`, le workflow `.github/workflows/deploy.yml` se connecte en SSH et exécute `deploy/remote-deploy.sh` (`git pull`, rebuild `api`/`web`/`worker`, migrations Prisma, recreate nginx).
 
-1. Build & push images vers DO Container Registry (ou GHCR)
-2. SSH sur Droplet → `docker compose pull && docker compose up -d`
-3. `prisma migrate deploy`
+#### 1. Clé SSH pour GitHub Actions → VPS
 
-Secrets CI : SSH key, registry token, jamais les secrets paiement en clair dans les logs.
+Sur ton Mac :
+
+```bash
+ssh-keygen -t ed25519 -C "github-actions-opt1mum" -f ~/.ssh/opt1mum_deploy -N ""
+ssh-copy-id -i ~/.ssh/opt1mum_deploy.pub ubuntu@164.132.240.78
+```
+
+#### 2. Accès Git non interactif sur le VPS (repo privé)
+
+Sur le VPS, créer une clé **deploy** GitHub (read-only) :
+
+```bash
+ssh-keygen -t ed25519 -C "vps-opt1mum-git" -f ~/.ssh/github_opt1mum -N ""
+cat ~/.ssh/github_opt1mum.pub
+```
+
+GitHub → repo → **Settings** → **Deploy keys** → Add (lecture seule).
+
+Sur le VPS :
+
+```bash
+# ~/.ssh/config
+Host github.com
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/github_opt1mum
+  IdentitiesOnly yes
+
+cd /opt/magazine
+git remote set-url origin git@github.com:gauthierntudi/opt1mum-v2.git
+git pull
+chmod +x deploy/remote-deploy.sh
+```
+
+#### 3. Secrets GitHub (repo → Settings → Secrets → Actions)
+
+| Secret | Valeur |
+|--------|--------|
+| `VPS_HOST` | `164.132.240.78` |
+| `VPS_USER` | `ubuntu` |
+| `VPS_SSH_KEY` | contenu de `~/.ssh/opt1mum_deploy` (clé **privée**) |
+| `VPS_PORT` | `22` (optionnel) |
+
+#### 4. Test
+
+Actions → **Deploy production** → **Run workflow**, ou push sur `main`.
+
+Ne jamais committer `.env` ni la clé privée. Le `.env` et `docker-compose.override.yml` restent uniquement sur le VPS.
+
 
 ## 7. Workers BullMQ
 

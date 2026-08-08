@@ -1327,6 +1327,13 @@ export const articlesPublicApi = {
     );
   },
 
+  feed(opts?: { take?: number; skip?: number }) {
+    const qs = new URLSearchParams();
+    qs.set("take", String(opts?.take ?? 12));
+    if (opts?.skip != null) qs.set("skip", String(opts.skip));
+    return apiFetch<PublicCategoryFeed>(`/articles/feed?${qs}`);
+  },
+
   byCategory(
     slug: string,
     opts?: { take?: number; skip?: number },
