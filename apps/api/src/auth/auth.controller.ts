@@ -32,6 +32,9 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
+  /** 10 tentatives / 15 min par IP — anti brute-force */
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: 900_000 } })
   @Post('register')
   register(
     @Body() dto: RegisterDto,
@@ -41,6 +44,8 @@ export class AuthController {
     return this.auth.register(dto, res, ip);
   }
 
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: 900_000 } })
   @Post('login')
   login(
     @Body() dto: LoginDto,
@@ -50,6 +55,8 @@ export class AuthController {
     return this.auth.login(dto, res, ip);
   }
 
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: 900_000 } })
   @Post('google')
   googleLogin(
     @Body() dto: GoogleLoginDto,

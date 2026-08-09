@@ -13,6 +13,9 @@ async function bootstrap() {
   const config = app.get(ConfigService);
   const appUrl = config.get<string>('APP_URL', 'http://localhost:3000');
 
+  // Derrière nginx : IP réelle pour throttling / logs (@Ip())
+  app.set('trust proxy', 1);
+
   // Articles migrés : chapeau + HTML de sections peuvent dépasser le défaut Express (100kb).
   app.useBodyParser('json', { limit: '5mb' });
   app.useBodyParser('urlencoded', { limit: '5mb', extended: true });

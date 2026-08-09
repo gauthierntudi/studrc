@@ -12,6 +12,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { memoryStorage } from 'multer';
 import { AdminAuthService } from './admin-auth.service';
@@ -33,6 +34,9 @@ type UploadedMemFile = {
 export class AdminAuthController {
   constructor(private readonly adminAuth: AdminAuthService) {}
 
+  /** 10 tentatives / 15 min par IP — anti brute-force */
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: 900_000 } })
   @Post('login')
   login(
     @Body() dto: LoginDto,

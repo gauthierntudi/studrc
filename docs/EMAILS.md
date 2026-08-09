@@ -66,4 +66,5 @@ Templates : HTML simples au début ; optionnel plus tard [React Email](https://r
 - Rate-limit les endpoints qui déclenchent un email :
   - `POST /auth/resend-verification` : cooldown **60 s** / compte, max **5 / h** ; throttle IP Nest **5 / 15 min**
   - `POST /auth/forgot-password` : throttle IP Nest **5 / 15 min**
+  - `POST /auth/login`, `/register`, `/google`, `/auth/admin/login` : throttle IP Nest **10 / 15 min**
 - Logs : stocker `resendId` / message id, pas le corps complet des mails sensibles
