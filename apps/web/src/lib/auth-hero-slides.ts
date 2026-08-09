@@ -67,8 +67,7 @@ export function heroWindow(
   offset: number,
   count = AUTH_HERO_VISIBLE,
 ): AuthHeroSlide[] {
-  const n = AUTH_HERO_POOL.length;
-  if (n === 0) return [];
+  const n = AUTH_HERO_POOL.length as number;
   const start = ((offset % n) + n) % n;
   return Array.from({ length: Math.min(count, n) }, (_, i) => {
     return AUTH_HERO_POOL[(start + i) % n]!;
@@ -77,15 +76,13 @@ export function heroWindow(
 
 /** Prochain offset après un cycle complet des 3 slides. */
 export function nextHeroOffset(offset: number): number {
-  const n = AUTH_HERO_POOL.length;
-  if (n === 0) return 0;
+  const n = AUTH_HERO_POOL.length as number;
   return (offset + AUTH_HERO_VISIBLE) % n;
 }
 
 /** Offset précédent (navigation manuelle). */
 export function prevHeroOffset(offset: number): number {
-  const n = AUTH_HERO_POOL.length;
-  if (n === 0) return 0;
+  const n = AUTH_HERO_POOL.length as number;
   return (offset - AUTH_HERO_VISIBLE + n * 10) % n;
 }
 
