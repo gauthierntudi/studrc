@@ -1,10 +1,69 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { articlesPublicApi, type PublicArticleCard } from "@/lib/api";
+import {
+  absoluteMediaUrl,
+  getSiteUrl,
+  plainDescription,
+} from "@/lib/site-url";
 import { ArticleMagazineFloat } from "./article-magazine-float";
 import "./article.css";
 
 type Props = { params: Promise<{ slug: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  try {
+    const article = await articlesPublicApi.bySlug(slug);
+    if (!article.isPublished) {
+      return { title: "Article", robots: { index: false, follow: false } };
+    }
+
+    const title = article.title;
+    const description =
+      plainDescription(article.excerpt) ??
+      plainDescription(article.content) ??
+      "Article Opt1mum";
+    const image = absoluteMediaUrl(article.coverUrl);
+    const url = `${getSiteUrl()}/article/${encodeURIComponent(article.slug)}`;
+    const authors = article.author?.name ? [article.author.name] : undefined;
+
+    return {
+      title,
+      description,
+      alternates: { canonical: url },
+      openGraph: {
+        type: "article",
+        locale: "fr_FR",
+        siteName: "Opt1mum",
+        title,
+        description,
+        url,
+        publishedTime: article.publishedAt ?? undefined,
+        modifiedTime: article.updatedAt ?? undefined,
+        authors,
+        section: article.category ?? undefined,
+        images: image
+          ? [
+              {
+                url: image,
+                alt: article.coverCaption?.trim() || title,
+              },
+            ]
+          : undefined,
+      },
+      twitter: {
+        card: "summary_large_image",
+        title,
+        description,
+        images: image ? [image] : undefined,
+      },
+    };
+  } catch {
+    return { title: "Article" };
+  }
+}
 
 export default async function ArticlePage({ params }: Props) {
   const { slug } = await params;

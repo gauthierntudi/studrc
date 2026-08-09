@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, Plus_Jakarta_Sans } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 /** Corps / UI — sans moderne, lisible presse digitale */
@@ -20,12 +21,25 @@ const fontDisplay = Archivo({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteUrl()),
   title: {
     default: "Opt1mum",
     template: "%s · Opt1mum",
   },
   description: "Magazine Opt1mum — kiosque et abonnements",
   icons: { icon: "/legacy/img/logo-hd.png" },
+  openGraph: {
+    type: "website",
+    locale: "fr_FR",
+    siteName: "Opt1mum",
+    title: "Opt1mum",
+    description: "Magazine Opt1mum — kiosque et abonnements",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Opt1mum",
+    description: "Magazine Opt1mum — kiosque et abonnements",
+  },
 };
 
 export const viewport: Viewport = {
