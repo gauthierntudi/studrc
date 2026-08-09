@@ -56,4 +56,4 @@ Sans empattements Google via `next/font` :
 | UI / corps | **Plus Jakarta Sans** |
 | Titres / display | **Archivo** |
 
-Variables : `--opt-font-sans`, `--opt-font-display`. Les alias Kelson legacy sont remappés vers cette stack(ok).
+Variables : `--opt-font-sans`, `--opt-font-display`. Les alias Kelson legacy sont remappés vers cette stack (ok).
