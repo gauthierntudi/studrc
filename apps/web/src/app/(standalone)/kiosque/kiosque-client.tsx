@@ -13,6 +13,9 @@ import {
   Eye,
   Sparkles,
 } from "lucide-react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { A11y, FreeMode } from "swiper/modules";
+import type { Swiper as SwiperType } from "swiper";
 import { useAuth } from "@/components/auth-provider";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
@@ -22,11 +25,17 @@ import {
   type PublicMagazineCard,
   type PublicMagazineDetail,
 } from "@/lib/api";
+
+import "swiper/css";
+import "swiper/css/free-mode";
 import "./kiosque.css";
 
 const FALLBACK_COVER = "/legacy/covers/1591457791.jpg";
 const DEFAULT_THEME = { bgColor: "#0d203d", accentColor: "#02d0d1" };
 const PAGE_SIZE = 12;
+/** Carrousel mobile : charger tout (cap API publique). */
+const MOBILE_LIST_TAKE = 48;
+const MOBILE_CAROUSEL_MQ = "(max-width: 900px)";
 
 /** Contraste texte sur une couleur de fond (WCAG relative luminance). */
 function contrastOn(hex: string): string {
@@ -115,6 +124,37 @@ function buildPageItems(
   return out;
 }
 
+function MagazineThumb({
+  magazine,
+  active,
+  href,
+}: {
+  magazine: PublicMagazineCard;
+  active: boolean;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`opt-kq__card${active ? " is-active" : ""}`}
+      role="listitem"
+      aria-current={active ? "true" : undefined}
+      draggable={false}
+    >
+      <div className="opt-kq__card-cover">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={magazine.coverUrl || FALLBACK_COVER} alt={magazine.title} />
+      </div>
+      <div className="opt-kq__card-meta">
+        <p className="opt-kq__card-title">{magazine.title}</p>
+        {magazine.dateLabel ? (
+          <p className="opt-kq__card-date">{magazine.dateLabel}</p>
+        ) : null}
+      </div>
+    </Link>
+  );
+}
+
 function KiosqueSkeleton() {
   return (
     <div className="opt-kq__loading" aria-busy="true" aria-label="Chargement">
@@ -152,14 +192,35 @@ export function KiosqueClient() {
   });
 
   const gridRef = useRef<HTMLDivElement>(null);
+  const swiperRef = useRef<SwiperType | null>(null);
+  const [canSwipePrev, setCanSwipePrev] = useState(false);
+  const [canSwipeNext, setCanSwipeNext] = useState(false);
+  /** null = viewport pas encore connu (évite un fetch desktop puis mobile). */
+  const [mobileCarousel, setMobileCarousel] = useState<boolean | null>(null);
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
 
+  const syncSwipeNav = (swiper: SwiperType) => {
+    setCanSwipePrev(!swiper.isBeginning);
+    setCanSwipeNext(!swiper.isEnd);
+  };
+
   useEffect(() => {
+    const mq = window.matchMedia(MOBILE_CAROUSEL_MQ);
+    const sync = () => setMobileCarousel(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    if (mobileCarousel == null) return;
     let cancelled = false;
     setListReady(false);
+    const take = mobileCarousel ? MOBILE_LIST_TAKE : PAGE_SIZE;
+    const skip = mobileCarousel ? 0 : (currentPage - 1) * PAGE_SIZE;
     magazinesPublicApi
-      .list({ take: PAGE_SIZE, skip: (currentPage - 1) * PAGE_SIZE })
+      .list({ take, skip })
       .then((res) => {
         if (cancelled) return;
         setList(res.items ?? []);
@@ -177,7 +238,7 @@ export function KiosqueClient() {
     return () => {
       cancelled = true;
     };
-  }, [currentPage]);
+  }, [currentPage, mobileCarousel]);
 
   const selectedId = useMemo(() => {
     if (magParam) return magParam;
@@ -240,6 +301,7 @@ export function KiosqueClient() {
   }, [authLoading, user, selectedId]);
 
   useEffect(() => {
+    if (mobileCarousel) return;
     const el = gridRef.current;
     if (!el) return;
 
@@ -256,7 +318,15 @@ export function KiosqueClient() {
 
     el.addEventListener("keydown", onKey);
     return () => el.removeEventListener("keydown", onKey);
-  }, [listReady, currentPage]);
+  }, [listReady, currentPage, mobileCarousel]);
+
+  useEffect(() => {
+    if (!mobileCarousel || !swiperRef.current || !selectedId) return;
+    const idx = list.findIndex((m) => m.id === selectedId);
+    if (idx < 0) return;
+    swiperRef.current.slideTo(idx, 0);
+    syncSwipeNav(swiperRef.current);
+  }, [mobileCarousel, selectedId, list]);
 
   if (!listReady || (selectedId && detailLoading && !detail && !card)) {
     return (
@@ -324,6 +394,7 @@ export function KiosqueClient() {
 
   const from = total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
   const to = Math.min(currentPage * PAGE_SIZE, total);
+  const showPager = mobileCarousel === false && pageCount > 1;
 
   return (
     <>
@@ -445,47 +516,118 @@ export function KiosqueClient() {
         {total > 0 ? (
           <section className="opt-kq__others" aria-labelledby="kq-others">
             <div className="opt-kq__others-head">
-              <h2 id="kq-others">Tous les numéros</h2>
-              <span className="opt-kq__others-count">
-                {from}–{to} sur {total}
-              </span>
-            </div>
-            <div
-              className="opt-kq__grid"
-              ref={gridRef}
-              tabIndex={0}
-              role="list"
-              aria-label="Choisir un autre numéro"
-            >
-              {list.map((m) => {
-                const active = m.id === mag.id;
-                return (
-                  <Link
-                    key={m.id}
-                    href={kiosqueHref({ magazine: m.id, page: currentPage })}
-                    className={`opt-kq__card${active ? " is-active" : ""}`}
-                    role="listitem"
-                    aria-current={active ? "true" : undefined}
+              <div className="opt-kq__others-head-text">
+                <h2 id="kq-others">Tous les numéros</h2>
+                <span className="opt-kq__others-count">
+                  {mobileCarousel
+                    ? `${total} numéro${total > 1 ? "s" : ""}`
+                    : `${from}–${to} sur ${total}`}
+                </span>
+              </div>
+              {mobileCarousel ? (
+                <div
+                  className="opt-kq__others-nav"
+                  role="group"
+                  aria-label="Parcourir les numéros"
+                >
+                  <button
+                    type="button"
+                    className="opt-kq__others-nav-btn"
+                    aria-label="Numéros précédents"
+                    disabled={!canSwipePrev}
+                    onClick={() => swiperRef.current?.slidePrev()}
                   >
-                    <div className="opt-kq__card-cover">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={m.coverUrl || FALLBACK_COVER}
-                        alt={m.title}
-                      />
-                    </div>
-                    <div className="opt-kq__card-meta">
-                      <p className="opt-kq__card-title">{m.title}</p>
-                      {m.dateLabel ? (
-                        <p className="opt-kq__card-date">{m.dateLabel}</p>
-                      ) : null}
-                    </div>
-                  </Link>
-                );
-              })}
+                    <ChevronLeft size={18} strokeWidth={2.25} aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    className="opt-kq__others-nav-btn"
+                    aria-label="Numéros suivants"
+                    disabled={!canSwipeNext}
+                    onClick={() => swiperRef.current?.slideNext()}
+                  >
+                    <ChevronRight size={18} strokeWidth={2.25} aria-hidden />
+                  </button>
+                </div>
+              ) : null}
             </div>
 
-            {pageCount > 1 ? (
+            {mobileCarousel ? (
+              <div className="opt-kq__slider">
+                <Swiper
+                  className="opt-kq__swiper"
+                  modules={[FreeMode, A11y]}
+                  slidesPerView={2.15}
+                  spaceBetween={14}
+                  grabCursor
+                  freeMode={{
+                    enabled: true,
+                    sticky: true,
+                    momentumRatio: 0.65,
+                    momentumVelocityRatio: 0.75,
+                  }}
+                  speed={480}
+                  watchOverflow
+                  breakpoints={{
+                    480: {
+                      slidesPerView: 2.4,
+                      spaceBetween: 14,
+                    },
+                    640: {
+                      slidesPerView: 3.2,
+                      spaceBetween: 16,
+                    },
+                    768: {
+                      slidesPerView: 3.6,
+                      spaceBetween: 16,
+                    },
+                  }}
+                  onSwiper={(swiper) => {
+                    swiperRef.current = swiper;
+                    const idx = list.findIndex((m) => m.id === mag.id);
+                    if (idx > 0) swiper.slideTo(idx, 0);
+                    syncSwipeNav(swiper);
+                  }}
+                  onSlideChange={syncSwipeNav}
+                  onReachBeginning={syncSwipeNav}
+                  onReachEnd={syncSwipeNav}
+                  onFromEdge={syncSwipeNav}
+                  onResize={syncSwipeNav}
+                >
+                  {list.map((m) => (
+                    <SwiperSlide key={m.id} className="opt-kq__slide">
+                      <MagazineThumb
+                        magazine={m}
+                        active={m.id === mag.id}
+                        href={kiosqueHref({ magazine: m.id })}
+                      />
+                    </SwiperSlide>
+                  ))}
+                </Swiper>
+              </div>
+            ) : (
+              <div
+                className="opt-kq__grid"
+                ref={gridRef}
+                tabIndex={0}
+                role="list"
+                aria-label="Choisir un autre numéro"
+              >
+                {list.map((m) => (
+                  <MagazineThumb
+                    key={m.id}
+                    magazine={m}
+                    active={m.id === mag.id}
+                    href={kiosqueHref({
+                      magazine: m.id,
+                      page: currentPage,
+                    })}
+                  />
+                ))}
+              </div>
+            )}
+
+            {showPager ? (
               <nav className="opt-kq__pager" aria-label="Pagination des numéros">
                 <p className="opt-kq__pager-info">
                   Page <strong>{currentPage}</strong>

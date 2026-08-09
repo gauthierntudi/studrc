@@ -40,4 +40,7 @@ declare module "page-flip" {
     on(event: string, callback: (e: { data: number }) => void): void;
     off(event: string): void;
   }
+
+  const PageFlipDefault: { PageFlip: typeof PageFlip };
+  export default PageFlipDefault;
 }

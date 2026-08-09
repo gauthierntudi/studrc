@@ -18,9 +18,11 @@ async function loadPlans(): Promise<PublicPlan[]> {
 }
 
 async function loadCover(): Promise<{
+  id: string;
   title: string;
   coverUrl: string;
   issueNumber: string | null;
+  theme: { bgColor: string; accentColor: string };
 } | null> {
   try {
     const res = await fetch(`${API_URL}/api/magazines/latest`, {
@@ -28,15 +30,19 @@ async function loadCover(): Promise<{
     });
     if (!res.ok) return null;
     const latest = (await res.json()) as {
+      id?: string;
       title?: string;
       coverUrl?: string | null;
       issueNumber?: string | null;
+      theme?: { bgColor: string; accentColor: string } | null;
     } | null;
-    if (latest?.coverUrl && latest.title) {
+    if (latest?.coverUrl && latest.title && latest.id) {
       return {
+        id: latest.id,
         title: latest.title,
         coverUrl: latest.coverUrl,
         issueNumber: latest.issueNumber ?? null,
+        theme: latest.theme ?? { bgColor: "#0d203d", accentColor: "#02d0d1" },
       };
     }
   } catch {
@@ -44,9 +50,11 @@ async function loadCover(): Promise<{
   }
   const demo = DEMO_MAGAZINES[0];
   return {
+    id: String(demo.id),
     title: demo.titre,
     coverUrl: demo.cover,
     issueNumber: null,
+    theme: { bgColor: demo.bgColor, accentColor: demo.themeColor },
   };
 }
 

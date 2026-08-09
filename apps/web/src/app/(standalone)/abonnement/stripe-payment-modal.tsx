@@ -8,7 +8,7 @@ import {
 } from "@stripe/react-stripe-js";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
 import { Loader2, ShieldCheck, X } from "lucide-react";
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { toast } from "react-toastify";
 import { paymentsApi } from "@/lib/api";
 
@@ -188,6 +188,17 @@ export function StripePaymentModal(props: StripePaymentModalProps) {
     [publishableKey],
   );
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, []);
+
   const appearance = useMemo(
     () => ({
       theme: "night" as const,
@@ -257,18 +268,16 @@ export function StripePaymentModal(props: StripePaymentModalProps) {
 
   return (
     <div
-      className="opt-abo-wait"
+      className="opt-abo-wait opt-abo-wait--stripe"
       role="dialog"
       aria-modal="true"
       aria-labelledby="opt-abo-stripe-title"
     >
-      <button
-        type="button"
-        className="opt-abo-wait__backdrop"
-        aria-label="Fermer"
-        onClick={props.onClose}
-      />
+      <div className="opt-abo-wait__backdrop" aria-hidden />
       <div className="opt-abo-wait__panel opt-abo-wait__panel--stripe">
+        <div className="opt-abo-stripe__sheet-bar" aria-hidden>
+          <span className="opt-abo-stripe__sheet-handle" />
+        </div>
         <Elements
           stripe={stripePromise}
           options={{

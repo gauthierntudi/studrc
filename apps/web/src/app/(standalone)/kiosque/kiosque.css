@@ -273,10 +273,18 @@
 
 .opt-kq__others-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 1rem;
+}
+
+.opt-kq__others-head-text {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  min-width: 0;
 }
 
 .opt-kq__others-head h2 {
@@ -297,6 +305,76 @@
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--kq-muted);
+}
+
+.opt-kq__others-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.opt-kq__others-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--kq-ink);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.opt-kq__others-nav-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: color-mix(in srgb, var(--kq-accent) 55%, transparent);
+}
+
+.opt-kq__others-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.opt-kq__slider {
+  overflow: hidden;
+  width: 100%;
+}
+
+.opt-kq__swiper {
+  overflow: visible;
+  width: 100%;
+  padding-bottom: 0.2rem;
+}
+
+.opt-kq__swiper .swiper-wrapper {
+  align-items: stretch;
+}
+
+.opt-kq__slide {
+  height: auto;
+  min-width: 0;
+}
+
+.opt-kq__slide .opt-kq__card {
+  height: 100%;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opt-kq__swiper .swiper-wrapper {
+    transition-duration: 0ms !important;
+  }
+
+  .opt-kq__card {
+    transition: none;
+  }
 }
 
 .opt-kq__pager {
@@ -548,18 +626,8 @@
     margin: 0 auto;
   }
 
-  .opt-kq__grid {
-    display: flex;
-    gap: 0.85rem;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 0.35rem;
-  }
-
-  .opt-kq__card {
-    flex: 0 0 min(42vw, 160px);
-    scroll-snap-align: start;
+  .opt-kq__pager {
+    display: none;
   }
 
   .opt-kq__skel {
@@ -568,10 +636,6 @@
 }
 
 @media (max-width: 560px) {
-  .opt-kq__card {
-    flex-basis: min(48vw, 148px);
-  }
-
   .opt-kq__actions {
     flex-direction: column;
     align-items: stretch;

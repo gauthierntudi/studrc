@@ -34,6 +34,30 @@ const PRELOAD_RADIUS = 2;
 const TARGET_PAGE_CSS_WIDTH = 720;
 const THUMB_CSS_WIDTH = 72;
 
+/** Cache PDF (Strict Mode remonte l’effet sans re-télécharger 20–30 Mo). */
+const pdfBytesCache = new Map<string, Promise<Uint8Array>>();
+
+function loadPdfBytes(url: string, signal?: AbortSignal): Promise<Uint8Array> {
+  let pending = pdfBytesCache.get(url);
+  if (!pending) {
+    pending = fetch(url, { mode: "cors", credentials: "omit" })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`PDF HTTP ${res.status}`);
+        return new Uint8Array(await res.arrayBuffer());
+      })
+      .catch((err) => {
+        pdfBytesCache.delete(url);
+        throw err;
+      });
+    pdfBytesCache.set(url, pending);
+  }
+  return pending.then((bytes) => {
+    if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+    // Copie : pdf.js peut transférer le buffer au worker.
+    return bytes.slice();
+  });
+}
+
 async function paintPage(
   pdf: PdfDoc,
   pageNumber: number,
@@ -75,8 +99,19 @@ async function paintPage(
 }
 
 function clearPage(host: HTMLElement) {
+  // Ne jamais vider la page CTA HTML (pas de canvas PDF à repeindre).
+  if (host.dataset.cta === "1") return;
   host.replaceChildren();
   delete host.dataset.hq;
+}
+
+/** page-flip réécrit style.cssText et efface le fond — on le réapplique. */
+function reinforceCtaPage(host: HTMLElement) {
+  if (host.dataset.cta !== "1") return;
+  const bg = host.dataset.bg;
+  if (bg) host.style.setProperty("background", bg);
+  const inner = host.querySelector<HTMLElement>(".opt-flip__cta");
+  if (inner && bg) inner.style.setProperty("background", bg);
 }
 
 async function renderThumbDataUrl(
@@ -152,8 +187,9 @@ function createPreviewCtaPage(
   el.className = "opt-flip__page opt-flip__page--cta";
   el.dataset.cta = "1";
   el.dataset.hq = "1";
+  el.dataset.bg = colors.bgColor;
   el.setAttribute("aria-label", "Fin de l’aperçu — s’abonner ou acheter");
-  el.style.background = colors.bgColor;
+  el.style.setProperty("background", colors.bgColor);
 
   const inner = document.createElement("div");
   inner.className = "opt-flip__cta";
@@ -434,11 +470,14 @@ export function PdfFlipViewer({
     const jobs: Promise<void>[] = [];
     for (let i = from; i <= to; i++) {
       const host = pages[i];
-      if (host.dataset.cta === "1") continue;
+      if (!host || host.dataset.cta === "1") continue;
       if (host.dataset.hq === "1") continue;
+      // Numéro PDF = data-page (1-based), pas l’index (la CTA n’a pas de data-page).
+      const pageNumber = Number(host.dataset.page);
+      if (!pageNumber) continue;
       jobs.push(
-        paintPage(pdf, i + 1, host, cssWidth, isCancelled).catch(() => {
-          /* page paint failed — leave blank */
+        paintPage(pdf, pageNumber, host, cssWidth, isCancelled).catch((err) => {
+          console.warn("[PdfFlipViewer] paint failed", pageNumber, err);
         }),
       );
     }
@@ -451,6 +490,7 @@ export function PdfFlipViewer({
       if (!flip) return;
       const clamped = Math.max(0, Math.min(index, pageCount - 1));
       flip.turnToPage(clamped);
+      reinforceCtaPage(pagesRef.current[clamped]!);
       reportProgress(clamped, pageCount);
       void ensureWindow(clamped);
     },
@@ -459,24 +499,33 @@ export function PdfFlipViewer({
 
   useEffect(() => {
     let cancelled = false;
+    const abort = new AbortController();
 
     async function boot() {
       setMode("loading");
       setStatus("Ouverture du PDF…");
       destroyFlip();
 
-      const wrap = wrapRef.current;
-      if (!wrap) return;
+      // Attendre le nœud DOM (Strict Mode / premier paint).
+      let wrap = wrapRef.current;
+      for (let i = 0; i < 10 && !wrap; i++) {
+        await new Promise<void>((r) => requestAnimationFrame(() => r()));
+        wrap = wrapRef.current;
+      }
+      if (!wrap || cancelled) return;
       wrap.replaceChildren();
 
       try {
         const pdfjs = await import("pdfjs-dist");
-        pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+        // Worker local versionné — doit matcher pdfjs-dist du lockfile (pas une copie périmée).
+        pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs?v=${encodeURIComponent(pdfjs.version)}`;
 
-        const pdf = await pdfjs.getDocument({
-          url,
-          withCredentials: false,
-        }).promise;
+        setStatus("Téléchargement du PDF…");
+        const data = await loadPdfBytes(url, abort.signal);
+        if (cancelled) return;
+
+        setStatus("Ouverture du PDF…");
+        const pdf = await pdfjs.getDocument({ data }).promise;
         if (cancelled) {
           await pdf.cleanup();
           return;
@@ -509,24 +558,37 @@ export function PdfFlipViewer({
         pagesRef.current = items;
         setContentPageCount(limit);
 
+        // Re-lire le wrap au cas où Strict Mode l’aurait remplacé.
+        wrap = wrapRef.current;
+        if (!wrap || cancelled) return;
+        wrap.replaceChildren();
+
         const book = document.createElement("div");
         book.className = "opt-flip__book";
         wrap.appendChild(book);
 
-        const { PageFlip } = await import("page-flip");
+        const pageFlipMod = await import("page-flip");
         if (cancelled) return;
 
-        const pageFlip = new PageFlip(book, {
+        // Bundler may expose named export or `{ default: { PageFlip } }` (UMD).
+        const PageFlipCtor =
+          pageFlipMod.PageFlip ?? pageFlipMod.default?.PageFlip ?? null;
+        if (!PageFlipCtor) {
+          throw new Error("Bibliothèque page-flip indisponible");
+        }
+
+        // usePortrait + minWidth 360 → une page si largeur < ~720px, sinon double page.
+        const pageFlip = new PageFlipCtor(book, {
           width: pageW,
           height: pageH,
           size: "stretch",
-          minWidth: 280,
+          minWidth: 360,
           maxWidth: 860,
           minHeight: 360,
           maxHeight: 980,
           drawShadow: true,
           flippingTime: 650,
-          usePortrait: false,
+          usePortrait: true,
           autoSize: true,
           maxShadowOpacity: 0.4,
           showCover: false,
@@ -539,6 +601,7 @@ export function PdfFlipViewer({
         pageFlip.loadFromHTML(items);
         pageFlip.on("flip", (e) => {
           const idx = typeof e.data === "number" ? e.data : 0;
+          reinforceCtaPage(pagesRef.current[idx]!);
           reportProgress(idx, pageFlip.getPageCount());
           void ensureWindow(idx);
         });
@@ -557,20 +620,14 @@ export function PdfFlipViewer({
           } catch {
             /* ignore */
           }
+          reinforceCtaPage(pagesRef.current[pagesRef.current.length - 1]!);
           void ensureWindow(pageFlip.getCurrentPageIndex());
         });
       } catch (err) {
-        if (cancelled) return;
+        if (cancelled || abort.signal.aborted) return;
         const message =
           err instanceof Error ? err.message : "Impossible de charger le PDF";
-        if (
-          /cors|network|fetch|Failed to fetch|Unexpected server response/i.test(
-            message,
-          )
-        ) {
-          setMode("fallback");
-          return;
-        }
+        console.error("[PdfFlipViewer]", err);
         setStatus(message);
         setMode("fallback");
       }
@@ -580,10 +637,21 @@ export function PdfFlipViewer({
 
     return () => {
       cancelled = true;
+      abort.abort();
       paintGen.current += 1;
       destroyFlip();
     };
-  }, [url, maxPages, magazineId, coverUrl, theme, title, destroyFlip, ensureWindow, reportProgress]);
+  }, [
+    url,
+    maxPages,
+    magazineId,
+    coverUrl,
+    theme,
+    title,
+    destroyFlip,
+    ensureWindow,
+    reportProgress,
+  ]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -597,26 +665,33 @@ export function PdfFlipViewer({
 
   useEffect(() => {
     if (mode !== "flip" || !wrapRef.current || !flipRef.current) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
     const ro = new ResizeObserver(() => {
-      const flip = flipRef.current;
-      if (!flip) return;
-      try {
-        flip.update();
-        const rect = flip.getBoundsRect();
-        if (rect?.pageWidth) {
-          const next = Math.max(Math.round(rect.pageWidth), 560);
-          if (Math.abs(next - cssWidthRef.current) > 40) {
-            cssWidthRef.current = next;
-            for (const el of pagesRef.current) clearPage(el);
-            void ensureWindow(flip.getCurrentPageIndex());
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        const flip = flipRef.current;
+        if (!flip) return;
+        try {
+          flip.update();
+          const rect = flip.getBoundsRect();
+          if (rect?.pageWidth) {
+            const next = Math.max(Math.round(rect.pageWidth), 560);
+            if (Math.abs(next - cssWidthRef.current) > 40) {
+              cssWidthRef.current = next;
+              for (const el of pagesRef.current) clearPage(el);
+              void ensureWindow(flip.getCurrentPageIndex());
+            }
           }
+        } catch {
+          /* ignore */
         }
-      } catch {
-        /* ignore */
-      }
+      }, 120);
     });
     ro.observe(wrapRef.current);
-    return () => ro.disconnect();
+    return () => {
+      if (timer) clearTimeout(timer);
+      ro.disconnect();
+    };
   }, [mode, ensureWindow]);
 
   if (mode === "fallback") {

@@ -7,13 +7,14 @@ import dynamic from "next/dynamic";
 import {
   Check,
   CreditCard,
-  Home,
   Loader2,
   Smartphone,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useAuth } from "@/components/auth-provider";
+import { MagazinePromoFloat } from "@/components/site/magazine-promo-float";
 import { SiteFooter } from "@/components/site/site-footer";
+import { SiteHeader } from "@/components/site/site-header";
 import {
   magazinesPublicApi,
   paymentsApi,
@@ -23,6 +24,16 @@ import {
 import { DEMO_MAGAZINES } from "@/lib/legacy-demo";
 import { cn } from "@/lib/utils";
 import "./abonnement.css";
+
+const DEFAULT_THEME = { bgColor: "#0d203d", accentColor: "#02d0d1" };
+
+type CoverState = {
+  id: string;
+  title: string;
+  coverUrl: string;
+  issueNumber: string | null;
+  theme: { bgColor: string; accentColor: string };
+};
 
 const StripePaymentModal = dynamic(
   () =>
@@ -58,16 +69,22 @@ function durationLabel(days: number): string {
   return `${days} jours`;
 }
 
+/** Retour post-auth avec tab Mobile Money + numéro préservés. */
+function abonnementAuthNext(channel: PayChannel, phone: string): string {
+  if (channel !== "flexpaie") return "/abonnement";
+  const qs = new URLSearchParams();
+  qs.set("pay", "mobile");
+  const trimmed = phone.trim();
+  if (trimmed) qs.set("phone", trimmed);
+  return `/abonnement?${qs.toString()}`;
+}
+
 function AbonnementInner({
   initialPlans,
   initialCover,
 }: {
   initialPlans: PublicPlan[];
-  initialCover: {
-    title: string;
-    coverUrl: string;
-    issueNumber: string | null;
-  } | null;
+  initialCover: CoverState | null;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -78,21 +95,41 @@ function AbonnementInner({
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(
     initialPlans[0]?.id ?? null,
   );
-  const [channel, setChannel] = useState<PayChannel>("stripe");
-  const [phone, setPhone] = useState("");
+  const [channel, setChannel] = useState<PayChannel>(() =>
+    searchParams.get("pay") === "mobile" ? "flexpaie" : "stripe",
+  );
+  const [phone, setPhone] = useState(() => searchParams.get("phone") ?? "");
   const [busy, setBusy] = useState(false);
   const [stripePay, setStripePay] = useState<StripePaySession | null>(null);
   const [flexPendingId, setFlexPendingId] = useState<string | null>(null);
   const [flexStatus, setFlexStatus] = useState<
     "PENDING" | "SUCCESS" | "FAILED" | "CANCELLED" | "REFUNDED" | null
   >(null);
-  const [cover, setCover] = useState<{
-    title: string;
-    coverUrl: string;
-    issueNumber: string | null;
-  } | null>(initialCover);
+  const [cover, setCover] = useState<CoverState | null>(initialCover);
+  const [desktopFloat, setDesktopFloat] = useState(false);
 
   const cancelled = searchParams.get("cancelled") === "1";
+  const authNext = useMemo(
+    () => abonnementAuthNext(channel, phone),
+    [channel, phone],
+  );
+  const authNextEncoded = encodeURIComponent(authNext);
+
+  useEffect(() => {
+    if (searchParams.get("pay") === "mobile") {
+      setChannel("flexpaie");
+    }
+    const phoneParam = searchParams.get("phone");
+    if (phoneParam) setPhone(phoneParam);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 641px)");
+    const sync = () => setDesktopFloat(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -108,18 +145,25 @@ function AbonnementInner({
         if (plansRes.items[0]) {
           setSelectedPlanId((prev) => prev ?? plansRes.items[0]!.id);
         }
-        if (latest?.coverUrl) {
+        if (latest?.coverUrl && latest.id) {
           setCover({
+            id: latest.id,
             title: latest.title,
             coverUrl: latest.coverUrl,
             issueNumber: latest.issueNumber,
+            theme: latest.theme ?? DEFAULT_THEME,
           });
         } else if (!initialCover) {
           const demo = DEMO_MAGAZINES[0];
           setCover({
+            id: String(demo.id),
             title: demo.titre,
             coverUrl: demo.cover,
             issueNumber: null,
+            theme: {
+              bgColor: demo.bgColor,
+              accentColor: demo.themeColor,
+            },
           });
         }
       } catch (err) {
@@ -230,7 +274,7 @@ function AbonnementInner({
 
   async function startCheckout() {
     if (!user) {
-      router.push(`/connexion?next=${encodeURIComponent("/abonnement")}`);
+      router.push(`/connexion?next=${authNextEncoded}`);
       return;
     }
     if (!selected) {
@@ -282,218 +326,265 @@ function AbonnementInner({
 
   return (
     <>
+      <SiteHeader />
       <div className="opt-abo">
-      <div className="opt-abo__bg" aria-hidden />
+        <main className="opt-abo__shell">
+          <section className="opt-abo__checkout" aria-labelledby="abo-title">
+            <div className="opt-abo__checkout-inner">
+              <header className="opt-abo__intro">
+                <p className="opt-abo__eyebrow">Abonnement numérique</p>
+                <h1 id="abo-title">Lisez partout. Tout de suite.</h1>
+                <p className="opt-abo__lead">
+                  Accès illimité à tous les numéros — activation dès validation
+                  du paiement.
+                </p>
+              </header>
 
-      <header className="opt-abo__top">
-        <Link href="/" className="opt-abo__brand" aria-label="Opt1mum — Accueil">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/legacy/img/kiosque1.png" alt="" />
-        </Link>
-        <p className="opt-abo__top-tag">Abonnement 100 % numérique</p>
-      </header>
-
-      <main className="opt-abo__main">
-        <section className="opt-abo__hero">
-          <h1>Lisez partout. Tout de suite.</h1>
-          <p className="opt-abo__lead">
-            Accès illimité à tous les numéros sur smartphone, tablette et PC —
-            dès validation du paiement.
-          </p>
-        </section>
-
-        <div className="opt-abo__grid">
-          <div className="opt-abo__offer">
-            {plansLoading ? (
-              <p className="opt-abo__muted">
-                <Loader2 className="opt-abo__spin" size={18} aria-hidden />
-                Chargement des formules…
-              </p>
-            ) : plans.length === 0 ? (
-              <p className="opt-abo__muted">
-                Aucune formule active pour le moment.
-              </p>
-            ) : (
-              <ul className="opt-abo__plans" role="list">
-                {plans.map((plan) => {
-                  const active = plan.id === selectedPlanId;
-                  return (
-                    <li key={plan.id}>
-                      <button
-                        type="button"
-                        className={cn(
-                          "opt-abo__plan",
-                          active && "opt-abo__plan--active",
-                        )}
-                        onClick={() => setSelectedPlanId(plan.id)}
-                        aria-pressed={active}
-                      >
-                        <span className="opt-abo__plan-name">{plan.name}</span>
-                        <span className="opt-abo__plan-price">
-                          {formatMoney(plan.priceCents, plan.currency)}
-                          <small> / {durationLabel(plan.durationDays)}</small>
-                        </span>
-                        {plan.description ? (
-                          <span className="opt-abo__plan-desc">
-                            {plan.description}
-                          </span>
-                        ) : null}
-                        {active ? (
-                          <span className="opt-abo__plan-check" aria-hidden>
-                            <Check size={14} strokeWidth={3} />
-                          </span>
-                        ) : null}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-
-            <div className="opt-abo__perks">
-              <p>
-                <Check size={16} aria-hidden /> Tous les magazines publiés
-              </p>
-              <p>
-                <Check size={16} aria-hidden /> Lecture multi-appareils
-              </p>
-              <p>
-                <Check size={16} aria-hidden /> Activation immédiate après paiement
-              </p>
-            </div>
-
-            <div className="opt-abo__channels" role="radiogroup" aria-label="Moyen de paiement">
-              <button
-                type="button"
-                role="radio"
-                aria-checked={channel === "stripe"}
-                className={cn(
-                  "opt-abo__channel",
-                  channel === "stripe" && "is-active",
+              <div className="opt-abo__block">
+                <h2 className="opt-abo__block-title">Formule</h2>
+                {plansLoading ? (
+                  <p className="opt-abo__muted">
+                    <Loader2 className="opt-abo__spin" size={18} aria-hidden />
+                    Chargement des formules…
+                  </p>
+                ) : plans.length === 0 ? (
+                  <p className="opt-abo__muted">
+                    Aucune formule active pour le moment.
+                  </p>
+                ) : (
+                  <ul className="opt-abo__plans" role="list">
+                    {plans.map((plan) => {
+                      const active = plan.id === selectedPlanId;
+                      return (
+                        <li key={plan.id}>
+                          <button
+                            type="button"
+                            className={cn(
+                              "opt-abo__plan",
+                              active && "opt-abo__plan--active",
+                            )}
+                            onClick={() => setSelectedPlanId(plan.id)}
+                            aria-pressed={active}
+                          >
+                            <span className="opt-abo__plan-radio" aria-hidden />
+                            <span className="opt-abo__plan-body">
+                              <span className="opt-abo__plan-name">
+                                {plan.name}
+                              </span>
+                              {plan.description ? (
+                                <span className="opt-abo__plan-desc">
+                                  {plan.description}
+                                </span>
+                              ) : null}
+                            </span>
+                            <span className="opt-abo__plan-price">
+                              {formatMoney(plan.priceCents, plan.currency)}
+                              <small>/{durationLabel(plan.durationDays)}</small>
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 )}
-                onClick={() => setChannel("stripe")}
-                disabled={Boolean(flexPendingId || stripePay)}
-              >
-                <CreditCard size={18} aria-hidden />
-                Carte bancaire
-              </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={channel === "flexpaie"}
-                className={cn(
-                  "opt-abo__channel",
-                  channel === "flexpaie" && "is-active",
-                )}
-                onClick={() => setChannel("flexpaie")}
-                disabled={Boolean(flexPendingId || stripePay)}
-              >
-                <Smartphone size={18} aria-hidden />
-                Mobile Money
-              </button>
-            </div>
+              </div>
 
-            {channel === "flexpaie" ? (
-              <label className="opt-abo__phone">
-                <span>Numéro Mobile Money (RDC)</span>
-                <input
-                  type="tel"
-                  inputMode="tel"
-                  placeholder="2438XXXXXXXX"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  disabled={busy || Boolean(flexPendingId || stripePay)}
-                  autoComplete="tel"
-                />
-              </label>
-            ) : null}
+              {selected ? (
+                <div className="opt-abo__summary" aria-live="polite">
+                  <div className="opt-abo__summary-row">
+                    <span>Sous-total</span>
+                    <span>
+                      {formatMoney(selected.priceCents, selected.currency)}
+                    </span>
+                  </div>
+                  <div className="opt-abo__summary-row">
+                    <span>Taxes</span>
+                    <span>—</span>
+                  </div>
+                  <div className="opt-abo__summary-due">
+                    <span>À régler aujourd’hui</span>
+                    <strong>
+                      {formatMoney(selected.priceCents, selected.currency)}
+                    </strong>
+                  </div>
+                </div>
+              ) : null}
 
-            <div className="opt-abo__cta-row">
-              {!authLoading && user ? (
-                <button
-                  type="button"
-                  className="opt-abo__cta"
-                  disabled={
-                    busy || !selected || Boolean(flexPendingId || stripePay)
-                  }
-                  onClick={() => void startCheckout()}
+              <div className="opt-abo__block">
+                <h2 className="opt-abo__block-title">Paiement</h2>
+                <div
+                  className="opt-abo__tabs"
+                  role="radiogroup"
+                  aria-label="Moyen de paiement"
                 >
-                  {busy ? (
-                    <>
-                      <Loader2 className="opt-abo__spin" size={18} aria-hidden />
-                      Préparation…
-                    </>
-                  ) : (
-                    "Je m’abonne"
-                  )}
-                </button>
-              ) : (
-                <>
-                  <Link
-                    href={`/connexion?next=${encodeURIComponent("/abonnement")}`}
-                    className="opt-abo__cta"
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={channel === "stripe"}
+                    className={cn(
+                      "opt-abo__tab",
+                      channel === "stripe" && "is-active",
+                    )}
+                    onClick={() => setChannel("stripe")}
+                    disabled={Boolean(flexPendingId || stripePay)}
                   >
-                    Se connecter pour s’abonner
-                  </Link>
-                  <Link href="/inscription" className="opt-abo__cta-ghost">
-                    Créer un compte
-                  </Link>
-                </>
-              )}
+                    <CreditCard size={16} aria-hidden />
+                    Carte bancaire
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={channel === "flexpaie"}
+                    className={cn(
+                      "opt-abo__tab",
+                      channel === "flexpaie" && "is-active",
+                    )}
+                    onClick={() => setChannel("flexpaie")}
+                    disabled={Boolean(flexPendingId || stripePay)}
+                  >
+                    <Smartphone size={16} aria-hidden />
+                    Mobile Money
+                  </button>
+                </div>
+
+                {channel === "stripe" ? (
+                  <ul className="opt-abo__pay-icons" aria-label="Cartes acceptées">
+                    <li aria-label="Visa">
+                      <i className="fab fa-cc-visa" aria-hidden />
+                    </li>
+                    <li aria-label="Mastercard">
+                      <i className="fab fa-cc-mastercard" aria-hidden />
+                    </li>
+                    <li aria-label="American Express">
+                      <i className="fab fa-cc-amex" aria-hidden />
+                    </li>
+                    <li aria-label="Discover">
+                      <i className="fab fa-cc-discover" aria-hidden />
+                    </li>
+                  </ul>
+                ) : (
+                  <label className="opt-abo__field">
+                    <span>Numéro Mobile Money (RDC)</span>
+                    <input
+                      type="tel"
+                      inputMode="tel"
+                      placeholder="2438XXXXXXXX"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      disabled={busy || Boolean(flexPendingId || stripePay)}
+                      autoComplete="tel"
+                    />
+                  </label>
+                )}
+              </div>
+
+              <ul className="opt-abo__perks">
+                <li>
+                  <Check size={16} strokeWidth={2.5} aria-hidden />
+                  Tous les magazines publiés
+                </li>
+                <li>
+                  <Check size={16} strokeWidth={2.5} aria-hidden />
+                  Lecture multi-appareils
+                </li>
+                <li>
+                  <Check size={16} strokeWidth={2.5} aria-hidden />
+                  Activation immédiate après paiement
+                </li>
+              </ul>
+
+              <div className="opt-abo__cta-row">
+                {!authLoading && user ? (
+                  <button
+                    type="button"
+                    className="opt-abo__cta"
+                    disabled={
+                      busy || !selected || Boolean(flexPendingId || stripePay)
+                    }
+                    onClick={() => void startCheckout()}
+                  >
+                    {busy ? (
+                      <>
+                        <Loader2
+                          className="opt-abo__spin"
+                          size={18}
+                          aria-hidden
+                        />
+                        Préparation…
+                      </>
+                    ) : (
+                      "Confirmer"
+                    )}
+                  </button>
+                ) : (
+                  <>
+                    <Link
+                      href={`/connexion?next=${authNextEncoded}`}
+                      className="opt-abo__cta"
+                    >
+                      Se connecter
+                    </Link>
+                    <Link
+                      href={`/inscription?next=${authNextEncoded}`}
+                      className="opt-abo__cta-ghost"
+                    >
+                      Créer un compte
+                    </Link>
+                  </>
+                )}
+              </div>
+
+              <p className="opt-abo__consent">
+                En continuant, vous acceptez les{" "}
+                <Link href="/conditions-utilisation">
+                  conditions d’utilisation
+                </Link>{" "}
+                et accédez immédiatement à votre abonnement après paiement.
+              </p>
+
+              <p className="opt-abo__secure">
+                Transactions chiffrées et sécurisées
+              </p>
             </div>
+          </section>
 
-            <p className="opt-abo__secure">
-              Paiement sécurisé · carte bancaire ou Mobile Money
-            </p>
-            <ul className="opt-abo__pay-icons" aria-label="Moyens de paiement">
-              <li aria-label="Visa">
-                <i className="fab fa-cc-visa" aria-hidden />
-              </li>
-              <li aria-label="Mastercard">
-                <i className="fab fa-cc-mastercard" aria-hidden />
-              </li>
-              <li aria-label="American Express">
-                <i className="fab fa-cc-amex" aria-hidden />
-              </li>
-              <li aria-label="Discover">
-                <i className="fab fa-cc-discover" aria-hidden />
-              </li>
-              <li aria-label="Diners Club">
-                <i className="fab fa-cc-diners-club" aria-hidden />
-              </li>
-              <li aria-label="JCB">
-                <i className="fab fa-cc-jcb" aria-hidden />
-              </li>
-              <li aria-label="Mobile Money">
-                <i className="fas fa-mobile-alt" aria-hidden />
-              </li>
-              <li aria-label="Portefeuille">
-                <i className="fas fa-wallet" aria-hidden />
-              </li>
-            </ul>
-          </div>
-
-          <aside className="opt-abo__cover-panel">
-            <p className="opt-abo__cover-label">Votre nouveau numéro</p>
+          <aside
+            className="opt-abo__stage"
+            aria-label={
+              cover ? `Couverture — ${cover.title}` : "Visuel abonnement"
+            }
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={cover?.coverUrl || "/legacy/img/abonnement.jpg"}
+              alt=""
+              className="opt-abo__stage-img"
+            />
+            <div className="opt-abo__stage-shade" aria-hidden />
             {cover ? (
-              <>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={cover.coverUrl}
-                  alt={cover.title}
-                  className="opt-abo__cover"
-                />
-                <h2>{cover.title}</h2>
-                <p>Déjà disponible en kiosque numérique</p>
-              </>
+              <div className="opt-abo__stage-meta">
+                <p className="opt-abo__stage-label">Nouveau numéro</p>
+                <p className="opt-abo__stage-title">{cover.title}</p>
+                <p className="opt-abo__stage-note">
+                  Inclus dans votre abonnement
+                </p>
+              </div>
             ) : null}
           </aside>
-        </div>
-      </main>
+        </main>
 
-      <Link href="/" className="opt-abo__home" title="Accueil" aria-label="Accueil">
-        <Home size={22} strokeWidth={2} aria-hidden />
-      </Link>
+      {cover && desktopFloat ? (
+        <MagazinePromoFloat
+          magazine={{
+            id: cover.id,
+            title: cover.title,
+            coverUrl: cover.coverUrl,
+            theme: cover.theme,
+          }}
+          eyebrow="Nouveau numéro"
+          showDelayMs={1200}
+        />
+      ) : null}
 
       {stripePay && selected && user ? (
         <StripePaymentModal
@@ -587,21 +678,20 @@ export default function AbonnementClient({
   initialCover,
 }: {
   initialPlans: PublicPlan[];
-  initialCover: {
-    title: string;
-    coverUrl: string;
-    issueNumber: string | null;
-  } | null;
+  initialCover: CoverState | null;
 }) {
   return (
     <Suspense
       fallback={
-        <div className="opt-abo">
-          <div className="opt-abo__bg" aria-hidden />
-          <p className="opt-abo__muted" style={{ padding: "4rem 1.5rem" }}>
-            Chargement…
-          </p>
-        </div>
+        <>
+          <SiteHeader />
+          <div className="opt-abo">
+            <main className="opt-abo__shell opt-abo__shell--loading">
+              <p className="opt-abo__muted">Chargement…</p>
+            </main>
+          </div>
+          <SiteFooter />
+        </>
       }
     >
       <AbonnementInner
