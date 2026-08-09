@@ -12,6 +12,11 @@ import { safeAuthNext } from "@/lib/auth-next";
 import { useAuth } from "@/components/auth-provider";
 import { AuthPanel } from "@/components/site/auth-panel";
 import { GoogleSignInButton } from "@/components/site/google-sign-in-button";
+import {
+  TurnstileWidget,
+  resetTurnstile,
+} from "@/components/site/turnstile-widget";
+import { isTurnstileRequired } from "@/lib/captcha";
 
 const schema = z.object({
   email: z.string().email("Adresse e-mail invalide"),
@@ -27,6 +32,8 @@ function LoginForm() {
   const { setUser } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRequired = isTurnstileRequired();
 
   const {
     register,
@@ -38,12 +45,21 @@ function LoginForm() {
 
   const onSubmit = handleSubmit(async (values) => {
     setError(null);
+    if (turnstileRequired && !turnstileToken) {
+      setError("Complétez la vérification anti-bot.");
+      return;
+    }
     try {
-      const user = await authApi.login(values);
+      const user = await authApi.login({
+        ...values,
+        turnstileToken: turnstileToken ?? undefined,
+      });
       setUser(user);
       router.push(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Connexion impossible");
+      setTurnstileToken(null);
+      resetTurnstile();
     }
   });
 
@@ -130,12 +146,23 @@ function LoginForm() {
 
         {error ? <p className="auth-error">{error}</p> : null}
 
-        <button type="submit" className="auth-submit" disabled={isSubmitting}>
+        <TurnstileWidget onToken={setTurnstileToken} />
+
+        <button
+          type="submit"
+          className="auth-submit"
+          disabled={isSubmitting || (turnstileRequired && !turnstileToken)}
+        >
           {isSubmitting ? "Connexion…" : "Se connecter"}
         </button>
       </form>
 
-      <GoogleSignInButton onError={setError} next={next} />
+      <GoogleSignInButton
+        onError={setError}
+        next={next}
+        turnstileToken={turnstileToken}
+        requireTurnstile={turnstileRequired}
+      />
     </AuthPanel>
   );
 }

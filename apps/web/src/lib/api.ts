@@ -244,6 +244,7 @@ export const authApi = {
     email: string;
     password: string;
     phone?: string;
+    turnstileToken?: string;
   }) {
     return apiFetch<Subscriber>("/auth/register", {
       method: "POST",
@@ -251,17 +252,21 @@ export const authApi = {
     });
   },
 
-  login(input: { email: string; password: string }) {
+  login(input: {
+    email: string;
+    password: string;
+    turnstileToken?: string;
+  }) {
     return apiFetch<Subscriber>("/auth/login", {
       method: "POST",
       body: JSON.stringify(input),
     });
   },
 
-  loginWithGoogle(credential: string) {
+  loginWithGoogle(credential: string, turnstileToken?: string) {
     return apiFetch<Subscriber>("/auth/google", {
       method: "POST",
-      body: JSON.stringify({ credential }),
+      body: JSON.stringify({ credential, turnstileToken }),
     });
   },
 
@@ -318,10 +323,10 @@ export const authApi = {
     );
   },
 
-  forgotPassword(email: string) {
+  forgotPassword(email: string, turnstileToken?: string) {
     return apiFetch<{ ok: boolean; message: string }>("/auth/forgot-password", {
       method: "POST",
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, turnstileToken }),
     });
   },
 
@@ -506,7 +511,11 @@ export type PurchasesHistoryResponse = {
 };
 
 export const adminAuthApi = {
-  login(input: { email: string; password: string }) {
+  login(input: {
+    email: string;
+    password: string;
+    turnstileToken?: string;
+  }) {
     return apiFetch<AdminUser>("/auth/admin/login", {
       method: "POST",
       body: JSON.stringify(input),

@@ -12,6 +12,11 @@ import { useAuth } from "@/components/auth-provider";
 import { authApi } from "@/lib/api";
 import { AuthPanel } from "@/components/site/auth-panel";
 import { OtpBoxes } from "@/components/site/otp-boxes";
+import {
+  TurnstileWidget,
+  resetTurnstile,
+} from "@/components/site/turnstile-widget";
+import { isTurnstileRequired } from "@/lib/captcha";
 
 const emailSchema = z.object({
   email: z.string().email("Adresse e-mail invalide"),
@@ -41,6 +46,8 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [resending, setResending] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRequired = isTurnstileRequired();
 
   const emailForm = useForm<EmailValues>({
     resolver: zodResolver(emailSchema),
@@ -60,21 +67,29 @@ export default function ForgotPasswordPage() {
 
   const onRequestOtp = emailForm.handleSubmit(async (values) => {
     setError(null);
+    if (turnstileRequired && !turnstileToken) {
+      setError("Complétez la vérification anti-bot.");
+      return;
+    }
     const normalized = values.email.trim().toLowerCase();
     try {
-      await toast.promise(authApi.forgotPassword(normalized), {
-        pending: "Vérification de l’adresse e-mail…",
-        success: "Un code a été envoyé à votre adresse e-mail",
-        error: {
-          render({ data }) {
-            if (data instanceof Error) return data.message;
-            return "Votre adresse e-mail n’existe pas";
+      await toast.promise(
+        authApi.forgotPassword(normalized, turnstileToken ?? undefined),
+        {
+          pending: "Vérification de l’adresse e-mail…",
+          success: "Un code a été envoyé à votre adresse e-mail",
+          error: {
+            render({ data }) {
+              if (data instanceof Error) return data.message;
+              return "Votre adresse e-mail n’existe pas";
+            },
           },
         },
-      });
+      );
       setEmail(normalized);
     } catch {
-      // toast.promise affiche déjà l’erreur
+      setTurnstileToken(null);
+      resetTurnstile();
     }
   });
 
@@ -281,10 +296,14 @@ export default function ForgotPasswordPage() {
             ) : null}
           </div>
           {error ? <p className="auth-error">{error}</p> : null}
+          <TurnstileWidget onToken={setTurnstileToken} />
           <button
             type="submit"
             className="auth-submit"
-            disabled={emailForm.formState.isSubmitting}
+            disabled={
+              emailForm.formState.isSubmitting ||
+              (turnstileRequired && !turnstileToken)
+            }
           >
             {emailForm.formState.isSubmitting
               ? "Envoi…"

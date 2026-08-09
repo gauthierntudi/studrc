@@ -35,6 +35,7 @@ import {
   hashPassword,
   verifyPassword,
 } from './password.util';
+import { TurnstileService } from './turnstile.service';
 
 const ACCESS_COOKIE = 'access_token';
 const REFRESH_COOKIE = 'refresh_token';
@@ -65,9 +66,11 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly mail: MailService,
     private readonly activity: ActivityService,
+    private readonly turnstile: TurnstileService,
   ) {}
 
   async register(dto: RegisterDto, res: Response, ip?: string | null) {
+    await this.turnstile.assertValid(dto.turnstileToken, ip);
     const email = dto.email.trim().toLowerCase();
 
     const existing = await this.prisma.subscriber.findUnique({
@@ -126,6 +129,7 @@ export class AuthService {
   }
 
   async login(dto: LoginDto, res: Response, ip?: string | null) {
+    await this.turnstile.assertValid(dto.turnstileToken, ip);
     const email = dto.email.trim().toLowerCase();
 
     const subscriber = await this.prisma.subscriber.findUnique({
@@ -163,7 +167,9 @@ export class AuthService {
     credential: string,
     res: Response,
     ip?: string | null,
+    turnstileToken?: string | null,
   ) {
+    await this.turnstile.assertValid(turnstileToken, ip);
     const clientId = this.config.get<string>('GOOGLE_CLIENT_ID')?.trim() ?? '';
     if (!clientId) {
       throw new BadRequestException('Connexion Google non configurée');
@@ -673,6 +679,7 @@ export class AuthService {
   }
 
   async forgotPassword(dto: ForgotPasswordDto, ip?: string | null) {
+    await this.turnstile.assertValid(dto.turnstileToken, ip);
     const email = dto.email.trim().toLowerCase();
     const subscriber = await this.prisma.subscriber.findUnique({
       where: { email },

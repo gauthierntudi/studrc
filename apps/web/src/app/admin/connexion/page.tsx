@@ -10,6 +10,11 @@ import { Alert } from "@/components/ui/alert";
 import { adminAuthApi } from "@/lib/api";
 import { getAdminEmailHint } from "@/lib/admin-session-hint";
 import { AUTH_HERO_VISIBLE, heroWindow, nextHeroOffset, prevHeroOffset } from "@/lib/auth-hero-slides";
+import {
+  TurnstileWidget,
+  resetTurnstile,
+} from "@/components/site/turnstile-widget";
+import { isTurnstileRequired } from "@/lib/captcha";
 
 const SLIDE_MS = 5000;
 
@@ -29,6 +34,8 @@ export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRequired = isTurnstileRequired();
 
   useEffect(() => {
     void adminAuthApi
@@ -80,15 +87,23 @@ export default function AdminLoginPage() {
     event.preventDefault();
     setLoading(true);
     setMessage(null);
+    if (turnstileRequired && !turnstileToken) {
+      setMessage("Complétez la vérification anti-bot.");
+      setLoading(false);
+      return;
+    }
     try {
       const me = await adminAuthApi.login({
         email: email.trim(),
         password,
+        turnstileToken: turnstileToken ?? undefined,
       });
       setAdmin(me);
       router.push("/admin");
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Connexion refusée");
+      setTurnstileToken(null);
+      resetTurnstile();
     } finally {
       setLoading(false);
     }
@@ -214,10 +229,12 @@ export default function AdminLoginPage() {
             </div>
           </label>
 
+          <TurnstileWidget onToken={setTurnstileToken} />
+
           <button
             type="submit"
             className="admin-auth__submit"
-            disabled={loading}
+            disabled={loading || (turnstileRequired && !turnstileToken)}
           >
             Se connecter
           </button>

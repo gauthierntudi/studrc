@@ -21,6 +21,7 @@ import { UpdateAdminProfileDto } from './dto/admin-staff.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { hashPassword, verifyPassword } from './password.util';
+import { TurnstileService } from './turnstile.service';
 
 const ADMIN_ACCESS_COOKIE = 'admin_access_token';
 const ADMIN_REFRESH_COOKIE = 'admin_refresh_token';
@@ -39,9 +40,11 @@ export class AdminAuthService {
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly activity: ActivityService,
+    private readonly turnstile: TurnstileService,
   ) {}
 
   async login(dto: LoginDto, res: Response, ip?: string | null) {
+    await this.turnstile.assertValid(dto.turnstileToken, ip);
     const email = dto.email.trim().toLowerCase();
     const admin = await this.prisma.adminUser.findUnique({ where: { email } });
 

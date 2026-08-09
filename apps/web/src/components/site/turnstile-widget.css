@@ -1,0 +1,23 @@
+.opt-turnstile {
+  margin: 0.85rem 0 1.1rem;
+  min-height: 65px;
+}
+
+.opt-turnstile__host {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.opt-turnstile__host > div {
+  width: 100% !important;
+  max-width: 100%;
+}
+
+.opt-turnstile__error {
+  margin: 0.45rem 0 0;
+  font-family: var(--opt-font-sans), system-ui, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #e9262a;
+}

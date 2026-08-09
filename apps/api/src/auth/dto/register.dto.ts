@@ -24,4 +24,8 @@ export class RegisterDto {
   @IsString()
   @MaxLength(40)
   phone?: string;
+
+  @IsOptional()
+  @IsString()
+  turnstileToken?: string;
 }

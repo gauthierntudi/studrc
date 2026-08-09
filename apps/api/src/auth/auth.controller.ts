@@ -63,7 +63,12 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
     @Ip() ip: string,
   ) {
-    return this.auth.loginWithGoogle(dto.credential, res, ip);
+    return this.auth.loginWithGoogle(
+      dto.credential,
+      res,
+      ip,
+      dto.turnstileToken,
+    );
   }
 
   @Post('refresh')

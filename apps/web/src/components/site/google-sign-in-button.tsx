@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authApi } from "@/lib/api";
+import { isTurnstileRequired } from "@/lib/captcha";
 import { useAuth } from "@/components/auth-provider";
 
 declare global {
@@ -30,6 +31,10 @@ type GoogleSignInButtonProps = {
   onError?: (message: string) => void;
   dividerLabel?: string;
   next?: string;
+  /** Token Turnstile (requis si captcha activé côté API). */
+  turnstileToken?: string | null;
+  /** Si true et Turnstile activé sans token, bloque le clic Google. */
+  requireTurnstile?: boolean;
 };
 
 function GoogleMark() {
@@ -94,14 +99,22 @@ export function GoogleSignInButton({
   onError,
   dividerLabel = "Connexion rapide",
   next = "/magazines",
+  turnstileToken = null,
+  requireTurnstile = false,
 }: GoogleSignInButtonProps) {
   const router = useRouter();
   const { setUser } = useAuth();
   const overlayRef = useRef<HTMLDivElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
+  const turnstileRef = useRef(turnstileToken);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim() ?? "";
+  const turnstileConfigured = isTurnstileRequired();
+
+  useEffect(() => {
+    turnstileRef.current = turnstileToken;
+  }, [turnstileToken]);
 
   useEffect(() => {
     if (!clientId || !overlayRef.current || !shellRef.current) {
@@ -115,9 +128,20 @@ export function GoogleSignInButton({
         onError?.("Connexion Google annulée.");
         return;
       }
+      if (
+        requireTurnstile &&
+        turnstileConfigured &&
+        !turnstileRef.current?.trim()
+      ) {
+        onError?.("Complétez la vérification anti-bot avant de continuer.");
+        return;
+      }
       setBusy(true);
       try {
-        const user = await authApi.loginWithGoogle(response.credential);
+        const user = await authApi.loginWithGoogle(
+          response.credential,
+          turnstileRef.current ?? undefined,
+        );
         if (cancelled) return;
         setUser(user);
         router.push(next);
@@ -171,7 +195,7 @@ export function GoogleSignInButton({
     return () => {
       cancelled = true;
     };
-  }, [clientId, onError, router, setUser]);
+  }, [clientId, next, onError, requireTurnstile, router, setUser, turnstileConfigured]);
 
   if (!clientId) {
     return null;

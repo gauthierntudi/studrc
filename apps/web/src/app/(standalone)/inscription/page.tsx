@@ -12,6 +12,11 @@ import { safeAuthNext } from "@/lib/auth-next";
 import { useAuth } from "@/components/auth-provider";
 import { AuthPanel } from "@/components/site/auth-panel";
 import { GoogleSignInButton } from "@/components/site/google-sign-in-button";
+import {
+  TurnstileWidget,
+  resetTurnstile,
+} from "@/components/site/turnstile-widget";
+import { isTurnstileRequired } from "@/lib/captcha";
 
 const schema = z.object({
   name: z.string().min(2, "Nom trop court"),
@@ -31,6 +36,8 @@ function RegisterForm() {
   const { setUser } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRequired = isTurnstileRequired();
 
   const {
     register,
@@ -42,16 +49,23 @@ function RegisterForm() {
 
   const onSubmit = handleSubmit(async (values) => {
     setError(null);
+    if (turnstileRequired && !turnstileToken) {
+      setError("Complétez la vérification anti-bot.");
+      return;
+    }
     try {
       const user = await authApi.register({
         name: values.name,
         email: values.email,
         password: values.password,
+        turnstileToken: turnstileToken ?? undefined,
       });
       setUser(user);
       router.push(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Inscription impossible");
+      setTurnstileToken(null);
+      resetTurnstile();
     }
   });
 
@@ -162,7 +176,13 @@ function RegisterForm() {
 
         {error ? <p className="auth-error">{error}</p> : null}
 
-        <button type="submit" className="auth-submit" disabled={isSubmitting}>
+        <TurnstileWidget onToken={setTurnstileToken} />
+
+        <button
+          type="submit"
+          className="auth-submit"
+          disabled={isSubmitting || (turnstileRequired && !turnstileToken)}
+        >
           {isSubmitting ? "Création…" : "S'inscrire"}
         </button>
       </form>
@@ -171,6 +191,8 @@ function RegisterForm() {
         onError={setError}
         dividerLabel="Inscription rapide"
         next={next}
+        turnstileToken={turnstileToken}
+        requireTurnstile={turnstileRequired}
       />
     </AuthPanel>
   );

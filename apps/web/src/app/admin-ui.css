@@ -1085,6 +1085,10 @@
   cursor: not-allowed;
 }
 
+.admin-auth__form .opt-turnstile {
+  margin: 0.85rem 0 0.35rem;
+}
+
 .admin-auth__otp-actions {
   display: flex;
   justify-content: space-between;

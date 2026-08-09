@@ -14,6 +14,7 @@ import { AuthService } from './auth.service';
 import { RolesGuard } from './guards/roles.guard';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
 import { JwtAdminStrategy } from './strategies/jwt-admin.strategy';
+import { TurnstileService } from './turnstile.service';
 
 @Module({
   imports: [
@@ -41,7 +42,8 @@ import { JwtAdminStrategy } from './strategies/jwt-admin.strategy';
     RolesGuard,
     JwtAccessStrategy,
     JwtAdminStrategy,
+    TurnstileService,
   ],
-  exports: [AuthService, AdminAuthService, JwtModule, RolesGuard, PassportModule],
+  exports: [AuthService, AdminAuthService, JwtModule, RolesGuard, PassportModule, TurnstileService],
 })
 export class AuthModule {}
