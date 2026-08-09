@@ -85,9 +85,15 @@ v2/
 ├── docker-compose.dev.yml       # local (Postgres + Redis inclus)
 ├── deploy/
 │   ├── nginx/
-│   │   └── default.conf
+│   │   ├── default.conf              # Opt1mum (suivi git)
+│   │   ├── 00-include-local.conf     # include des vhosts VPS
+│   │   └── local/                    # Chrononews etc. (*.conf gitignored)
 │   └── .env.example
 ```
+
+Sur le VPS partagé avec Chrononews : copier
+`deploy/nginx/local/chrononews.conf.example` → `chrononews.conf`
+(ne pas le mettre dans `default.conf`, sinon `git pull` casse le deploy).
 
 ### Services Compose prod
 
@@ -111,6 +117,8 @@ services:
       - "443:443"
     volumes:
       - ./deploy/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./deploy/nginx/00-include-local.conf:/etc/nginx/conf.d/00-include-local.conf:ro
+      - ./deploy/nginx/local:/etc/nginx/local-conf.d:ro
       - ./deploy/certbot/conf:/etc/letsencrypt:ro
       - ./deploy/certbot/www:/var/www/certbot:ro
     depends_on:

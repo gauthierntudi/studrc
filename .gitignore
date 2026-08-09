@@ -21,6 +21,10 @@ apps/api/prisma/*.db-journal
 # Certs
 deploy/certbot/
 
+# Vhosts nginx locaux au VPS (Chrononews, etc.) — garder example + placeholder
+deploy/nginx/local/*.conf
+!deploy/nginx/local/_placeholder.conf
+
 # OS / IDE
 .DS_Store
 *.log
