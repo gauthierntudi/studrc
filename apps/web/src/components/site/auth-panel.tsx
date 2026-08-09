@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { AUTH_HERO_SLIDES } from "@/lib/auth-hero-slides";
+import { useEffect, useMemo, useState } from "react";
+import {
+  AUTH_HERO_VISIBLE,
+  heroWindow,
+  nextHeroOffset,
+} from "@/lib/auth-hero-slides";
 import "./auth-panel.css";
-
-const SLIDES = AUTH_HERO_SLIDES;
 
 type AuthPanelProps = {
   title: string;
@@ -19,6 +21,7 @@ type AuthPanelProps = {
 
 /**
  * Auth split plein écran — layout type maquette (panneau photo + formulaire).
+ * 3 slides visibles ; à chaque cycle, nouvelles images du pool.
  */
 export function AuthPanel({
   title,
@@ -28,7 +31,21 @@ export function AuthPanel({
   badge = "Se connecter",
   badgeHref,
 }: AuthPanelProps) {
+  const [batchOffset, setBatchOffset] = useState(0);
   const [slide, setSlide] = useState(0);
+
+  const slides = useMemo(
+    () => heroWindow(batchOffset, AUTH_HERO_VISIBLE),
+    [batchOffset],
+  );
+
+  const goNext = () => {
+    setSlide((s) => {
+      if (s < AUTH_HERO_VISIBLE - 1) return s + 1;
+      setBatchOffset((o) => nextHeroOffset(o));
+      return 0;
+    });
+  };
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 899px)");
@@ -37,9 +54,7 @@ export function AuthPanel({
     const start = () => {
       if (id != null) window.clearInterval(id);
       if (mq.matches) return;
-      id = window.setInterval(() => {
-        setSlide((s) => (s + 1) % SLIDES.length);
-      }, 5500);
+      id = window.setInterval(goNext, 5500);
     };
 
     start();
@@ -50,15 +65,16 @@ export function AuthPanel({
     };
   }, []);
 
-  const current = SLIDES[slide]!;
+  const current = slides[slide] ?? slides[0];
+  if (!current) return null;
 
   return (
     <section className="opt-auth" aria-label={title}>
       <div className="opt-auth__stage">
         <aside className="opt-auth__brand">
-          {SLIDES.map((item, i) => (
+          {slides.map((item, i) => (
             <div
-              key={item.cover}
+              key={`${batchOffset}-${item.cover}`}
               className={`opt-auth__brand-slide${i === slide ? " is-active" : ""}`}
               aria-hidden={i !== slide}
             >
@@ -77,7 +93,7 @@ export function AuthPanel({
             <h1 className="opt-auth__brand-title">{current.title}</h1>
             <p className="opt-auth__brand-lead">{current.lead}</p>
             <div className="opt-auth__dots" role="tablist" aria-label="Diaporama">
-              {SLIDES.map((_, i) => (
+              {slides.map((_, i) => (
                 <button
                   key={i}
                   type="button"

@@ -854,7 +854,7 @@
 
 .admin-auth__hero-img {
   object-fit: cover;
-  object-position: center;
+  object-position: center top;
   opacity: 0;
   transition: opacity 0.45s ease;
 }

@@ -9,17 +9,19 @@ import { useAdminAuth } from "@/components/admin/admin-auth-provider";
 import { Alert } from "@/components/ui/alert";
 import { adminAuthApi } from "@/lib/api";
 import { getAdminEmailHint } from "@/lib/admin-session-hint";
-import { AUTH_HERO_SLIDES } from "@/lib/auth-hero-slides";
+import { AUTH_HERO_VISIBLE, heroWindow, nextHeroOffset, prevHeroOffset } from "@/lib/auth-hero-slides";
 
 const SLIDE_MS = 5000;
-
-const HERO_SLIDES = AUTH_HERO_SLIDES.map((s) => s.cover);
 
 export default function AdminLoginPage() {
   const router = useRouter();
   const { setAdmin } = useAdminAuth();
-  const slides = useMemo(() => HERO_SLIDES, []);
+  const [batchOffset, setBatchOffset] = useState(0);
   const [slide, setSlide] = useState(0);
+  const slides = useMemo(
+    () => heroWindow(batchOffset, AUTH_HERO_VISIBLE).map((s) => s.cover),
+    [batchOffset],
+  );
   const [hydrated, setHydrated] = useState(false);
   const [checking, setChecking] = useState(true);
   const [email, setEmail] = useState("");
@@ -49,17 +51,29 @@ export default function AdminLoginPage() {
       return;
     }
     const timer = window.setInterval(() => {
-      setSlide((i) => (i + 1) % slides.length);
+      setSlide((i) => {
+        if (i < AUTH_HERO_VISIBLE - 1) return i + 1;
+        setBatchOffset((o) => nextHeroOffset(o));
+        return 0;
+      });
     }, SLIDE_MS);
     return () => window.clearInterval(timer);
   }, [slides.length, checking]);
 
   function prevSlide() {
-    setSlide((i) => (i - 1 + slides.length) % slides.length);
+    setSlide((i) => {
+      if (i > 0) return i - 1;
+      setBatchOffset((o) => prevHeroOffset(o));
+      return AUTH_HERO_VISIBLE - 1;
+    });
   }
 
   function nextSlide() {
-    setSlide((i) => (i + 1) % slides.length);
+    setSlide((i) => {
+      if (i < AUTH_HERO_VISIBLE - 1) return i + 1;
+      setBatchOffset((o) => nextHeroOffset(o));
+      return 0;
+    });
   }
 
   async function submitPassword(event: React.FormEvent) {
@@ -111,7 +125,7 @@ export default function AdminLoginPage() {
         <div className="admin-auth__hero-frame">
           {slides.map((src, index) => (
             <Image
-              key={src}
+              key={`${batchOffset}-${src}`}
               src={src}
               alt=""
               fill
