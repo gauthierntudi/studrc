@@ -1,10 +1,12 @@
 import {
+  GetObjectCommand,
   HeadObjectCommand,
   PutBucketCorsCommand,
   PutObjectCommand,
   S3Client,
   type PutObjectCommandInput,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { createHash, createHmac } from 'crypto';
 
 export type R2Config = {
@@ -60,6 +62,7 @@ export function createR2ClientFromEnv(
   const client = new S3Client({
     region,
     endpoint,
+    forcePathStyle: true,
     credentials: { accessKeyId, secretAccessKey },
   });
 
@@ -111,6 +114,66 @@ export async function putR2Object(
 
   await r2.client.send(new PutObjectCommand(params));
   return params.Key!;
+}
+
+export async function getR2ObjectBuffer(
+  r2: R2Config,
+  key: string,
+): Promise<Buffer> {
+  const res = await r2.client.send(
+    new GetObjectCommand({
+      Bucket: r2.bucket,
+      Key: key.replace(/^\//, ''),
+    }),
+  );
+  const bytes = await res.Body?.transformToByteArray();
+  if (!bytes?.length) {
+    throw new Error(`Objet R2 vide : ${key}`);
+  }
+  return unwrapPdfBuffer(Buffer.from(bytes));
+}
+
+/** Stream brut R2 (images WebP pages) — sans charger tout en mémoire. */
+export async function getR2ObjectStream(
+  r2: R2Config,
+  key: string,
+): Promise<{
+  body: import('stream').Readable;
+  contentType: string | undefined;
+  contentLength: number | undefined;
+}> {
+  const res = await r2.client.send(
+    new GetObjectCommand({
+      Bucket: r2.bucket,
+      Key: key.replace(/^\//, ''),
+    }),
+  );
+  const body = res.Body as import('stream').Readable | undefined;
+  if (!body) {
+    throw new Error(`Objet R2 vide : ${key}`);
+  }
+  return {
+    body,
+    contentType: res.ContentType,
+    contentLength: res.ContentLength,
+  };
+}
+
+/**
+ * Certains PDF legacy ont été stockés tels quels depuis un POST multipart
+ * (corps WebKitFormBoundary…). On extrait la plage %PDF … %%EOF.
+ */
+export function unwrapPdfBuffer(buf: Buffer): Buffer {
+  if (buf.length >= 5 && buf[0] === 0x25 && buf[1] === 0x50 && buf[2] === 0x44 && buf[3] === 0x46) {
+    return buf;
+  }
+  const start = buf.indexOf('%PDF');
+  if (start < 0) return buf;
+  const endMarker = buf.lastIndexOf('%%EOF');
+  if (endMarker > start) {
+    return buf.subarray(start, endMarker + 5);
+  }
+  return buf.subarray(start);
 }
 
 function sha256Hex(value: string): string {
@@ -206,6 +269,33 @@ export function presignR2PutObject(
   const uploadUrl = `${r2.endpoint}${canonicalUri}?${canonicalQuery}&X-Amz-Signature=${signature}`;
 
   return { uploadUrl, key, headers };
+}
+
+/** TTL par défaut des URLs de lecture des pages WebP (15 min). */
+export const MAGAZINE_PAGES_SIGNED_URL_TTL_SECONDS = 900;
+
+/**
+ * Presigned GET (R2) — lecture pages WebP sans CDN public permanent.
+ */
+export async function presignR2GetObject(
+  r2: R2Config,
+  input: {
+    key: string;
+    expiresInSeconds?: number;
+  },
+): Promise<string> {
+  const key = input.key.replace(/^\//, '');
+  const expiresIn =
+    input.expiresInSeconds ?? MAGAZINE_PAGES_SIGNED_URL_TTL_SECONDS;
+  return getSignedUrl(
+    // Versions @aws-sdk/* peuvent diverger dans le monorepo — cast sûr runtime.
+    r2.client as never,
+    new GetObjectCommand({
+      Bucket: r2.bucket,
+      Key: key,
+    }),
+    { expiresIn },
+  );
 }
 
 export async function headR2Object(

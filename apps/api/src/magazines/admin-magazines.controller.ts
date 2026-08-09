@@ -116,6 +116,14 @@ export class AdminMagazinesController {
     return this.magazines.completePdf(id, dto, actor.id);
   }
 
+  @Post(':id/pages/reprocess')
+  reprocessPages(
+    @Param('id') id: string,
+    @CurrentAdmin() actor: AdminAuthUser,
+  ) {
+    return this.magazines.reprocessPages(id, actor.id);
+  }
+
   /** Fallback proxy (petits PDF / outils). Préférer /pdf/presign. */
   @Post(':id/pdf')
   @UseInterceptors(

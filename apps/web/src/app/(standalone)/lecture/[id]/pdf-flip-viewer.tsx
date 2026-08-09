@@ -8,6 +8,11 @@ import {
   type RefObject,
 } from "react";
 import { ChevronLeft, ChevronRight, FileWarning } from "lucide-react";
+import {
+  createPreviewCtaPage,
+  DEFAULT_CTA_THEME,
+  reinforceCtaPage,
+} from "./flip-preview-cta";
 
 type Props = {
   url: string;
@@ -40,6 +45,12 @@ const pdfBytesCache = new Map<string, Promise<Uint8Array>>();
 /** CDN cross-origin → chemins same-origin (nginx /cdn-media ou /api/media-proxy). */
 const PDF_PROXY_HOSTS = new Set(["cdn.opt1mum.com", "cdn.egouv.online"]);
 
+function isLocalDevHost(): boolean {
+  if (typeof window === "undefined") return false;
+  const h = window.location.hostname;
+  return h === "localhost" || h === "127.0.0.1";
+}
+
 function pdfFetchCandidates(url: string): string[] {
   try {
     const absolute = new URL(
@@ -57,12 +68,14 @@ function pdfFetchCandidates(url: string): string[] {
       PDF_PROXY_HOSTS.has(absolute.hostname)
     ) {
       const path = `${absolute.pathname}${absolute.search}`;
+      const proxy = `/api/media-proxy?u=${encodeURIComponent(absolute.toString())}`;
+      // Local : CDN direct d’abord (évite /cdn-media 404 + proxy Next lent sur 50+ Mo).
+      if (isLocalDevHost()) {
+        return [absolute.toString(), proxy];
+      }
       return [
-        // Prod : stream nginx → CDN (fiable pour 20–40 Mo)
         `/cdn-media${path}`,
-        // Local / repli : route Next
-        `/api/media-proxy?u=${encodeURIComponent(absolute.toString())}`,
-        // Dernier recours si CORS R2 est configuré
+        proxy,
         absolute.toString(),
       ];
     }
@@ -82,9 +95,46 @@ function isPdfMagic(bytes: Uint8Array): boolean {
   );
 }
 
+/** Extraire un PDF encapsulé dans un dump multipart (imports legacy). */
+function unwrapPdfBytes(bytes: Uint8Array): Uint8Array {
+  if (isPdfMagic(bytes)) return bytes;
+  const pdfMarker = [0x25, 0x50, 0x44, 0x46]; // %PDF
+  let start = -1;
+  for (let i = 0; i < Math.min(bytes.length - 4, 4096); i++) {
+    if (
+      bytes[i] === pdfMarker[0] &&
+      bytes[i + 1] === pdfMarker[1] &&
+      bytes[i + 2] === pdfMarker[2] &&
+      bytes[i + 3] === pdfMarker[3]
+    ) {
+      start = i;
+      break;
+    }
+  }
+  if (start < 0) return bytes;
+
+  // Cherche le dernier %%EOF
+  const eof = [0x25, 0x25, 0x45, 0x4f, 0x46]; // %%EOF
+  let end = -1;
+  for (let i = bytes.length - 5; i >= start; i--) {
+    if (
+      bytes[i] === eof[0] &&
+      bytes[i + 1] === eof[1] &&
+      bytes[i + 2] === eof[2] &&
+      bytes[i + 3] === eof[3] &&
+      bytes[i + 4] === eof[4]
+    ) {
+      end = i + 5;
+      break;
+    }
+  }
+  return bytes.subarray(start, end > start ? end : undefined);
+}
+
 async function fetchPdfOnce(
   fetchUrl: string,
   signal?: AbortSignal,
+  onProgress?: (loaded: number, total: number | null) => void,
 ): Promise<Uint8Array> {
   const res = await fetch(fetchUrl, {
     mode: "cors",
@@ -92,17 +142,61 @@ async function fetchPdfOnce(
     signal,
   });
   if (!res.ok) throw new Error(`PDF HTTP ${res.status} (${fetchUrl})`);
-  const bytes = new Uint8Array(await res.arrayBuffer());
+
+  const totalHeader = res.headers.get("content-length");
+  const total = totalHeader ? Number(totalHeader) : null;
+  const body = res.body;
+  if (!body || !onProgress) {
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    onProgress?.(bytes.byteLength, total ?? bytes.byteLength);
+    if (bytes.byteLength < 64) {
+      throw new Error("PDF trop petit / réponse tronquée");
+    }
+    const unwrapped = unwrapPdfBytes(bytes);
+    if (!isPdfMagic(unwrapped)) {
+      throw new Error(
+        "Fichier PDF invalide ou corrompu sur le CDN (réponse HTML / multipart)",
+      );
+    }
+    return unwrapped;
+  }
+
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let loaded = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value?.byteLength) {
+      chunks.push(value);
+      loaded += value.byteLength;
+      onProgress(loaded, Number.isFinite(total) ? total : null);
+    }
+  }
+
+  const bytes = new Uint8Array(loaded);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
   if (bytes.byteLength < 64) {
     throw new Error("PDF trop petit / réponse tronquée");
   }
-  if (!isPdfMagic(bytes)) {
-    throw new Error("Réponse non-PDF (proxy/HTML ?)");
+  const unwrapped = unwrapPdfBytes(bytes);
+  if (!isPdfMagic(unwrapped)) {
+    throw new Error(
+      "Fichier PDF invalide ou corrompu sur le CDN (réponse HTML / multipart)",
+    );
   }
-  return bytes;
+  return unwrapped;
 }
 
-function loadPdfBytes(url: string, signal?: AbortSignal): Promise<Uint8Array> {
+function loadPdfBytes(
+  url: string,
+  signal?: AbortSignal,
+  onProgress?: (loaded: number, total: number | null) => void,
+): Promise<Uint8Array> {
   const cacheKey = url;
   let pending = pdfBytesCache.get(cacheKey);
   if (!pending) {
@@ -111,11 +205,15 @@ function loadPdfBytes(url: string, signal?: AbortSignal): Promise<Uint8Array> {
       let lastErr: unknown;
       for (const candidate of candidates) {
         try {
-          return await fetchPdfOnce(candidate, signal);
+          return await fetchPdfOnce(candidate, signal, onProgress);
         } catch (err) {
           if (signal?.aborted) throw err;
           lastErr = err;
-          console.warn("[PdfFlipViewer] fetch PDF échoué, essai suivant", candidate, err);
+          console.warn(
+            "[PdfFlipViewer] fetch PDF échoué, essai suivant",
+            candidate,
+            err,
+          );
         }
       }
       throw lastErr instanceof Error
@@ -129,6 +227,7 @@ function loadPdfBytes(url: string, signal?: AbortSignal): Promise<Uint8Array> {
   }
   return pending.then((bytes) => {
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+    onProgress?.(bytes.byteLength, bytes.byteLength);
     // Copie : pdf.js peut transférer le buffer au worker.
     return bytes.slice();
   });
@@ -181,15 +280,6 @@ function clearPage(host: HTMLElement) {
   delete host.dataset.hq;
 }
 
-/** page-flip réécrit style.cssText et efface le fond — on le réapplique. */
-function reinforceCtaPage(host: HTMLElement) {
-  if (host.dataset.cta !== "1") return;
-  const bg = host.dataset.bg;
-  if (bg) host.style.setProperty("background", bg);
-  const inner = host.querySelector<HTMLElement>(".opt-flip__cta");
-  if (inner && bg) inner.style.setProperty("background", bg);
-}
-
 async function renderThumbDataUrl(
   pdf: PdfDoc,
   pageNumber: number,
@@ -220,129 +310,6 @@ async function renderThumbDataUrl(
   canvas.width = 0;
   canvas.height = 0;
   return url;
-}
-
-const DEFAULT_CTA_THEME = { bgColor: "#0d203d", accentColor: "#02d0d1" };
-
-function contrastOn(hex: string): string {
-  const raw = hex.trim().replace(/^#/, "");
-  const full =
-    raw.length === 3
-      ? raw
-          .split("")
-          .map((c) => c + c)
-          .join("")
-      : raw;
-  if (!/^[0-9a-fA-F]{6}$/.test(full)) return "#062a2b";
-  const r = parseInt(full.slice(0, 2), 16) / 255;
-  const g = parseInt(full.slice(2, 4), 16) / 255;
-  const b = parseInt(full.slice(4, 6), 16) / 255;
-  const lin = (c: number) =>
-    c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  const L = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
-  return L < 0.45 ? "#ffffff" : "#062a2b";
-}
-
-function createPreviewCtaPage(
-  magazineId: string,
-  coverUrl: string | null,
-  magazineTitle: string,
-  theme: { bgColor: string; accentColor: string } | null,
-): HTMLElement {
-  const colors = {
-    bgColor: theme?.bgColor || DEFAULT_CTA_THEME.bgColor,
-    accentColor: theme?.accentColor || DEFAULT_CTA_THEME.accentColor,
-  };
-  const onAccent = contrastOn(colors.accentColor);
-  const onBg = contrastOn(colors.bgColor);
-  const muted = onBg === "#ffffff" ? "rgba(248,250,252,0.82)" : "rgba(6,42,43,0.72)";
-  const ghostBorder =
-    onBg === "#ffffff" ? "rgba(255,255,255,0.28)" : "rgba(6,42,43,0.22)";
-
-  const el = document.createElement("div");
-  el.className = "opt-flip__page opt-flip__page--cta";
-  el.dataset.cta = "1";
-  el.dataset.hq = "1";
-  el.dataset.bg = colors.bgColor;
-  el.setAttribute("aria-label", "Fin de l’aperçu — s’abonner ou acheter");
-  el.style.setProperty("background", colors.bgColor);
-
-  const inner = document.createElement("div");
-  inner.className = "opt-flip__cta";
-  inner.style.cssText = [
-    "width:100%",
-    "height:100%",
-    "box-sizing:border-box",
-    "display:flex",
-    "flex-direction:column",
-    "align-items:center",
-    "justify-content:center",
-    "gap:0.75rem",
-    "padding:8% 7%",
-    "text-align:center",
-    `color:${onBg}`,
-    `background:${colors.bgColor}`,
-  ].join(";");
-
-  if (coverUrl) {
-    const coverWrap = document.createElement("div");
-    coverWrap.className = "opt-flip__cta-cover";
-    coverWrap.style.cssText = [
-      "flex:0 0 auto",
-      "width:min(42%,9.5rem)",
-      "aspect-ratio:3/4",
-      "border-radius:4px",
-      "overflow:hidden",
-      "background:rgba(255,255,255,0.06)",
-    ].join(";");
-
-    const cover = document.createElement("img");
-    cover.src = coverUrl;
-    cover.alt = magazineTitle ? `Couverture — ${magazineTitle}` : "Couverture";
-    cover.draggable = false;
-    cover.style.cssText =
-      "display:block;width:100%;height:100%;object-fit:cover";
-    coverWrap.append(cover);
-    inner.append(coverWrap);
-  }
-
-  const eyebrow = document.createElement("p");
-  eyebrow.className = "opt-flip__cta-eyebrow";
-  eyebrow.style.cssText = `margin:0;font-size:0.72rem;font-weight:750;letter-spacing:0.1em;text-transform:uppercase;color:${colors.accentColor}`;
-  eyebrow.textContent = "Fin de l’aperçu";
-
-  const title = document.createElement("h2");
-  title.className = "opt-flip__cta-title";
-  title.style.cssText = `margin:0;max-width:18rem;font-size:1.35rem;font-weight:750;line-height:1.15;color:${onBg}`;
-  title.textContent = "Poursuivez la lecture";
-
-  const text = document.createElement("p");
-  text.className = "opt-flip__cta-text";
-  text.style.cssText = `margin:0;max-width:18rem;font-size:0.88rem;line-height:1.5;color:${muted}`;
-  text.textContent =
-    "Les pages suivantes sont réservées aux abonnés et aux acheteurs de ce numéro.";
-
-  const actions = document.createElement("div");
-  actions.className = "opt-flip__cta-actions";
-  actions.style.cssText =
-    "display:flex;flex-wrap:wrap;justify-content:center;gap:0.55rem;margin-top:0.2rem";
-
-  const buy = document.createElement("a");
-  buy.className = "opt-flip__cta-btn opt-flip__cta-btn--primary";
-  buy.href = `/achat?magazine=${encodeURIComponent(magazineId)}`;
-  buy.style.cssText = `display:inline-flex;align-items:center;justify-content:center;min-height:2.5rem;padding:0.55rem 1.1rem;border-radius:999px;background:${colors.accentColor};color:${onAccent};font-size:0.88rem;font-weight:750;text-decoration:none`;
-  buy.textContent = "Acheter ce numéro";
-
-  const subscribe = document.createElement("a");
-  subscribe.className = "opt-flip__cta-btn opt-flip__cta-btn--ghost";
-  subscribe.href = "/abonnement";
-  subscribe.style.cssText = `display:inline-flex;align-items:center;justify-content:center;min-height:2.5rem;padding:0.55rem 1.1rem;border-radius:999px;background:transparent;color:${onBg};border:1px solid ${ghostBorder};font-size:0.88rem;font-weight:750;text-decoration:none`;
-  subscribe.textContent = "S’abonner";
-
-  actions.append(buy, subscribe);
-  inner.append(eyebrow, title, text, actions);
-  el.append(inner);
-  return el;
 }
 
 function ThumbnailStrip({
@@ -500,6 +467,7 @@ export function PdfFlipViewer({
   const [pageCount, setPageCount] = useState(0);
   const [contentPageCount, setContentPageCount] = useState(0);
   const [status, setStatus] = useState("Ouverture du PDF…");
+  const [downloadPct, setDownloadPct] = useState<number | null>(null);
 
   const reportProgress = useCallback((page: number, total: number) => {
     setPageIndex(page);
@@ -580,6 +548,7 @@ export function PdfFlipViewer({
     async function boot() {
       setMode("loading");
       setStatus("Ouverture du PDF…");
+      setDownloadPct(null);
       destroyFlip();
 
       // Attendre le nœud DOM (Strict Mode / premier paint).
@@ -597,8 +566,21 @@ export function PdfFlipViewer({
         pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs?v=${encodeURIComponent(pdfjs.version)}`;
 
         setStatus("Téléchargement du PDF…");
-        const data = await loadPdfBytes(url, abort.signal);
+        const data = await loadPdfBytes(url, abort.signal, (loaded, total) => {
+          if (cancelled) return;
+          if (total && total > 0) {
+            const pct = Math.min(100, Math.round((loaded / total) * 100));
+            setDownloadPct(pct);
+            const mb = (loaded / (1024 * 1024)).toFixed(1);
+            const tot = (total / (1024 * 1024)).toFixed(1);
+            setStatus(`Téléchargement du PDF… ${mb} / ${tot} Mo`);
+          } else {
+            const mb = (loaded / (1024 * 1024)).toFixed(1);
+            setStatus(`Téléchargement du PDF… ${mb} Mo`);
+          }
+        });
         if (cancelled) return;
+        setDownloadPct(100);
 
         setStatus("Ouverture du PDF…");
         const pdf = await pdfjs.getDocument({ data }).promise;
@@ -701,6 +683,8 @@ export function PdfFlipViewer({
         });
       } catch (err) {
         if (cancelled || abort.signal.aborted) return;
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        if (err instanceof Error && err.name === "AbortError") return;
         const message =
           err instanceof Error ? err.message : "Impossible de charger le PDF";
         console.error("[PdfFlipViewer]", err);
@@ -709,11 +693,20 @@ export function PdfFlipViewer({
       }
     }
 
-    void boot();
+    void boot().catch((err) => {
+      if (cancelled || abort.signal.aborted) return;
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      if (err instanceof Error && err.name === "AbortError") return;
+      console.error("[PdfFlipViewer]", err);
+    });
 
     return () => {
       cancelled = true;
-      abort.abort();
+      try {
+        abort.abort();
+      } catch {
+        /* ignore */
+      }
       paintGen.current += 1;
       destroyFlip();
     };
@@ -772,7 +765,11 @@ export function PdfFlipViewer({
 
   if (mode === "fallback") {
     return (
-      <div className="opt-flip opt-flip--fallback">
+      <div
+        className="opt-flip opt-flip--fallback"
+        onContextMenu={(e) => e.preventDefault()}
+        onDragStart={(e) => e.preventDefault()}
+      >
         <iframe
           src={`${url}#view=FitH`}
           className="opt-lecture__frame"
@@ -790,11 +787,20 @@ export function PdfFlipViewer({
   }
 
   return (
-    <div className={`opt-flip${thumbsOpen ? " has-thumbs" : ""}`}>
+    <div
+      className={`opt-flip${thumbsOpen ? " has-thumbs" : ""}`}
+      onContextMenu={(e) => e.preventDefault()}
+      onDragStart={(e) => e.preventDefault()}
+    >
       {mode === "loading" ? (
         <div className="opt-flip__loading" aria-live="polite">
           <span className="opt-lecture__spinner" aria-hidden />
           <p>{status || "Préparation du feuilletage…"}</p>
+          {downloadPct != null ? (
+            <div className="opt-flip__bar" aria-hidden>
+              <span style={{ width: `${downloadPct}%` }} />
+            </div>
+          ) : null}
         </div>
       ) : null}
 

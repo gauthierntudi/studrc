@@ -1209,15 +1209,17 @@ export const magazinesPublicApi = {
     );
   },
 
-  preview(id: string) {
+  preview(id: string, opts?: { refresh?: boolean }) {
+    const qs = opts?.refresh ? "?refresh=1" : "";
     return apiFetch<MagazineReadSession>(
-      `/magazines/${encodeURIComponent(id)}/preview`,
+      `/magazines/${encodeURIComponent(id)}/preview${qs}`,
     );
   },
 
-  read(id: string) {
+  read(id: string, opts?: { refresh?: boolean }) {
+    const qs = opts?.refresh ? "?refresh=1" : "";
     return apiFetch<MagazineReadSession>(
-      `/magazines/${encodeURIComponent(id)}/read`,
+      `/magazines/${encodeURIComponent(id)}/read${qs}`,
     );
   },
 };
@@ -1376,9 +1378,21 @@ export type MagazineReadSession = {
   code: string | null;
   message: string | null;
   accessVia: "free" | "subscription" | "purchase" | "preview" | null;
-  viewer: "pdf" | null;
+  viewer: "pdf" | "pages" | null;
   readerUrl: string | null;
   downloadUrl: string | null;
+  pagesStatus?: "PENDING" | "PROCESSING" | "READY" | "FAILED";
+  /** ISO — expiration des URLs signées des pages WebP. */
+  pagesUrlExpiresAt?: string | null;
+  pages?:
+    | {
+        pageNumber: number;
+        url: string;
+        thumbUrl: string | null;
+        width: number;
+        height: number;
+      }[]
+    | null;
 };
 
 export const paymentsApi = {

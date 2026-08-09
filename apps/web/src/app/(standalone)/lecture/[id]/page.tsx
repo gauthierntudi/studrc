@@ -16,6 +16,7 @@ import {
   type MagazineReadSession,
 } from "@/lib/api";
 import { PdfFlipViewer } from "./pdf-flip-viewer";
+import { PagesFlipViewer } from "./pages-flip-viewer";
 import "./lecture.css";
 
 function LectureContent() {
@@ -74,9 +75,74 @@ function LectureContent() {
     };
   }, [user, id, isPreview, authLoading]);
 
+  // Poll discret :
+  // - PDF : bascule vers WebP dès que des pages existent
+  // - pages en PROCESSING : récupère les nouvelles pages uploadées
+  useEffect(() => {
+    if (!id || !session?.canRead) return;
+    if (session.pagesStatus === "FAILED" && session.viewer !== "pages") return;
+    if (session.viewer === "pages" && session.pagesStatus === "READY") return;
+    if (!isPreview && (authLoading || !user)) return;
+
+    const onPages = session.viewer === "pages";
+    let cancelled = false;
+
+    const tick = () => {
+      const load = isPreview
+        ? magazinesPublicApi.preview(id, { refresh: true })
+        : magazinesPublicApi.read(id, { refresh: true });
+      void load
+        .then((res) => {
+          if (cancelled) return;
+          const hasPages =
+            res.viewer === "pages" &&
+            Array.isArray(res.pages) &&
+            res.pages.length > 0;
+
+          if (!onPages) {
+            if (hasPages) setSession(res);
+            return;
+          }
+
+          if (hasPages) {
+            setSession((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    pages: res.pages,
+                    pagesUrlExpiresAt: res.pagesUrlExpiresAt ?? null,
+                    pagesStatus: res.pagesStatus,
+                  }
+                : res,
+            );
+          }
+        })
+        .catch(() => undefined);
+    };
+
+    const intervalMs = onPages ? 30_000 : 10_000;
+    const interval = window.setInterval(tick, intervalMs);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [
+    id,
+    isPreview,
+    authLoading,
+    user,
+    session?.canRead,
+    session?.viewer,
+    session?.pagesStatus,
+  ]);
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape" && fullscreen) setFullscreen(false);
+      // Empêche Enregistrer / téléchargement clavier pendant la lecture.
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -121,7 +187,13 @@ function LectureContent() {
 
   if (!session) return null;
 
-  if (!session.canRead || !session.readerUrl) {
+  const hasPages =
+    session.viewer === "pages" &&
+    Array.isArray(session.pages) &&
+    session.pages.length > 0;
+  const canOpen = session.canRead && (hasPages || Boolean(session.readerUrl));
+
+  if (!canOpen) {
     return (
       <section className="opt-lecture">
         <header className="opt-lecture__bar">
@@ -277,16 +349,28 @@ function LectureContent() {
             </button>
           </div>
         ) : null}
-        <PdfFlipViewer
-          url={session.readerUrl}
-          title={session.title}
-          thumbsOpen={thumbsOpen}
-          maxPages={maxPages}
-          magazineId={previewMode ? session.id : null}
-          coverUrl={previewMode ? session.coverUrl : null}
-          theme={previewMode ? session.theme ?? null : null}
-          onProgress={(page, total) => setProgress({ page, total })}
-        />
+        {hasPages ? (
+          <PagesFlipViewer
+            pages={session.pages!}
+            title={session.title}
+            thumbsOpen={thumbsOpen}
+            magazineId={previewMode ? session.id : null}
+            coverUrl={previewMode ? session.coverUrl : null}
+            theme={previewMode ? session.theme ?? null : null}
+            onProgress={(page, total) => setProgress({ page, total })}
+          />
+        ) : (
+          <PdfFlipViewer
+            url={session.readerUrl!}
+            title={session.title}
+            thumbsOpen={thumbsOpen}
+            maxPages={maxPages}
+            magazineId={previewMode ? session.id : null}
+            coverUrl={previewMode ? session.coverUrl : null}
+            theme={previewMode ? session.theme ?? null : null}
+            onProgress={(page, total) => setProgress({ page, total })}
+          />
+        )}
       </div>
     </section>
   );

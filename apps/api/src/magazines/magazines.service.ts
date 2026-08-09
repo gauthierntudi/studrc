@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -7,17 +8,20 @@ import { ConfigService } from '@nestjs/config';
 import {
   AccessType,
   ActivityActorType,
+  MagazinePagesStatus,
   PaymentStatus,
   Prisma,
   SubscriptionStatus,
 } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { extname } from 'path';
+import type { Readable } from 'stream';
 import { ActivityService } from '../activity/activity.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   contentTypeForExt,
   createR2ClientFromEnv,
+  getR2ObjectStream,
   headR2Object,
   putR2Object,
   presignR2PutObject,
@@ -28,6 +32,7 @@ import {
   PresignMagazinePdfDto,
   UpdateMagazineDto,
 } from './dto/admin-magazine.dto';
+import { enqueueMagazinePages } from './pages/magazine-pages.queue';
 
 type UploadFile = {
   originalname: string;
@@ -49,6 +54,9 @@ const MAGAZINE_SELECT = {
   pdfKey: true,
   previewKey: true,
   downloadKey: true,
+  pagesStatus: true,
+  pagesCount: true,
+  pagesError: true,
   viewCount: true,
   isPublished: true,
   isActive: true,
@@ -337,9 +345,13 @@ export class MagazinesService {
   /**
    * Session de lecture pour un abonné :
    * FREE, abonnement actif, ou achat unitaire SUCCESS.
-   * Source unique : PDF Cloudflare R2 (`downloadKey`).
+   * Pages WebP pré-générées si READY, sinon PDF Cloudflare R2 (`downloadKey`).
    */
-  async getReaderSession(magazineId: string, subscriberId: string) {
+  async getReaderSession(
+    magazineId: string,
+    subscriberId: string,
+    opts?: { refresh?: boolean },
+  ) {
     const magazine = await this.prisma.magazine.findUnique({
       where: { id: magazineId },
       select: {
@@ -348,6 +360,8 @@ export class MagazinesService {
         issueNumber: true,
         coverKey: true,
         downloadKey: true,
+        pagesStatus: true,
+        pagesCount: true,
         accessType: true,
         isPublished: true,
         isActive: true,
@@ -366,6 +380,7 @@ export class MagazinesService {
       coverUrl: this.resolveCoverUrl(magazine.coverKey),
       publishedAt: magazine.publishedAt?.toISOString() ?? null,
       accessType: magazine.accessType,
+      pagesStatus: magazine.pagesStatus,
     };
 
     const access = await this.resolveSubscriberAccess(
@@ -375,6 +390,17 @@ export class MagazinesService {
     );
 
     const pdfUrl = this.resolveCoverUrl(magazine.downloadKey);
+    const pagesBundle = await this.buildPagesPayload(
+      magazine.id,
+      magazine.pagesStatus,
+    );
+    const pagesPayload = pagesBundle?.pages ?? null;
+    const pagesUrlExpiresAt = pagesBundle?.expiresAt ?? null;
+
+    // Lazy : à la lecture, lancer la rasterisation si pas encore READY.
+    if (!pagesPayload && magazine.downloadKey) {
+      this.ensurePagesGeneration(magazine.id, magazine.pagesStatus);
+    }
 
     if (!access.allowed) {
       return {
@@ -388,30 +414,53 @@ export class MagazinesService {
         viewer: null,
         readerUrl: null,
         downloadUrl: pdfUrl,
+        pages: null,
+        pagesUrlExpiresAt: null,
       };
     }
 
-    if (!pdfUrl) {
+    if (!pdfUrl && !pagesPayload) {
       return {
         ...base,
         canRead: false as const,
         preview: false as const,
         maxPages: null,
         code: 'NO_CONTENT',
-        message: 'Aucun fichier PDF disponible pour ce numéro.',
+        message: 'Aucun contenu disponible pour ce numéro.',
         accessVia: null,
         viewer: null,
         readerUrl: null,
         downloadUrl: null,
+        pages: null,
+        pagesUrlExpiresAt: null,
       };
     }
 
-    void this.prisma.magazine
-      .update({
-        where: { id: magazine.id },
-        data: { viewCount: { increment: 1 } },
-      })
-      .catch(() => undefined);
+    if (!opts?.refresh) {
+      void this.prisma.magazine
+        .update({
+          where: { id: magazine.id },
+          data: { viewCount: { increment: 1 } },
+        })
+        .catch(() => undefined);
+    }
+
+    if (pagesPayload) {
+      return {
+        ...base,
+        canRead: true as const,
+        preview: false as const,
+        maxPages: null,
+        code: null,
+        message: null,
+        accessVia: access.via,
+        viewer: 'pages' as const,
+        readerUrl: pdfUrl,
+        downloadUrl: pdfUrl,
+        pages: pagesPayload,
+        pagesUrlExpiresAt,
+      };
+    }
 
     return {
       ...base,
@@ -424,12 +473,16 @@ export class MagazinesService {
       viewer: 'pdf' as const,
       readerUrl: pdfUrl,
       downloadUrl: pdfUrl,
+      pages: null,
+      pagesUrlExpiresAt: null,
     };
   }
 
+  private static readonly PREVIEW_PAGE_LIMIT = 15;
+
   /** Aperçu public des 15 premières pages — sans auth ni abonnement. */
   async getPreviewSession(magazineId: string) {
-    const PREVIEW_PAGES = 15;
+    const PREVIEW_PAGES = MagazinesService.PREVIEW_PAGE_LIMIT;
     const magazine = await this.prisma.magazine.findFirst({
       where: { id: magazineId, isPublished: true, isActive: true },
       select: {
@@ -438,6 +491,7 @@ export class MagazinesService {
         issueNumber: true,
         coverKey: true,
         downloadKey: true,
+        pagesStatus: true,
         accessType: true,
         publishedAt: true,
         theme: true,
@@ -459,18 +513,48 @@ export class MagazinesService {
       preview: true as const,
       maxPages: PREVIEW_PAGES,
       accessVia: 'preview' as const,
+      pagesStatus: magazine.pagesStatus,
     };
 
     const pdfUrl = this.resolveCoverUrl(magazine.downloadKey);
-    if (!pdfUrl) {
+    const pagesBundle = await this.buildPagesPayload(
+      magazine.id,
+      magazine.pagesStatus,
+      PREVIEW_PAGES,
+    );
+    const pagesPayload = pagesBundle?.pages ?? null;
+    const pagesUrlExpiresAt = pagesBundle?.expiresAt ?? null;
+
+    // Lazy : à l’aperçu, lancer la rasterisation si pas encore READY.
+    if (!pagesPayload && magazine.downloadKey) {
+      this.ensurePagesGeneration(magazine.id, magazine.pagesStatus);
+    }
+
+    if (!pdfUrl && !pagesPayload) {
       return {
         ...base,
         canRead: false as const,
         code: 'NO_CONTENT',
-        message: 'Aucun fichier PDF disponible pour ce numéro.',
+        message: 'Aucun contenu disponible pour ce numéro.',
         viewer: null,
         readerUrl: null,
         downloadUrl: null,
+        pages: null,
+        pagesUrlExpiresAt: null,
+      };
+    }
+
+    if (pagesPayload) {
+      return {
+        ...base,
+        canRead: true as const,
+        code: null,
+        message: `Aperçu limité aux ${PREVIEW_PAGES} premières pages.`,
+        viewer: 'pages' as const,
+        readerUrl: pdfUrl,
+        downloadUrl: null,
+        pages: pagesPayload,
+        pagesUrlExpiresAt,
       };
     }
 
@@ -482,7 +566,199 @@ export class MagazinesService {
       viewer: 'pdf' as const,
       readerUrl: pdfUrl,
       downloadUrl: null,
+      pages: null,
+      pagesUrlExpiresAt: null,
     };
+  }
+
+  private async buildPagesPayload(
+    magazineId: string,
+    status: MagazinePagesStatus,
+    maxPages?: number,
+  ): Promise<{
+    pages: {
+      pageNumber: number;
+      url: string;
+      thumbUrl: string | null;
+      width: number;
+      height: number;
+    }[];
+    expiresAt: string;
+  } | null> {
+    // READY : jeu complet. PROCESSING / FAILED : servir les pages déjà uploadées
+    // (évite le téléchargement PDF alors que des WebP existent déjà).
+    if (
+      status !== MagazinePagesStatus.READY &&
+      status !== MagazinePagesStatus.PROCESSING &&
+      status !== MagazinePagesStatus.FAILED
+    ) {
+      return null;
+    }
+
+    const rows = await this.prisma.magazinePage.findMany({
+      where: { magazineId },
+      orderBy: { pageNumber: 'asc' },
+      take: maxPages && maxPages > 0 ? maxPages : undefined,
+      select: {
+        pageNumber: true,
+        imageKey: true,
+        thumbKey: true,
+        width: true,
+        height: true,
+      },
+    });
+    if (rows.length === 0) return null;
+
+    // Aperçu / lecture partielle : au moins la page 1 doit être là.
+    if (rows[0]?.pageNumber !== 1) return null;
+
+    // En cours : pour un aperçu limité, attendre d’avoir assez de pages contiguës.
+    if (
+      status !== MagazinePagesStatus.READY &&
+      maxPages &&
+      maxPages > 0 &&
+      rows.length < Math.min(maxPages, 3)
+    ) {
+      return null;
+    }
+
+    const ttlHintMs = 60 * 60_000; // cache navigateur hint — l’accès est revalidé à chaque requête proxy
+    const expiresAt = new Date(Date.now() + ttlHintMs).toISOString();
+    const apiBase = this.publicApiBaseUrl();
+
+    const pages = rows.map((row) => {
+      const base = `${apiBase}/api/magazines/${magazineId}/pages/${row.pageNumber}`;
+      return {
+        pageNumber: row.pageNumber,
+        url: base,
+        thumbUrl: row.thumbKey ? `${base}?thumb=1` : null,
+        width: row.width,
+        height: row.height,
+      };
+    });
+
+    return { pages, expiresAt };
+  }
+
+  /**
+   * Stream une page WebP via l’API (sans exposer R2).
+   * Pages 1–15 : aperçu public. Au-delà : abonnement / achat / FREE.
+   */
+  async streamMagazinePage(
+    magazineId: string,
+    pageNumber: number,
+    opts: { thumb?: boolean; subscriberId?: string | null },
+  ): Promise<{
+    body: Readable;
+    contentType: string;
+    contentLength: number | undefined;
+  }> {
+    if (!Number.isFinite(pageNumber) || pageNumber < 1) {
+      throw new BadRequestException('Numéro de page invalide');
+    }
+
+    const magazine = await this.prisma.magazine.findFirst({
+      where: { id: magazineId, isPublished: true, isActive: true },
+      select: {
+        id: true,
+        accessType: true,
+        pagesStatus: true,
+      },
+    });
+    if (!magazine) {
+      throw new NotFoundException('Magazine introuvable');
+    }
+
+    const previewOk = pageNumber <= MagazinesService.PREVIEW_PAGE_LIMIT;
+    if (!previewOk) {
+      if (magazine.accessType === AccessType.FREE) {
+        // ok
+      } else if (!opts.subscriberId) {
+        throw new ForbiddenException(
+          'Connexion requise pour lire au-delà de l’aperçu',
+        );
+      } else {
+        const access = await this.resolveSubscriberAccess(
+          opts.subscriberId,
+          magazine.id,
+          magazine.accessType,
+        );
+        if (!access.allowed) {
+          throw new ForbiddenException(access.message);
+        }
+      }
+    }
+
+    if (
+      magazine.pagesStatus !== MagazinePagesStatus.READY &&
+      magazine.pagesStatus !== MagazinePagesStatus.PROCESSING &&
+      magazine.pagesStatus !== MagazinePagesStatus.FAILED
+    ) {
+      throw new NotFoundException('Pages non disponibles');
+    }
+
+    const row = await this.prisma.magazinePage.findUnique({
+      where: {
+        magazineId_pageNumber: { magazineId, pageNumber },
+      },
+      select: { imageKey: true, thumbKey: true },
+    });
+    if (!row) {
+      throw new NotFoundException('Page introuvable');
+    }
+
+    const key =
+      opts.thumb && row.thumbKey ? row.thumbKey : row.imageKey;
+    if (!key) {
+      throw new NotFoundException('Fichier page introuvable');
+    }
+
+    const r2 = createR2ClientFromEnv();
+    if (!r2) {
+      throw new BadRequestException('Stockage R2 non configuré');
+    }
+
+    const obj = await getR2ObjectStream(r2, key);
+    return {
+      body: obj.body,
+      contentType: obj.contentType || 'image/webp',
+      contentLength: obj.contentLength,
+    };
+  }
+
+  private publicApiBaseUrl(): string {
+    const raw =
+      this.config.get<string>('API_URL') ||
+      this.config.get<string>('NEXT_PUBLIC_API_URL') ||
+      'http://localhost:3001';
+    return raw.replace(/\/$/, '');
+  }
+
+  /**
+   * Déclenche la génération des pages à la demande (lecture / aperçu).
+   * Inclut PROCESSING pour reprendre un job perdu (worker crash).
+   */
+  private ensurePagesGeneration(
+    magazineId: string,
+    status: MagazinePagesStatus,
+  ): void {
+    if (status === MagazinePagesStatus.READY) return;
+    void enqueueMagazinePages(magazineId, { urgent: true, priority: 1 })
+      .then((res) => {
+        // eslint-disable-next-line no-console
+        console.log(
+          `[magazine-pages] lazy ${res.queued ? 'queued' : 'already'} ${magazineId}` +
+            (res.state ? ` (${res.state})` : '') +
+            (res.queue ? ` @${res.queue}` : ''),
+        );
+      })
+      .catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error(
+          `[magazine-pages] lazy enqueue failed for ${magazineId}`,
+          err,
+        );
+      });
   }
 
   private async resolveSubscriberAccess(
@@ -814,6 +1090,9 @@ export class MagazinesService {
         downloadKey: key,
         // Remplace aussi le chemin de lecture s’il n’y a pas déjà une URL FlipHTML5.
         pdfKey: key,
+        pagesStatus: MagazinePagesStatus.PENDING,
+        pagesCount: null,
+        pagesError: null,
       },
       select: MAGAZINE_SELECT,
     });
@@ -827,7 +1106,50 @@ export class MagazinesService {
       meta: { downloadKey: key, size, via },
     });
 
+    void enqueueMagazinePages(id).catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error(`[magazine-pages] enqueue failed for ${id}`, err);
+    });
+
     return this.toAdminMagazine(updated);
+  }
+
+  /** Relance la rasterisation des pages (admin). */
+  async reprocessPages(id: string, actorId: string) {
+    const magazine = await this.prisma.magazine.findUnique({
+      where: { id },
+      select: { id: true, downloadKey: true },
+    });
+    if (!magazine) {
+      throw new NotFoundException('Magazine introuvable');
+    }
+    if (!magazine.downloadKey) {
+      throw new BadRequestException('Aucun PDF à traiter pour ce magazine');
+    }
+
+    await this.prisma.magazine.update({
+      where: { id },
+      data: {
+        pagesStatus: MagazinePagesStatus.PENDING,
+        pagesError: null,
+      },
+    });
+
+    await enqueueMagazinePages(id);
+
+    void this.activity.log({
+      actorType: ActivityActorType.ADMIN,
+      adminId: actorId,
+      action: 'magazine_pages_reprocess',
+      entity: 'magazine',
+      entityId: id,
+    });
+
+    return {
+      id,
+      pagesStatus: MagazinePagesStatus.PENDING,
+      queued: true,
+    };
   }
 
   private buildPdfKey(magazineId: string, ext: string) {

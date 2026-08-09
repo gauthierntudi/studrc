@@ -372,6 +372,19 @@ body:has(.opt-lecture) {
   overflow: hidden;
   padding: 0.4rem 0.65rem 0.55rem;
   box-sizing: border-box;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.opt-flip img,
+.opt-flip canvas {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  user-drag: none;
+  pointer-events: auto;
 }
 
 .opt-flip__main {

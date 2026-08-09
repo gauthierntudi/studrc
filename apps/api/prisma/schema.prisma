@@ -50,6 +50,13 @@ enum ActivityActorType {
   SYSTEM
 }
 
+enum MagazinePagesStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}
+
 model Subscriber {
   id                        String    @id @default(cuid())
   legacyId                  Int?      @unique
@@ -141,32 +148,54 @@ model Plan {
 }
 
 model Magazine {
-  id           String     @id @default(cuid())
-  legacyId     Int?       @unique
+  id           String              @id @default(cuid())
+  legacyId     Int?                @unique
   title        String
   description  String?
   issueNumber  String?
-  accessType   AccessType @default(PAID)
+  accessType   AccessType          @default(PAID)
   priceCents   Int?
-  currency     String     @default("USD")
+  currency     String              @default("USD")
   coverKey     String?
   pdfKey       String?
   previewKey   String?
   downloadKey  String?
-  viewCount    Int        @default(0)
+  pagesStatus  MagazinePagesStatus @default(PENDING)
+  pagesCount   Int?
+  pagesError   String?
+  viewCount    Int                 @default(0)
   theme        Json?
   highlights   Json?
-  isPublished  Boolean    @default(false)
-  isActive     Boolean    @default(true)
+  isPublished  Boolean             @default(false)
+  isActive     Boolean             @default(true)
   publishedAt  DateTime?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
 
   purchases Purchase[]
   payments  Payment[]
   articles  Article[]
+  pages     MagazinePage[]
 
   @@map("magazines")
+}
+
+model MagazinePage {
+  id         String   @id @default(cuid())
+  magazineId String
+  pageNumber Int
+  imageKey   String
+  thumbKey   String?
+  width      Int
+  height     Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  magazine Magazine @relation(fields: [magazineId], references: [id], onDelete: Cascade)
+
+  @@unique([magazineId, pageNumber])
+  @@index([magazineId])
+  @@map("magazine_pages")
 }
 
 model Subscription {

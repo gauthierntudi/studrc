@@ -95,6 +95,21 @@ Sur le VPS partagé avec Chrononews : copier
 `deploy/nginx/local/chrononews.conf.example` → `chrononews.conf`
 (ne pas le mettre dans `default.conf`, sinon `git pull` casse le deploy).
 
+### Pages magazine (WebP)
+
+Après upload PDF **ou** à la première lecture/aperçu (`PENDING` / `FAILED`), l’API enqueue un job BullMQ. Deux files séparées :
+
+- `magazine-pages-urgent` — lecture / aperçu (jusqu’à `MAGAZINE_PAGES_URGENT_CONCURRENCY`, défaut 3) : ne attend **pas** le backfill
+- `magazine-pages` — upload + backfill (`MAGAZINE_PAGES_CONCURRENCY`, défaut 2)
+
+Le worker rasterise page par page (WebP → R2). Le viewer flip utilise les images si `pagesStatus=READY` (ou pages déjà uploadées en `PROCESSING`), sinon repli PDF.
+
+Les pages WebP sont servies via **proxy API** (`GET /api/magazines/:id/pages/:n`, aperçu 1–15 public, au-delà cookie JWT + droits). Le navigateur ne voit plus les URLs R2. Le CDN `cdn…/pages/` doit rester bloqué (WAF).
+
+- Relancer un numéro : `POST /api/admin/magazines/:id/pages/reprocess`
+- Backfill bulk : `pnpm --filter @opt1mum/api enqueue:magazine-pages` (option `--limit=10`)
+- Prérequis : `REDIS_URL` + service Compose `worker` up
+
 ### Services Compose prod
 
 | Service | Image / build | Rôle |
