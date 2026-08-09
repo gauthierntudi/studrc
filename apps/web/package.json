@@ -6,7 +6,6 @@
     "dev": "pnpm sync:pdf-worker && next dev --turbopack --port 3000",
     "build": "pnpm sync:pdf-worker && next build",
     "sync:pdf-worker": "node ./scripts/sync-pdf-worker.mjs",
-    "postinstall": "node ./scripts/sync-pdf-worker.mjs",
     "start": "next start --port 3000",
     "lint": "eslint"
   },
