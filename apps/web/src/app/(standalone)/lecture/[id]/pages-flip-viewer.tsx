@@ -26,10 +26,12 @@ type Props = {
   onProgress?: (pageIndex: number, pageCount: number) => void;
 };
 
-const PRELOAD_RADIUS = 3;
+const PRELOAD_RADIUS = 2;
 const TARGET_PAGE_CSS_WIDTH = 720;
 /** Prefetch réseau hors fenêtre peinte (évite le blanc à l’arrivée). */
-const PREFETCH_EXTRA = 2;
+const PREFETCH_EXTRA = 1;
+/** Au boot : peindre uniquement les 2 premières pages, le reste en lazy. */
+const INITIAL_LAZY_PAGES = 2;
 
 function paintImagePage(
   host: HTMLElement,
@@ -55,6 +57,7 @@ function paintImagePage(
       ctx.drawImage(img, 0, 0);
       host.replaceChildren(canvas);
       host.dataset.hq = "1";
+      host.classList.remove("is-skeleton");
       resolve();
     };
     img.onerror = () => reject(new Error("Image page impossible à charger"));
@@ -143,7 +146,17 @@ function ImageThumbnailStrip({
                   CTA
                 </span>
               ) : src ? (
-                <img src={src} alt="" draggable={false} />
+                <img
+                  src={src}
+                  alt=""
+                  draggable={false}
+                  loading={
+                    i < INITIAL_LAZY_PAGES || Math.abs(i - pageIndex) <= 1
+                      ? "eager"
+                      : "lazy"
+                  }
+                  decoding="async"
+                />
               ) : (
                 <span className="opt-flip__thumb-skel" aria-hidden />
               )}
@@ -205,6 +218,26 @@ export function PagesFlipViewer({
     pagesRef.current = [];
   }, []);
 
+  const paintIndices = useCallback(
+    async (indices: number[]) => {
+      const hosts = pagesRef.current;
+      const gen = paintGen.current;
+      for (const i of indices) {
+        if (gen !== paintGen.current) return;
+        if (i < 0 || i >= contentPageCount) continue;
+        const asset = pagesAssetsRef.current[i];
+        const host = hosts[i];
+        if (!asset || !host || host.dataset.cta === "1") continue;
+        await paintImagePage(
+          host,
+          asset.url,
+          `${title} — page ${asset.pageNumber}`,
+        ).catch(() => undefined);
+      }
+    },
+    [contentPageCount, title],
+  );
+
   const ensureWindow = useCallback(
     async (centerIndex: number) => {
       const hosts = pagesRef.current;
@@ -229,6 +262,7 @@ export function PagesFlipViewer({
           if (host && host.dataset.cta !== "1" && host.dataset.hq === "1") {
             host.replaceChildren();
             delete host.dataset.hq;
+            host.classList.add("is-skeleton");
           }
         }
       }
@@ -244,19 +278,10 @@ export function PagesFlipViewer({
       pushUnique(centerIndex + 1);
       for (let i = start; i <= end; i++) pushUnique(i);
 
-      for (const i of order) {
-        if (gen !== paintGen.current) return;
-        const asset = pagesAssetsRef.current[i];
-        const host = hosts[i];
-        if (!asset || !host || host.dataset.cta === "1") continue;
-        await paintImagePage(
-          host,
-          asset.url,
-          `${title} — page ${asset.pageNumber}`,
-        ).catch(() => undefined);
-      }
+      await paintIndices(order);
+      if (gen !== paintGen.current) return;
     },
-    [contentPageCount, title],
+    [contentPageCount, paintIndices],
   );
 
   const goToPage = useCallback(
@@ -325,7 +350,7 @@ export function PagesFlipViewer({
         const items: HTMLElement[] = [];
         for (const asset of bootPages) {
           const el = document.createElement("div");
-          el.className = "opt-flip__page";
+          el.className = "opt-flip__page is-skeleton";
           el.dataset.page = String(asset.pageNumber);
           el.setAttribute("aria-label", `Page ${asset.pageNumber}`);
           items.push(el);
@@ -406,8 +431,21 @@ export function PagesFlipViewer({
 
         requestAnimationFrame(() => {
           reinforceCtaPage(pagesRef.current[pagesRef.current.length - 1]!);
-          // Page 0 + précédente/suivante déjà peintes avant interaction.
-          void ensureWindow(0).then(() => ensureWindow(1));
+          // Lazy : uniquement les 2 premières pages au démarrage.
+          const initial = Array.from(
+            { length: Math.min(INITIAL_LAZY_PAGES, contentCount) },
+            (_, i) => i,
+          );
+          void paintIndices(initial).then(() => {
+            // Prefetch léger de la suite quand le navigateur est idle.
+            const idle =
+              typeof window !== "undefined" && "requestIdleCallback" in window
+                ? window.requestIdleCallback.bind(window)
+                : (cb: () => void) => window.setTimeout(cb, 400);
+            idle(() => {
+              void ensureWindow(Math.min(1, contentCount - 1));
+            });
+          });
         });
       } catch (err) {
         if (cancelled) return;
@@ -433,6 +471,7 @@ export function PagesFlipViewer({
     theme,
     destroyFlip,
     ensureWindow,
+    paintIndices,
     reportProgress,
   ]);
 

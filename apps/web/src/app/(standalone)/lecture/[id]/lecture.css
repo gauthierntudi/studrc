@@ -516,6 +516,27 @@ body:has(.opt-lecture) {
   overflow: hidden;
 }
 
+.opt-flip__page.is-skeleton {
+  background: linear-gradient(
+    110deg,
+    #f0f0f0 0%,
+    #f7f7f7 40%,
+    #ececec 60%,
+    #f0f0f0 100%
+  );
+  background-size: 200% 100%;
+  animation: opt-page-skel 1.2s ease-in-out infinite;
+}
+
+@keyframes opt-page-skel {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
 .opt-flip__page-canvas {
   display: block;
   width: 100%;
