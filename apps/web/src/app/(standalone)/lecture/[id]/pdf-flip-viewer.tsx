@@ -593,7 +593,7 @@ export function PdfFlipViewer({
 
       try {
         const pdfjs = await import("pdfjs-dist");
-        // Worker local versionné — doit matcher pdfjs-dist du lockfile (pas une copie périmée).
+        // Worker servi depuis /public, synchronisé via `pnpm sync:pdf-worker` (même version que pdfjs-dist).
         pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs?v=${encodeURIComponent(pdfjs.version)}`;
 
         setStatus("Téléchargement du PDF…");

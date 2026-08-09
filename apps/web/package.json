@@ -3,8 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack --port 3000",
-    "build": "next build",
+    "dev": "pnpm sync:pdf-worker && next dev --turbopack --port 3000",
+    "build": "pnpm sync:pdf-worker && next build",
+    "sync:pdf-worker": "node ./scripts/sync-pdf-worker.mjs",
+    "postinstall": "node ./scripts/sync-pdf-worker.mjs",
     "start": "next start --port 3000",
     "lint": "eslint"
   },
@@ -19,7 +21,7 @@
     "lucide-react": "^1.26.0",
     "next": "16.2.11",
     "page-flip": "^2.0.7",
-    "pdfjs-dist": "^6.1.200",
+    "pdfjs-dist": "6.2.108",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-easy-crop": "^6.2.3",
