@@ -27,18 +27,34 @@ export const metadata: Metadata = {
     template: "%s · Opt1mum",
   },
   description: "Magazine Opt1mum — kiosque et abonnements",
-  icons: { icon: "/legacy/img/logo-hd.png" },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/legacy/img/icon-flat.jpg", type: "image/jpeg", sizes: "512x512" },
+    ],
+    apple: "/apple-touch-icon.png",
+    shortcut: "/favicon.ico",
+  },
   openGraph: {
     type: "website",
     locale: "fr_FR",
     siteName: "Opt1mum",
     title: "Opt1mum",
     description: "Magazine Opt1mum — kiosque et abonnements",
+    images: [
+      {
+        url: "/legacy/img/icon-flat.jpg",
+        width: 512,
+        height: 512,
+        alt: "Opt1mum",
+      },
+    ],
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "Opt1mum",
     description: "Magazine Opt1mum — kiosque et abonnements",
+    images: ["/legacy/img/icon-flat.jpg"],
   },
 };
 
