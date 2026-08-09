@@ -112,6 +112,10 @@ Les pages WebP sont servies via **proxy API** (`GET /api/magazines/:id/pages/:n`
 - Backfill bulk : `pnpm --filter @opt1mum/api enqueue:magazine-pages` (option `--limit=10`)
 - Prérequis : `REDIS_URL` + service Compose `worker` up
 
+### Monitoring (superadmins)
+
+Page Admin → **Monitoring** (`/admin/monitoring`) : pastilles API / Postgres / Redis / R2 / Web+Nginx / CDN / worker pages, compteurs pipeline, files BullMQ, magazines bloqués. Le worker écrit un heartbeat Redis toutes les 30 s. Alertes email Resend aux SUPERADMIN si incident (`MONITORING_ALERTS=true`, cooldown 1 h, intervalle `MONITORING_ALERT_INTERVAL_MS`).
+
 ### Services Compose prod
 
 | Service | Image / build | Rôle |

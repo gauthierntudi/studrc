@@ -7,6 +7,8 @@
  *
  * Reaper : au boot + périodiquement, ré-enqueue PENDING / PROCESSING orphelins
  * (crash worker, job Redis perdu) avec reprise des pages déjà uploadées.
+ *
+ * Heartbeat Redis : lu par Admin → Monitoring.
  */
 import { config as loadEnv } from 'dotenv';
 import { resolve } from 'path';
@@ -19,6 +21,10 @@ import {
 } from './magazines/pages/magazine-pages.queue';
 import { processMagazinePagesJob } from './magazines/pages/process-magazine-pages';
 import { startMagazinePagesRecoveryLoop } from './magazines/pages/recover-orphaned-pages';
+import {
+  WORKER_HEARTBEAT_KEY,
+  WORKER_HEARTBEAT_TTL_SEC,
+} from './monitoring/monitoring.constants';
 
 loadEnv({ path: resolve(__dirname, '../../../.env') });
 loadEnv({ path: resolve(__dirname, '../.env') });
@@ -72,6 +78,23 @@ async function bootstrap() {
   const bulkWorker = makeWorker(MAGAZINE_PAGES_QUEUE, bulkConcurrency);
   const recovery = startMagazinePagesRecoveryLoop();
 
+  const writeHeartbeat = () => {
+    const payload = JSON.stringify({
+      at: new Date().toISOString(),
+      urgent: urgentConcurrency,
+      bulk: bulkConcurrency,
+      pid: process.pid,
+    });
+    void connection
+      .set(WORKER_HEARTBEAT_KEY, payload, 'EX', WORKER_HEARTBEAT_TTL_SEC)
+      .catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error('[worker] heartbeat failed', err);
+      });
+  };
+  writeHeartbeat();
+  const heartbeatTimer = setInterval(writeHeartbeat, 30_000);
+
   // eslint-disable-next-line no-console
   console.log(
     `OPT1MUM worker started — urgent×${urgentConcurrency} + bulk×${bulkConcurrency}`,
@@ -80,7 +103,9 @@ async function bootstrap() {
   const shutdown = async (signal: string) => {
     // eslint-disable-next-line no-console
     console.log(`[worker] ${signal}, shutting down…`);
+    clearInterval(heartbeatTimer);
     recovery.stop();
+    await connection.del(WORKER_HEARTBEAT_KEY).catch(() => undefined);
     await Promise.all([urgentWorker.close(), bulkWorker.close()]);
     connection.disconnect();
     process.exit(0);

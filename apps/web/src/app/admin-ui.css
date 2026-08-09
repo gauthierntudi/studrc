@@ -4632,3 +4632,191 @@ a.snow-dash__rail-item:hover {
 .admin-social__empty .admin-dash__muted {
   margin-top: 0.35rem;
 }
+
+/* —— Monitoring (superadmin) —— */
+.admin-mon__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.admin-mon__actions .admin-dash__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.admin-mon__overall {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  padding: 1rem 1.15rem;
+  border-radius: 12px;
+  margin: 0 0 1.25rem;
+  border: 1px solid var(--snow-border, #d0d7de);
+  background: var(--snow-surface, #fff);
+}
+
+.admin-mon__overall strong {
+  display: block;
+  font-size: 1.05rem;
+}
+
+.admin-mon__overall span {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+.admin-mon__overall--up {
+  border-color: #b7e4c7;
+  background: #f0faf4;
+}
+
+.admin-mon__overall--degraded {
+  border-color: #f5d08a;
+  background: #fff8eb;
+}
+
+.admin-mon__overall--down {
+  border-color: #f1b4b0;
+  background: #fff1f0;
+}
+
+.admin-mon__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-mon__card {
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--snow-border, #d0d7de);
+  background: var(--snow-surface, #fff);
+}
+
+.admin-mon__card header {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.45rem;
+}
+
+.admin-mon__card h2 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  flex: 1;
+}
+
+.admin-mon__card em {
+  font-style: normal;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.8;
+}
+
+.admin-mon__card p {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.78;
+  word-break: break-word;
+}
+
+.admin-mon__dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: #94a3b8;
+  flex-shrink: 0;
+}
+
+.admin-mon__dot--up,
+.admin-mon__card--up .admin-mon__dot {
+  background: #16a34a;
+}
+
+.admin-mon__dot--degraded,
+.admin-mon__card--degraded .admin-mon__dot {
+  background: #d97706;
+}
+
+.admin-mon__dot--down,
+.admin-mon__card--down .admin-mon__dot {
+  background: #dc2626;
+}
+
+.admin-mon__dot--unknown {
+  background: #94a3b8;
+}
+
+.admin-mon__section {
+  margin-top: 0.5rem;
+  padding: 1.1rem 1.15rem;
+  border-radius: 12px;
+  border: 1px solid var(--snow-border, #d0d7de);
+  background: var(--snow-surface, #fff);
+}
+
+.admin-mon__section h2 {
+  margin: 0 0 0.85rem;
+  font-size: 1.05rem;
+}
+
+.admin-mon__section h3 {
+  margin: 1.1rem 0 0.55rem;
+  font-size: 0.92rem;
+}
+
+.admin-mon__stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.admin-mon__stats div {
+  padding: 0.7rem 0.75rem;
+  border-radius: 10px;
+  background: rgba(13, 32, 61, 0.04);
+  text-align: center;
+}
+
+.admin-mon__stats strong {
+  display: block;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.admin-mon__stats span {
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+
+.admin-mon__queues {
+  margin-top: 0.85rem;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.admin-mon__queues p {
+  margin: 0.2rem 0;
+}
+
+.admin-mon__table-wrap {
+  margin-top: 0.5rem;
+  overflow-x: auto;
+}
+
+@media (max-width: 720px) {
+  .admin-mon__stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

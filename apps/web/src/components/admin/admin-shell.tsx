@@ -23,6 +23,7 @@ import {
   UserRound,
   Users,
   X,
+  Activity,
 } from "lucide-react";
 import { AdminBrandLogo } from "@/components/admin/admin-brand-logo";
 import { AdminModal } from "@/components/admin/admin-modal";
@@ -46,6 +47,7 @@ const PAGE_LABEL: Record<string, string> = {
   "/admin/reseaux": "Réseaux sociaux",
   "/admin/actualites": "Actualités",
   "/admin/publicite": "Publicité",
+  "/admin/monitoring": "Monitoring",
   "/admin/staff": "Staff",
   "/admin/activites": "Logs activités",
   "/admin/profil": "Profil",
@@ -127,6 +129,7 @@ export function AdminShell({
 
   const canManageStaff =
     admin.role === "SUPERADMIN" || admin.role === "ADMIN";
+  const isSuperAdmin = admin.role === "SUPERADMIN";
 
   const nav = [
     { href: "/admin", label: "Tableau de bord", icon: LayoutDashboard },
@@ -137,6 +140,9 @@ export function AdminShell({
     { href: "/admin/newsletter", label: "Newsletter", icon: Mail },
     { href: "/admin/reseaux", label: "Réseaux sociaux", icon: Share2 },
     { href: "/admin/actualites", label: "Actualités", icon: Newspaper },
+    ...(isSuperAdmin
+      ? [{ href: "/admin/monitoring", label: "Monitoring", icon: Activity }]
+      : []),
     ...(canManageStaff
       ? [{ href: "/admin/staff", label: "Staff", icon: UserCog }]
       : []),

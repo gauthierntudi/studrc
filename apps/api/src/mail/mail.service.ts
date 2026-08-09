@@ -201,6 +201,11 @@ export class MailService {
     });
   }
 
+  /** Email libre (monitoring, ops). */
+  async sendRaw(input: { to: string; subject: string; html: string }) {
+    await this.send(input);
+  }
+
   private async send(input: { to: string; subject: string; html: string }) {
     if (!this.resend) {
       this.logger.warn(

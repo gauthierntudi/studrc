@@ -646,6 +646,61 @@ export const adminDashboardApi = {
   },
 };
 
+export type MonitoringCheckStatus = "up" | "down" | "degraded" | "unknown";
+
+export type MonitoringServiceCheck = {
+  id: string;
+  label: string;
+  status: MonitoringCheckStatus;
+  latencyMs: number | null;
+  detail: string | null;
+};
+
+export type MonitoringPagesSnapshot = {
+  pending: number;
+  processing: number;
+  ready: number;
+  failed: number;
+  queues: {
+    urgent: Record<string, number>;
+    bulk: Record<string, number>;
+  };
+  stuck: {
+    id: string;
+    title: string;
+    pagesStatus: "PENDING" | "PROCESSING" | "READY" | "FAILED";
+    generatedPageCount: number;
+    pagesError: string | null;
+    updatedAt: string;
+  }[];
+  recentFailed: {
+    id: string;
+    title: string;
+    pagesError: string | null;
+    updatedAt: string;
+  }[];
+};
+
+export type MonitoringSnapshot = {
+  overall: MonitoringCheckStatus;
+  checkedAt: string;
+  services: MonitoringServiceCheck[];
+  pages: MonitoringPagesSnapshot;
+  alertsEnabled: boolean;
+};
+
+export const adminMonitoringApi = {
+  get() {
+    return apiFetch<MonitoringSnapshot>("/admin/monitoring");
+  },
+  triggerAlert() {
+    return apiFetch<{ sent: boolean; reason: string }>(
+      "/admin/monitoring/alert",
+      { method: "POST" },
+    );
+  },
+};
+
 export type AdminActivityActorType = "ADMIN" | "SUBSCRIBER" | "SYSTEM";
 
 export type AdminActivityItem = {
