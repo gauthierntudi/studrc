@@ -103,6 +103,7 @@
 }
 
 .opt-abo__plan {
+  position: relative;
   width: 100%;
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -118,6 +119,10 @@
   transition:
     border-color 0.15s ease,
     background 0.15s ease;
+}
+
+div.opt-abo__plan {
+  cursor: default;
 }
 
 .opt-abo__plan:hover {

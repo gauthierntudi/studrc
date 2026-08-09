@@ -2,18 +2,18 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import {
   Check,
   CreditCard,
-  Home,
   Loader2,
   Smartphone,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useAuth } from "@/components/auth-provider";
 import { SiteFooter } from "@/components/site/site-footer";
+import { SiteHeader } from "@/components/site/site-header";
 import {
   magazinesPublicApi,
   paymentsApi,
@@ -46,6 +46,23 @@ function formatMoney(cents: number, currency: string): string {
   }).format(cents / 100);
 }
 
+/** Retour post-auth avec tab Mobile Money + numéro préservés. */
+function achatAuthNext(
+  magazineId: string | null,
+  channel: PayChannel,
+  phone: string,
+): string {
+  if (!magazineId) return "/kiosque";
+  const qs = new URLSearchParams();
+  qs.set("magazine", magazineId);
+  if (channel === "flexpaie") {
+    qs.set("pay", "mobile");
+    const trimmed = phone.trim();
+    if (trimmed) qs.set("phone", trimmed);
+  }
+  return `/achat?${qs.toString()}`;
+}
+
 function AchatInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -55,8 +72,10 @@ function AchatInner() {
   const [magazine, setMagazine] = useState<PublicMagazineDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [canRead, setCanRead] = useState(false);
-  const [channel, setChannel] = useState<PayChannel>("stripe");
-  const [phone, setPhone] = useState("");
+  const [channel, setChannel] = useState<PayChannel>(() =>
+    searchParams.get("pay") === "mobile" ? "flexpaie" : "stripe",
+  );
+  const [phone, setPhone] = useState(() => searchParams.get("phone") ?? "");
   const [busy, setBusy] = useState(false);
   const [stripePay, setStripePay] = useState<StripePaySession | null>(null);
   const [flexPendingId, setFlexPendingId] = useState<string | null>(null);
@@ -64,15 +83,27 @@ function AchatInner() {
     "PENDING" | "SUCCESS" | "FAILED" | "CANCELLED" | "REFUNDED" | null
   >(null);
 
-  const nextPath = magazineId
-    ? `/achat?magazine=${encodeURIComponent(magazineId)}`
-    : "/achat";
+  const authNext = useMemo(
+    () => achatAuthNext(magazineId, channel, phone),
+    [magazineId, channel, phone],
+  );
+  const authNextEncoded = encodeURIComponent(authNext);
+
   const priceCents = magazine?.priceCents ?? null;
   const currency = magazine?.currency || "USD";
   const canBuy =
     magazine?.accessType !== "FREE" &&
     typeof priceCents === "number" &&
     priceCents > 0;
+  const issueLabel = magazine?.issueNumber
+    ? `N° ${magazine.issueNumber}`
+    : null;
+
+  useEffect(() => {
+    if (searchParams.get("pay") === "mobile") setChannel("flexpaie");
+    const phoneParam = searchParams.get("phone");
+    if (phoneParam) setPhone(phoneParam);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!magazineId) {
@@ -203,7 +234,7 @@ function AchatInner() {
   async function startCheckout() {
     if (!magazineId || !magazine) return;
     if (!user) {
-      router.push(`/connexion?next=${encodeURIComponent(nextPath)}`);
+      router.push(`/connexion?next=${authNextEncoded}`);
       return;
     }
     if (!canBuy) {
@@ -256,37 +287,24 @@ function AchatInner() {
     router.push(`/achat/retour?payment=${paymentId}`);
   }
 
-  const issueLabel = magazine?.issueNumber
-    ? `N° ${magazine.issueNumber}`
-    : null;
+  const coverSrc =
+    magazine?.coverUrl || "/legacy/img/abonnement.jpg";
 
   return (
     <>
+      <SiteHeader />
       <div className="opt-abo">
-        <div className="opt-abo__bg" aria-hidden />
+        <main className="opt-abo__shell">
+          <section className="opt-abo__checkout" aria-labelledby="achat-title">
+            <div className="opt-abo__checkout-inner">
+              <header className="opt-abo__intro">
+                <p className="opt-abo__eyebrow">Achat unitaire</p>
+                <h1 id="achat-title">Acheter ce numéro</h1>
+                <p className="opt-abo__lead">
+                  Accès immédiat à ce magazine uniquement — sans abonnement.
+                </p>
+              </header>
 
-        <header className="opt-abo__top">
-          <Link
-            href="/"
-            className="opt-abo__brand"
-            aria-label="Opt1mum — Accueil"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/legacy/img/kiosque1.png" alt="" />
-          </Link>
-          <p className="opt-abo__top-tag">Achat d’un numéro</p>
-        </header>
-
-        <main className="opt-abo__main">
-          <section className="opt-abo__hero">
-            <h1>Acheter ce numéro</h1>
-            <p className="opt-abo__lead">
-              Accès immédiat à ce magazine uniquement — sans abonnement.
-            </p>
-          </section>
-
-          <div className="opt-abo__grid">
-            <div className="opt-abo__offer">
               {loading ? (
                 <p className="opt-abo__muted">
                   <Loader2 className="opt-abo__spin" size={18} aria-hidden />
@@ -327,88 +345,137 @@ function AchatInner() {
                 </>
               ) : (
                 <>
-                  <div className="opt-abo__plans" role="list">
-                    <div
-                      className="opt-abo__plan opt-abo__plan--active"
-                      role="listitem"
-                    >
-                      <span className="opt-abo__plan-name">
-                        {magazine.title}
-                        {issueLabel ? ` · ${issueLabel}` : ""}
-                      </span>
-                      <span className="opt-abo__plan-price">
-                        {formatMoney(priceCents!, currency)}
-                        <small> · accès permanent</small>
-                      </span>
-                      <span className="opt-abo__plan-check" aria-hidden>
-                        <Check size={14} strokeWidth={3} />
-                      </span>
+                  <div className="opt-abo__block">
+                    <h2 className="opt-abo__block-title">Numéro</h2>
+                    <ul className="opt-abo__plans" role="list">
+                      <li>
+                        <div
+                          className="opt-abo__plan opt-abo__plan--active"
+                          role="listitem"
+                        >
+                          <span className="opt-abo__plan-radio" aria-hidden />
+                          <span className="opt-abo__plan-body">
+                            <span className="opt-abo__plan-name">
+                              {magazine.title}
+                            </span>
+                            {issueLabel ? (
+                              <span className="opt-abo__plan-desc">
+                                {issueLabel} · accès permanent
+                              </span>
+                            ) : (
+                              <span className="opt-abo__plan-desc">
+                                Accès permanent à ce numéro
+                              </span>
+                            )}
+                          </span>
+                          <span className="opt-abo__plan-price">
+                            {formatMoney(priceCents!, currency)}
+                          </span>
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="opt-abo__summary" aria-live="polite">
+                    <div className="opt-abo__summary-row">
+                      <span>Sous-total</span>
+                      <span>{formatMoney(priceCents!, currency)}</span>
+                    </div>
+                    <div className="opt-abo__summary-row">
+                      <span>Taxes</span>
+                      <span>—</span>
+                    </div>
+                    <div className="opt-abo__summary-due">
+                      <span>À régler aujourd’hui</span>
+                      <strong>{formatMoney(priceCents!, currency)}</strong>
                     </div>
                   </div>
 
-                  <div className="opt-abo__perks">
-                    <p>
-                      <Check size={16} aria-hidden /> Lecture de ce numéro
-                      uniquement
-                    </p>
-                    <p>
-                      <Check size={16} aria-hidden /> Activation immédiate après
-                      paiement
-                    </p>
-                    <p>
-                      <Check size={16} aria-hidden /> Conservé dans Mes achats
-                    </p>
+                  <div className="opt-abo__block">
+                    <h2 className="opt-abo__block-title">Paiement</h2>
+                    <div
+                      className="opt-abo__tabs"
+                      role="radiogroup"
+                      aria-label="Moyen de paiement"
+                    >
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={channel === "stripe"}
+                        className={cn(
+                          "opt-abo__tab",
+                          channel === "stripe" && "is-active",
+                        )}
+                        onClick={() => setChannel("stripe")}
+                        disabled={Boolean(flexPendingId || stripePay)}
+                      >
+                        <CreditCard size={16} aria-hidden />
+                        Carte bancaire
+                      </button>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={channel === "flexpaie"}
+                        className={cn(
+                          "opt-abo__tab",
+                          channel === "flexpaie" && "is-active",
+                        )}
+                        onClick={() => setChannel("flexpaie")}
+                        disabled={Boolean(flexPendingId || stripePay)}
+                      >
+                        <Smartphone size={16} aria-hidden />
+                        Mobile Money
+                      </button>
+                    </div>
+
+                    {channel === "stripe" ? (
+                      <ul
+                        className="opt-abo__pay-icons"
+                        aria-label="Cartes acceptées"
+                      >
+                        <li aria-label="Visa">
+                          <i className="fab fa-cc-visa" aria-hidden />
+                        </li>
+                        <li aria-label="Mastercard">
+                          <i className="fab fa-cc-mastercard" aria-hidden />
+                        </li>
+                        <li aria-label="American Express">
+                          <i className="fab fa-cc-amex" aria-hidden />
+                        </li>
+                        <li aria-label="Discover">
+                          <i className="fab fa-cc-discover" aria-hidden />
+                        </li>
+                      </ul>
+                    ) : (
+                      <label className="opt-abo__field">
+                        <span>Numéro Mobile Money (RDC)</span>
+                        <input
+                          type="tel"
+                          inputMode="tel"
+                          placeholder="2438XXXXXXXX"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          disabled={busy || Boolean(flexPendingId || stripePay)}
+                          autoComplete="tel"
+                        />
+                      </label>
+                    )}
                   </div>
 
-                  <div
-                    className="opt-abo__channels"
-                    role="radiogroup"
-                    aria-label="Moyen de paiement"
-                  >
-                    <button
-                      type="button"
-                      role="radio"
-                      aria-checked={channel === "stripe"}
-                      className={cn(
-                        "opt-abo__channel",
-                        channel === "stripe" && "is-active",
-                      )}
-                      onClick={() => setChannel("stripe")}
-                      disabled={Boolean(flexPendingId || stripePay)}
-                    >
-                      <CreditCard size={18} aria-hidden />
-                      Carte bancaire
-                    </button>
-                    <button
-                      type="button"
-                      role="radio"
-                      aria-checked={channel === "flexpaie"}
-                      className={cn(
-                        "opt-abo__channel",
-                        channel === "flexpaie" && "is-active",
-                      )}
-                      onClick={() => setChannel("flexpaie")}
-                      disabled={Boolean(flexPendingId || stripePay)}
-                    >
-                      <Smartphone size={18} aria-hidden />
-                      Mobile Money
-                    </button>
-                  </div>
-
-                  {channel === "flexpaie" ? (
-                    <label className="opt-abo__phone">
-                      <span>Numéro Mobile Money (RDC)</span>
-                      <input
-                        type="tel"
-                        inputMode="tel"
-                        placeholder="2438XXXXXXXX"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        disabled={busy || Boolean(flexPendingId || stripePay)}
-                        autoComplete="tel"
-                      />
-                    </label>
-                  ) : null}
+                  <ul className="opt-abo__perks">
+                    <li>
+                      <Check size={16} strokeWidth={2.5} aria-hidden />
+                      Lecture de ce numéro uniquement
+                    </li>
+                    <li>
+                      <Check size={16} strokeWidth={2.5} aria-hidden />
+                      Activation immédiate après paiement
+                    </li>
+                    <li>
+                      <Check size={16} strokeWidth={2.5} aria-hidden />
+                      Conservé dans Mes achats
+                    </li>
+                  </ul>
 
                   <div className="opt-abo__cta-row">
                     {!authLoading && user ? (
@@ -428,19 +495,19 @@ function AchatInner() {
                             Préparation…
                           </>
                         ) : (
-                          `Acheter · ${formatMoney(priceCents!, currency)}`
+                          "Confirmer"
                         )}
                       </button>
                     ) : (
                       <>
                         <Link
-                          href={`/connexion?next=${encodeURIComponent(nextPath)}`}
+                          href={`/connexion?next=${authNextEncoded}`}
                           className="opt-abo__cta"
                         >
-                          Se connecter pour acheter
+                          Se connecter
                         </Link>
                         <Link
-                          href={`/inscription?next=${encodeURIComponent(nextPath)}`}
+                          href={`/inscription?next=${authNextEncoded}`}
                           className="opt-abo__cta-ghost"
                         >
                           Créer un compte
@@ -449,52 +516,49 @@ function AchatInner() {
                     )}
                   </div>
 
-                  <p className="opt-abo__secure">
-                    Paiement sécurisé · carte bancaire ou Mobile Money
+                  <p className="opt-abo__consent">
+                    En continuant, vous acceptez les{" "}
+                    <Link href="/conditions-utilisation">
+                      conditions d’utilisation
+                    </Link>
+                    . Préférez un accès illimité ?{" "}
+                    <Link href="/abonnement">Voir l’abonnement</Link>.
                   </p>
-                  <p className="opt-abo__muted" style={{ marginTop: "0.75rem" }}>
-                    Préférez un accès illimité ?{" "}
-                    <Link href="/abonnement">Voir l’abonnement</Link>
+
+                  <p className="opt-abo__secure">
+                    Transactions chiffrées et sécurisées
                   </p>
                 </>
               )}
             </div>
+          </section>
 
-            <aside className="opt-abo__cover-panel">
-              <p className="opt-abo__cover-label">Numéro sélectionné</p>
-              {magazine?.coverUrl ? (
-                <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={magazine.coverUrl}
-                    alt={magazine.title}
-                    className="opt-abo__cover"
-                  />
-                  <h2>{magazine.title}</h2>
-                  <p>
-                    {issueLabel
-                      ? `${issueLabel} · kiosque numérique`
-                      : "Kiosque numérique"}
-                  </p>
-                </>
-              ) : magazine ? (
-                <>
-                  <h2>{magazine.title}</h2>
-                  <p>{issueLabel || "Kiosque numérique"}</p>
-                </>
-              ) : null}
-            </aside>
-          </div>
+          <aside
+            className="opt-abo__stage"
+            aria-label={
+              magazine ? `Couverture — ${magazine.title}` : "Visuel achat"
+            }
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={coverSrc}
+              alt=""
+              className="opt-abo__stage-img"
+            />
+            <div className="opt-abo__stage-shade" aria-hidden />
+            {magazine ? (
+              <div className="opt-abo__stage-meta">
+                <p className="opt-abo__stage-label">Numéro sélectionné</p>
+                <p className="opt-abo__stage-title">{magazine.title}</p>
+                <p className="opt-abo__stage-note">
+                  {issueLabel
+                    ? `${issueLabel} · achat unitaire`
+                    : "Achat unitaire · kiosque numérique"}
+                </p>
+              </div>
+            ) : null}
+          </aside>
         </main>
-
-        <Link
-          href="/kiosque"
-          className="opt-abo__home"
-          title="Kiosque"
-          aria-label="Kiosque"
-        >
-          <Home size={22} strokeWidth={2} aria-hidden />
-        </Link>
 
         {stripePay && magazine && user && priceCents != null ? (
           <StripePaymentModal
@@ -589,12 +653,15 @@ export default function AchatClient() {
   return (
     <Suspense
       fallback={
-        <div className="opt-abo">
-          <div className="opt-abo__bg" aria-hidden />
-          <p className="opt-abo__muted" style={{ padding: "4rem 1.5rem" }}>
-            Chargement…
-          </p>
-        </div>
+        <>
+          <SiteHeader />
+          <div className="opt-abo">
+            <main className="opt-abo__shell opt-abo__shell--loading">
+              <p className="opt-abo__muted">Chargement…</p>
+            </main>
+          </div>
+          <SiteFooter />
+        </>
       }
     >
       <AchatInner />
