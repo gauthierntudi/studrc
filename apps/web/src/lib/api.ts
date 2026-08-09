@@ -1494,6 +1494,12 @@ export const adminPlansApi = {
 
 export type MagazineAccessType = "FREE" | "PAID";
 
+export type MagazinePagesStatus =
+  | "PENDING"
+  | "PROCESSING"
+  | "READY"
+  | "FAILED";
+
 export type AdminMagazine = {
   id: string;
   legacyId: number | null;
@@ -1510,6 +1516,11 @@ export type AdminMagazine = {
   previewKey: string | null;
   downloadKey: string | null;
   downloadUrl?: string | null;
+  pagesStatus: MagazinePagesStatus;
+  pagesCount: number | null;
+  pagesError: string | null;
+  /** Pages WebP déjà en base (utile pendant PROCESSING). */
+  generatedPageCount: number;
   viewCount: number;
   isPublished: boolean;
   isActive: boolean;
@@ -1641,6 +1652,20 @@ export const adminMagazinesApi = {
     });
 
     return this.completePdf(id, { key: signed.key, size: file.size });
+  },
+
+  /** Démarre / reprend la génération WebP (sans purge). */
+  ensurePages(id: string) {
+    return apiFetch<AdminMagazine>(`/admin/magazines/${id}/pages/ensure`, {
+      method: "POST",
+    });
+  },
+
+  /** Purge + régénère toutes les pages. */
+  reprocessPages(id: string) {
+    return apiFetch<AdminMagazine>(`/admin/magazines/${id}/pages/reprocess`, {
+      method: "POST",
+    });
   },
 };
 

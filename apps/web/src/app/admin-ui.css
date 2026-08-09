@@ -1971,6 +1971,38 @@
   color: var(--snow-text);
 }
 
+.admin-mag__pages-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.admin-mag__pages-btn {
+  min-width: 10.5rem;
+}
+
+.admin-mag__pages-btn--ready {
+  background: #e8f7f0;
+  color: #0b6b3a;
+  border: 1px solid #b7e4c7;
+  cursor: default;
+}
+
+.admin-mag__pages-btn--ready:disabled {
+  opacity: 1;
+}
+
+.admin-mag__pages-btn-secondary {
+  background: #fff;
+  border: 1px solid #d0d7de;
+  color: #24292f;
+}
+
+.admin-mag__pages-btn-secondary:hover:not(:disabled) {
+  background: #f6f8fa;
+}
+
 .admin-mag__color-row {
   display: flex;
   align-items: center;

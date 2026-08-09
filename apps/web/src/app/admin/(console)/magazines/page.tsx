@@ -18,6 +18,7 @@ import {
   adminMagazinesApi,
   type AdminMagazine,
   type MagazineAccessType,
+  type MagazinePagesStatus,
 } from "@/lib/api";
 const TAKE = 10;
 const DEFAULT_BG = "#0d203d";
@@ -113,6 +114,40 @@ function toPayload(form: MagForm) {
   };
 }
 
+type PagesMeta = {
+  status: MagazinePagesStatus;
+  pagesCount: number | null;
+  generatedPageCount: number;
+  pagesError: string | null;
+  hasPdf: boolean;
+};
+
+function pagesMetaFromMagazine(m: AdminMagazine): PagesMeta {
+  return {
+    status: m.pagesStatus ?? "PENDING",
+    pagesCount: m.pagesCount ?? null,
+    generatedPageCount: m.generatedPageCount ?? 0,
+    pagesError: m.pagesError ?? null,
+    hasPdf: Boolean(m.downloadKey || m.pdfKey),
+  };
+}
+
+function formatPagesButtonLabel(meta: PagesMeta): string {
+  const n = meta.pagesCount ?? meta.generatedPageCount;
+  if (meta.status === "READY") {
+    return n > 0 ? `${n} page${n > 1 ? "s" : ""}` : "Pages prêtes";
+  }
+  if (meta.status === "PROCESSING") {
+    return n > 0
+      ? `Génération… ${n} page${n > 1 ? "s" : ""}`
+      : "Génération en cours…";
+  }
+  if (meta.status === "FAILED") {
+    return "Échec — relancer";
+  }
+  return "Générer les pages";
+}
+
 function fromMagazine(m: AdminMagazine): MagForm {
   return {
     title: m.title,
@@ -170,6 +205,8 @@ function AdminMagazinesPageInner() {
   const [currentPdfLabel, setCurrentPdfLabel] = useState<string | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [pdfProgress, setPdfProgress] = useState<number | null>(null);
+  const [pagesMeta, setPagesMeta] = useState<PagesMeta | null>(null);
+  const [pagesBusy, setPagesBusy] = useState(false);
   const restoredModalKey = useRef<string | null>(null);
 
   function setModalUrl(mode: "new" | "edit" | null, id?: string) {
@@ -194,6 +231,7 @@ function AdminMagazinesPageInner() {
     restoredModalKey.current = null;
     setForm(emptyForm());
     setEditId(null);
+    setPagesMeta(null);
     resetMediaFields(null);
     setModalUrl(null);
   }
@@ -202,6 +240,7 @@ function AdminMagazinesPageInner() {
     restoredModalKey.current = "new";
     setForm(emptyForm());
     setEditId(null);
+    setPagesMeta(null);
     resetMediaFields(null);
     setModalUrl("new");
   }
@@ -210,6 +249,7 @@ function AdminMagazinesPageInner() {
     restoredModalKey.current = `edit:${m.id}`;
     setEditId(m.id);
     setForm(fromMagazine(m));
+    setPagesMeta(pagesMetaFromMagazine(m));
     resetMediaFields(m);
     setModalUrl("edit", m.id);
   }
@@ -283,6 +323,7 @@ function AdminMagazinesPageInner() {
       restoredModalKey.current = "new";
       setEditId(null);
       setForm(emptyForm());
+      setPagesMeta(null);
       resetMediaFields(null);
       setModalLoading(false);
       return;
@@ -305,6 +346,7 @@ function AdminMagazinesPageInner() {
         if (cancelled) return;
         setEditId(m.id);
         setForm(fromMagazine(m));
+        setPagesMeta(pagesMetaFromMagazine(m));
         resetMediaFields(m);
         setModalLoading(false);
       })
@@ -361,6 +403,7 @@ function AdminMagazinesPageInner() {
       await uploadPendingMedia(editId);
       setOk("Magazine mis à jour");
       setEditId(null);
+      setPagesMeta(null);
       resetMediaFields(null);
       restoredModalKey.current = null;
       setModalUrl(null);
@@ -371,6 +414,79 @@ function AdminMagazinesPageInner() {
       setSaving(false);
     }
   }
+
+  async function refreshPagesMeta(id: string) {
+    const m = await adminMagazinesApi.get(id);
+    setPagesMeta(pagesMetaFromMagazine(m));
+    setItems((prev) => prev.map((row) => (row.id === m.id ? m : row)));
+    return m;
+  }
+
+  async function ensureMagazinePages() {
+    if (!editId || pagesBusy) return;
+    setError(null);
+    setPagesBusy(true);
+    try {
+      const m = await adminMagazinesApi.ensurePages(editId);
+      setPagesMeta(pagesMetaFromMagazine(m));
+      setItems((prev) => prev.map((row) => (row.id === m.id ? m : row)));
+      if (m.pagesStatus === "READY") {
+        setOk(
+          `${m.pagesCount ?? m.generatedPageCount} page${
+            (m.pagesCount ?? m.generatedPageCount) > 1 ? "s" : ""
+          } déjà générée${
+            (m.pagesCount ?? m.generatedPageCount) > 1 ? "s" : ""
+          }`,
+        );
+      } else {
+        setOk("Génération des pages lancée");
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Échec génération des pages",
+      );
+    } finally {
+      setPagesBusy(false);
+    }
+  }
+
+  async function reprocessMagazinePages() {
+    if (!editId || pagesBusy) return;
+    if (
+      !window.confirm(
+        "Regénérer toutes les pages WebP ? Les pages actuelles seront remplacées.",
+      )
+    ) {
+      return;
+    }
+    setError(null);
+    setPagesBusy(true);
+    try {
+      const m = await adminMagazinesApi.reprocessPages(editId);
+      setPagesMeta(pagesMetaFromMagazine(m));
+      setItems((prev) => prev.map((row) => (row.id === m.id ? m : row)));
+      setOk("Regénération des pages lancée");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Échec regénération des pages",
+      );
+    } finally {
+      setPagesBusy(false);
+    }
+  }
+
+  // Poll pendant PROCESSING dans le modal d’édition.
+  useEffect(() => {
+    if (!editOpen || !editId || !pagesMeta) return;
+    if (pagesMeta.status !== "PROCESSING" && pagesMeta.status !== "PENDING") {
+      return;
+    }
+    const timer = window.setInterval(() => {
+      void refreshPagesMeta(editId).catch(() => undefined);
+    }, 5_000);
+    return () => window.clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editOpen, editId, pagesMeta?.status]);
 
   async function togglePublish(m: AdminMagazine) {
     setError(null);
@@ -616,6 +732,77 @@ function AdminMagazinesPageInner() {
             </div>
           ) : null}
         </div>
+
+        {editId && pagesMeta ? (
+          <div className="admin-dash__field admin-dash__field--full">
+            <span>Pages WebP (viewer)</span>
+            <div className="admin-mag__pages-row">
+              <button
+                type="button"
+                className={
+                  pagesMeta.status === "READY"
+                    ? "admin-dash__btn admin-mag__pages-btn admin-mag__pages-btn--ready"
+                    : "admin-dash__btn admin-dash__btn--primary admin-mag__pages-btn"
+                }
+                disabled={
+                  pagesBusy ||
+                  !pagesMeta.hasPdf ||
+                  pagesMeta.status === "READY"
+                }
+                onClick={() => void ensureMagazinePages()}
+                title={
+                  !pagesMeta.hasPdf
+                    ? "Uploadez d’abord un PDF"
+                    : pagesMeta.status === "READY"
+                      ? "Pages déjà générées"
+                      : "Lancer ou reprendre la génération des pages WebP"
+                }
+              >
+                {pagesBusy ? "…" : formatPagesButtonLabel(pagesMeta)}
+              </button>
+              {pagesMeta.status === "READY" ? (
+                <button
+                  type="button"
+                  className="admin-dash__btn admin-mag__pages-btn-secondary"
+                  disabled={pagesBusy || !pagesMeta.hasPdf}
+                  onClick={() => void reprocessMagazinePages()}
+                >
+                  Regénérer
+                </button>
+              ) : null}
+              {pagesMeta.status === "PROCESSING" ||
+              pagesMeta.status === "PENDING" ? (
+                <button
+                  type="button"
+                  className="admin-dash__btn admin-mag__pages-btn-secondary"
+                  disabled={pagesBusy}
+                  onClick={() =>
+                    void refreshPagesMeta(editId).catch((err) =>
+                      setError(
+                        err instanceof Error ? err.message : "Erreur refresh",
+                      ),
+                    )
+                  }
+                >
+                  Actualiser
+                </button>
+              ) : null}
+            </div>
+            {!pagesMeta.hasPdf ? (
+              <p className="admin-dash__muted" style={{ margin: "0.35rem 0 0" }}>
+                Ajoutez un PDF pour pouvoir générer les pages.
+              </p>
+            ) : null}
+            {pagesMeta.status === "FAILED" && pagesMeta.pagesError ? (
+              <p
+                className="admin-dash__muted"
+                style={{ margin: "0.35rem 0 0", color: "#b42318" }}
+              >
+                {pagesMeta.pagesError}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     );
   }

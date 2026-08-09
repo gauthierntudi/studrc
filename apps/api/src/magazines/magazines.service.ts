@@ -63,6 +63,7 @@ const MAGAZINE_SELECT = {
   publishedAt: true,
   createdAt: true,
   updatedAt: true,
+  _count: { select: { pages: true } },
 } satisfies Prisma.MagazineSelect;
 
 @Injectable()
@@ -1114,7 +1115,7 @@ export class MagazinesService {
     return this.toAdminMagazine(updated);
   }
 
-  /** Relance la rasterisation des pages (admin). */
+  /** Relance la rasterisation des pages (admin) — purge + force. */
   async reprocessPages(id: string, actorId: string) {
     const magazine = await this.prisma.magazine.findUnique({
       where: { id },
@@ -1147,11 +1148,54 @@ export class MagazinesService {
       entityId: id,
     });
 
-    return {
-      id,
-      pagesStatus: MagazinePagesStatus.PENDING,
-      queued: true,
-    };
+    return this.getById(id);
+  }
+
+  /**
+   * Démarre ou reprend la génération des pages (sans purge).
+   * No-op utile si déjà READY — renvoie quand même le magazine à jour.
+   */
+  async ensurePages(id: string, actorId: string) {
+    const magazine = await this.prisma.magazine.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        downloadKey: true,
+        pagesStatus: true,
+      },
+    });
+    if (!magazine) {
+      throw new NotFoundException('Magazine introuvable');
+    }
+    if (!magazine.downloadKey) {
+      throw new BadRequestException('Aucun PDF à traiter pour ce magazine');
+    }
+
+    if (magazine.pagesStatus === MagazinePagesStatus.READY) {
+      return this.getById(id);
+    }
+
+    if (magazine.pagesStatus === MagazinePagesStatus.FAILED) {
+      await this.prisma.magazine.update({
+        where: { id },
+        data: {
+          pagesStatus: MagazinePagesStatus.PENDING,
+          pagesError: null,
+        },
+      });
+    }
+
+    await enqueueMagazinePages(id, { urgent: true, priority: 1 });
+
+    void this.activity.log({
+      actorType: ActivityActorType.ADMIN,
+      adminId: actorId,
+      action: 'magazine_pages_ensure',
+      entity: 'magazine',
+      entityId: id,
+    });
+
+    return this.getById(id);
   }
 
   private buildPdfKey(magazineId: string, ext: string) {
@@ -1263,12 +1307,13 @@ export class MagazinesService {
   private toAdminMagazine(
     magazine: Prisma.MagazineGetPayload<{ select: typeof MAGAZINE_SELECT }>,
   ) {
-    const { theme: rawTheme, ...rest } = magazine;
+    const { theme: rawTheme, _count, ...rest } = magazine;
     return {
       ...rest,
       theme: this.parseTheme(rawTheme),
       coverUrl: this.resolveCoverUrl(magazine.coverKey),
       downloadUrl: this.resolveCoverUrl(magazine.downloadKey),
+      generatedPageCount: _count.pages,
     };
   }
 

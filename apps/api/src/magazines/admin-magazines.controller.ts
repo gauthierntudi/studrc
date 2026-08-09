@@ -124,6 +124,15 @@ export class AdminMagazinesController {
     return this.magazines.reprocessPages(id, actor.id);
   }
 
+  /** Démarre / reprend la génération (sans purge). No-op si déjà READY. */
+  @Post(':id/pages/ensure')
+  ensurePages(
+    @Param('id') id: string,
+    @CurrentAdmin() actor: AdminAuthUser,
+  ) {
+    return this.magazines.ensurePages(id, actor.id);
+  }
+
   /** Fallback proxy (petits PDF / outils). Préférer /pdf/presign. */
   @Post(':id/pdf')
   @UseInterceptors(
