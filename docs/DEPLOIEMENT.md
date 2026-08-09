@@ -102,7 +102,9 @@ Après upload PDF **ou** à la première lecture/aperçu (`PENDING` / `FAILED`),
 - `magazine-pages-urgent` — lecture / aperçu (jusqu’à `MAGAZINE_PAGES_URGENT_CONCURRENCY`, défaut 3) : ne attend **pas** le backfill
 - `magazine-pages` — upload + backfill (`MAGAZINE_PAGES_CONCURRENCY`, défaut 2)
 
-Le worker rasterise page par page (WebP → R2). Le viewer flip utilise les images si `pagesStatus=READY` (ou pages déjà uploadées en `PROCESSING`), sinon repli PDF.
+Le worker rasterise page par page (WebP → R2), **reprend** après un crash (pages déjà uploadées conservées), et un **reaper** (boot + `MAGAZINE_PAGES_RECOVER_INTERVAL_MS`, défaut 5 min) ré-enqueue les `PENDING` / `PROCESSING` orphelins (no-op si job déjà actif). Lecture/aperçu relancent aussi tant que le statut n’est pas `READY`.
+
+Le viewer flip utilise les images si `pagesStatus=READY` (ou pages déjà uploadées en `PROCESSING`), sinon repli PDF.
 
 Les pages WebP sont servies via **proxy API** (`GET /api/magazines/:id/pages/:n`, aperçu 1–15 public, au-delà cookie JWT + droits). Le navigateur ne voit plus les URLs R2. Le CDN `cdn…/pages/` doit rester bloqué (WAF).
 

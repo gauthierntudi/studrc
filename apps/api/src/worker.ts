@@ -4,6 +4,9 @@
  * Deux files :
  * - urgent : lecture / aperçu (démarrage indépendant du backfill)
  * - bulk   : upload + backfill
+ *
+ * Reaper : au boot + périodiquement, ré-enqueue PENDING / PROCESSING orphelins
+ * (crash worker, job Redis perdu) avec reprise des pages déjà uploadées.
  */
 import { config as loadEnv } from 'dotenv';
 import { resolve } from 'path';
@@ -15,6 +18,7 @@ import {
   type MagazinePagesJobData,
 } from './magazines/pages/magazine-pages.queue';
 import { processMagazinePagesJob } from './magazines/pages/process-magazine-pages';
+import { startMagazinePagesRecoveryLoop } from './magazines/pages/recover-orphaned-pages';
 
 loadEnv({ path: resolve(__dirname, '../../../.env') });
 loadEnv({ path: resolve(__dirname, '../.env') });
@@ -66,6 +70,7 @@ async function bootstrap() {
     urgentConcurrency,
   );
   const bulkWorker = makeWorker(MAGAZINE_PAGES_QUEUE, bulkConcurrency);
+  const recovery = startMagazinePagesRecoveryLoop();
 
   // eslint-disable-next-line no-console
   console.log(
@@ -75,6 +80,7 @@ async function bootstrap() {
   const shutdown = async (signal: string) => {
     // eslint-disable-next-line no-console
     console.log(`[worker] ${signal}, shutting down…`);
+    recovery.stop();
     await Promise.all([urgentWorker.close(), bulkWorker.close()]);
     connection.disconnect();
     process.exit(0);

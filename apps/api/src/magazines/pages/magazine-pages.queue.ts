@@ -8,6 +8,8 @@ export const MAGAZINE_PAGES_URGENT_QUEUE = 'magazine-pages-urgent';
 
 export type MagazinePagesJobData = {
   magazineId: string;
+  /** Admin reprocess : ignore les pages déjà présentes et repart de 1. */
+  force?: boolean;
 };
 
 export type EnqueuePagesResult = {
@@ -69,17 +71,22 @@ async function findExistingJob(
  */
 export async function enqueueMagazinePages(
   magazineId: string,
-  options?: { priority?: number; urgent?: boolean },
+  options?: { priority?: number; urgent?: boolean; force?: boolean },
 ): Promise<EnqueuePagesResult> {
   const connection = createRedisConnection();
   const bulk = createMagazinePagesQueue(connection);
   const urgentQ = createMagazinePagesUrgentQueue(connection);
   const jobId = jobIdFor(magazineId);
   const urgent = Boolean(options?.urgent) || (options?.priority ?? 10) < 10;
+  const force = Boolean(options?.force);
   const target = urgent ? urgentQ : bulk;
   const targetName = urgent
     ? MAGAZINE_PAGES_URGENT_QUEUE
     : MAGAZINE_PAGES_QUEUE;
+  const jobData = {
+    magazineId,
+    ...(force ? { force: true } : {}),
+  } satisfies MagazinePagesJobData;
 
   try {
     const existing = await findExistingJob([urgentQ, bulk], jobId);
@@ -92,27 +99,38 @@ export async function enqueueMagazinePages(
         state === 'prioritized' ||
         state === 'waiting-children'
       ) {
-        // Lecture : si le job est encore en file bulk, le déplacer vers urgent.
-        if (
+        // Force admin : retirer le job non actif pour repartir de zéro.
+        if (force && state !== 'active') {
+          await existing.job.remove().catch(() => undefined);
+        } else if (
+          // Lecture : si le job est encore en file bulk, le déplacer vers urgent.
           urgent &&
           state !== 'active' &&
           existing.queue.name === MAGAZINE_PAGES_QUEUE
         ) {
-          const data = existing.job.data as MagazinePagesJobData;
+          const data = {
+            ...(existing.job.data as MagazinePagesJobData),
+            ...(force ? { force: true } : {}),
+          };
           await existing.job.remove().catch(() => undefined);
           await urgentQ.add('rasterize', data, { jobId, priority: 1 });
-          return { queued: true, state: 'waiting', queue: MAGAZINE_PAGES_URGENT_QUEUE };
+          return {
+            queued: true,
+            state: 'waiting',
+            queue: MAGAZINE_PAGES_URGENT_QUEUE,
+          };
+        } else {
+          return { queued: false, state, queue: existing.queue.name };
         }
-        return { queued: false, state, queue: existing.queue.name };
+      } else {
+        await existing.job.remove().catch(() => undefined);
       }
-      await existing.job.remove().catch(() => undefined);
     }
 
-    await target.add(
-      'rasterize',
-      { magazineId } satisfies MagazinePagesJobData,
-      { jobId, priority: urgent ? 1 : (options?.priority ?? 10) },
-    );
+    await target.add('rasterize', jobData, {
+      jobId,
+      priority: urgent ? 1 : (options?.priority ?? 10),
+    });
     return { queued: true, state: 'waiting', queue: targetName };
   } finally {
     await Promise.all([bulk.close(), urgentQ.close()]);

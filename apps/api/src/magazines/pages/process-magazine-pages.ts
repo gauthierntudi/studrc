@@ -18,12 +18,53 @@ function pageThumbKey(magazineId: string, pageNumber: number): string {
   return `magazines/${magazineId}/pages/${pageNumber}.thumb.webp`;
 }
 
+/**
+ * Calcule la 1re page à (re)générer.
+ * Préfixe contigu depuis 1 → reprise. Sinon purge et repart de 1.
+ * `force` : toujours repartir de zéro.
+ */
+async function resolveStartPage(
+  magazineId: string,
+  force: boolean,
+): Promise<number> {
+  if (force) {
+    await prisma.magazinePage.deleteMany({ where: { magazineId } });
+    return 1;
+  }
+
+  const rows = await prisma.magazinePage.findMany({
+    where: { magazineId },
+    orderBy: { pageNumber: 'asc' },
+    select: { pageNumber: true },
+  });
+  if (rows.length === 0) return 1;
+  if (rows[0]?.pageNumber !== 1) {
+    await prisma.magazinePage.deleteMany({ where: { magazineId } });
+    return 1;
+  }
+
+  let expected = 1;
+  for (const row of rows) {
+    if (row.pageNumber !== expected) {
+      await prisma.magazinePage.deleteMany({
+        where: { magazineId, pageNumber: { gte: expected } },
+      });
+      return expected;
+    }
+    expected += 1;
+  }
+  return expected;
+}
+
 export async function processMagazinePagesJob(
   job: Job<MagazinePagesJobData>,
-): Promise<{ pages: number }> {
+): Promise<{ pages: number; resumedFrom?: number }> {
   const magazineId = job.data.magazineId;
+  const force = Boolean(job.data.force);
   // eslint-disable-next-line no-console
-  console.log(`[magazine-pages] start ${magazineId}`);
+  console.log(
+    `[magazine-pages] start ${magazineId}${force ? ' (force)' : ''}`,
+  );
 
   const magazine = await prisma.magazine.findUnique({
     where: { id: magazineId },
@@ -57,9 +98,13 @@ export async function processMagazinePagesJob(
 
   try {
     const pdfBuffer = await getR2ObjectBuffer(r2, magazine.downloadKey);
-
-    // Remplace l’ancien jeu avant d’écrire les nouvelles pages.
-    await prisma.magazinePage.deleteMany({ where: { magazineId } });
+    const startPage = await resolveStartPage(magazineId, force);
+    if (startPage > 1) {
+      // eslint-disable-next-line no-console
+      console.log(
+        `[magazine-pages] resume ${magazineId} from page ${startPage}`,
+      );
+    }
 
     const total = await rasterizePdfPages(
       new Uint8Array(pdfBuffer),
@@ -78,8 +123,14 @@ export async function processMagazinePagesJob(
           contentType: 'image/webp',
         });
 
-        await prisma.magazinePage.create({
-          data: {
+        await prisma.magazinePage.upsert({
+          where: {
+            magazineId_pageNumber: {
+              magazineId,
+              pageNumber: page.pageNumber,
+            },
+          },
+          create: {
             magazineId,
             pageNumber: page.pageNumber,
             imageKey,
@@ -87,14 +138,47 @@ export async function processMagazinePagesJob(
             width: page.width,
             height: page.height,
           },
+          update: {
+            imageKey,
+            thumbKey,
+            width: page.width,
+            height: page.height,
+          },
         });
+
+        // Heartbeat DB : le reaper voit que le job avance encore.
+        if (done === startPage || done % 5 === 0 || done === pageTotal) {
+          await prisma.magazine
+            .update({
+              where: { id: magazineId },
+              data: { pagesStatus: MagazinePagesStatus.PROCESSING },
+            })
+            .catch(() => undefined);
+        }
 
         await job.updateProgress(Math.round((done / pageTotal) * 100));
       },
+      { startPage },
     );
 
     if (total === 0) {
       throw new Error('PDF sans pages');
+    }
+
+    // Déjà complet (reprise après READY partiel / race).
+    if (startPage > total) {
+      const count = await prisma.magazinePage.count({ where: { magazineId } });
+      await prisma.magazine.update({
+        where: { id: magazineId },
+        data: {
+          pagesStatus: MagazinePagesStatus.READY,
+          pagesCount: count,
+          pagesError: null,
+        },
+      });
+      // eslint-disable-next-line no-console
+      console.log(`[magazine-pages] ready ${magazineId} (${count} pages, noop)`);
+      return { pages: count, resumedFrom: startPage };
     }
 
     await prisma.magazine.update({
@@ -108,7 +192,10 @@ export async function processMagazinePagesJob(
 
     // eslint-disable-next-line no-console
     console.log(`[magazine-pages] ready ${magazineId} (${total} pages)`);
-    return { pages: total };
+    return {
+      pages: total,
+      ...(startPage > 1 ? { resumedFrom: startPage } : {}),
+    };
   } catch (err) {
     const message =
       err instanceof Error ? err.message.slice(0, 500) : 'Rasterization failed';

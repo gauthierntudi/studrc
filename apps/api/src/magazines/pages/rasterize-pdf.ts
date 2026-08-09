@@ -44,6 +44,11 @@ export type RasterizedPage = {
   thumb: Buffer;
 };
 
+export type RasterizePdfOptions = {
+  /** Reprise après crash : saute les pages déjà présentes (1-based, inclusif). */
+  startPage?: number;
+};
+
 /**
  * Rasterise page par page et appelle `onPage` immédiatement
  * (évite de garder tout le magazine en RAM → concurrence worker plus sûre).
@@ -51,6 +56,7 @@ export type RasterizedPage = {
 export async function rasterizePdfPages(
   pdfBytes: Uint8Array,
   onPage: (page: RasterizedPage, done: number, total: number) => Promise<void> | void,
+  options?: RasterizePdfOptions,
 ): Promise<number> {
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
   const canvasFactory = new NodeCanvasFactory();
@@ -65,9 +71,10 @@ export async function rasterizePdfPages(
 
   const pdf = await loadingTask.promise;
   const total = pdf.numPages;
+  const startPage = Math.max(1, Math.min(options?.startPage ?? 1, total + 1));
 
   try {
-    for (let pageNumber = 1; pageNumber <= total; pageNumber++) {
+    for (let pageNumber = startPage; pageNumber <= total; pageNumber++) {
       const page = await pdf.getPage(pageNumber);
       const base = page.getViewport({ scale: 1 });
       const scale = PAGE_TARGET_WIDTH / base.width;

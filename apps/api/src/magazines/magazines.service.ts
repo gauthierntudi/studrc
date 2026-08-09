@@ -397,8 +397,8 @@ export class MagazinesService {
     const pagesPayload = pagesBundle?.pages ?? null;
     const pagesUrlExpiresAt = pagesBundle?.expiresAt ?? null;
 
-    // Lazy : à la lecture, lancer la rasterisation si pas encore READY.
-    if (!pagesPayload && magazine.downloadKey) {
+    // Lazy : relancer si pas READY (y compris PROCESSING partiel orphelin).
+    if (magazine.downloadKey) {
       this.ensurePagesGeneration(magazine.id, magazine.pagesStatus);
     }
 
@@ -525,8 +525,8 @@ export class MagazinesService {
     const pagesPayload = pagesBundle?.pages ?? null;
     const pagesUrlExpiresAt = pagesBundle?.expiresAt ?? null;
 
-    // Lazy : à l’aperçu, lancer la rasterisation si pas encore READY.
-    if (!pagesPayload && magazine.downloadKey) {
+    // Lazy : à l’aperçu, lancer / reprendre la rasterisation si pas READY.
+    if (magazine.downloadKey) {
       this.ensurePagesGeneration(magazine.id, magazine.pagesStatus);
     }
 
@@ -1127,15 +1127,17 @@ export class MagazinesService {
       throw new BadRequestException('Aucun PDF à traiter pour ce magazine');
     }
 
+    await this.prisma.magazinePage.deleteMany({ where: { magazineId: id } });
     await this.prisma.magazine.update({
       where: { id },
       data: {
         pagesStatus: MagazinePagesStatus.PENDING,
+        pagesCount: null,
         pagesError: null,
       },
     });
 
-    await enqueueMagazinePages(id);
+    await enqueueMagazinePages(id, { force: true, priority: 5 });
 
     void this.activity.log({
       actorType: ActivityActorType.ADMIN,
