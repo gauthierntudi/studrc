@@ -37,10 +37,10 @@ const THUMB_CSS_WIDTH = 72;
 /** Cache PDF (Strict Mode remonte l’effet sans re-télécharger 20–30 Mo). */
 const pdfBytesCache = new Map<string, Promise<Uint8Array>>();
 
-/** CDN cross-origin → proxy same-origin (évite CORS R2 en lecture). */
+/** CDN cross-origin → chemins same-origin (nginx /cdn-media ou /api/media-proxy). */
 const PDF_PROXY_HOSTS = new Set(["cdn.opt1mum.com", "cdn.egouv.online"]);
 
-function resolvePdfFetchUrl(url: string): string {
+function pdfFetchCandidates(url: string): string[] {
   try {
     const absolute = new URL(
       url,
@@ -50,34 +50,82 @@ function resolvePdfFetchUrl(url: string): string {
       typeof window !== "undefined" &&
       absolute.origin === window.location.origin
     ) {
-      return url;
+      return [url];
     }
     if (
       absolute.protocol === "https:" &&
       PDF_PROXY_HOSTS.has(absolute.hostname)
     ) {
-      return `/api/media-proxy?u=${encodeURIComponent(absolute.toString())}`;
+      const path = `${absolute.pathname}${absolute.search}`;
+      return [
+        // Prod : stream nginx → CDN (fiable pour 20–40 Mo)
+        `/cdn-media${path}`,
+        // Local / repli : route Next
+        `/api/media-proxy?u=${encodeURIComponent(absolute.toString())}`,
+        // Dernier recours si CORS R2 est configuré
+        absolute.toString(),
+      ];
     }
   } catch {
     /* keep original */
   }
-  return url;
+  return [url];
+}
+
+function isPdfMagic(bytes: Uint8Array): boolean {
+  return (
+    bytes.length >= 5 &&
+    bytes[0] === 0x25 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x44 &&
+    bytes[3] === 0x46
+  );
+}
+
+async function fetchPdfOnce(
+  fetchUrl: string,
+  signal?: AbortSignal,
+): Promise<Uint8Array> {
+  const res = await fetch(fetchUrl, {
+    mode: "cors",
+    credentials: "omit",
+    signal,
+  });
+  if (!res.ok) throw new Error(`PDF HTTP ${res.status} (${fetchUrl})`);
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  if (bytes.byteLength < 64) {
+    throw new Error("PDF trop petit / réponse tronquée");
+  }
+  if (!isPdfMagic(bytes)) {
+    throw new Error("Réponse non-PDF (proxy/HTML ?)");
+  }
+  return bytes;
 }
 
 function loadPdfBytes(url: string, signal?: AbortSignal): Promise<Uint8Array> {
-  const fetchUrl = resolvePdfFetchUrl(url);
-  let pending = pdfBytesCache.get(fetchUrl);
+  const cacheKey = url;
+  let pending = pdfBytesCache.get(cacheKey);
   if (!pending) {
-    pending = fetch(fetchUrl, { mode: "cors", credentials: "omit" })
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`PDF HTTP ${res.status}`);
-        return new Uint8Array(await res.arrayBuffer());
-      })
-      .catch((err) => {
-        pdfBytesCache.delete(fetchUrl);
-        throw err;
-      });
-    pdfBytesCache.set(fetchUrl, pending);
+    pending = (async () => {
+      const candidates = pdfFetchCandidates(url);
+      let lastErr: unknown;
+      for (const candidate of candidates) {
+        try {
+          return await fetchPdfOnce(candidate, signal);
+        } catch (err) {
+          if (signal?.aborted) throw err;
+          lastErr = err;
+          console.warn("[PdfFlipViewer] fetch PDF échoué, essai suivant", candidate, err);
+        }
+      }
+      throw lastErr instanceof Error
+        ? lastErr
+        : new Error("Impossible de télécharger le PDF");
+    })().catch((err) => {
+      pdfBytesCache.delete(cacheKey);
+      throw err;
+    });
+    pdfBytesCache.set(cacheKey, pending);
   }
   return pending.then((bytes) => {
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
@@ -734,7 +782,8 @@ export function PdfFlipViewer({
         />
         <p className="opt-flip__fallback-note">
           <FileWarning size={14} strokeWidth={2.25} aria-hidden />
-          Mode PDF classique (flip indisponible sur cet appareil / réseau).
+          Mode PDF classique
+          {status ? ` — ${status}` : " (flip indisponible sur cet appareil / réseau)"}.
         </p>
       </div>
     );

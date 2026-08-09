@@ -67,7 +67,7 @@ Firewall Droplet (Cloud Firewall DO) :
 - 1 bucket prod (+ 1 staging optionnel)
 - Clés API limitées au bucket
 - CORS autorisant les domaines web
-- **Lecture PDF (viewer)** : le front charge les PDF via `/api/media-proxy` (same-origin) pour éviter les erreurs CORS navigateur → `cdn.opt1mum.com`.
+- **Lecture PDF (viewer)** : en prod, nginx sert `/cdn-media/*` en proxy stream vers `cdn.opt1mum.com` (évite CORS + timeout Next sur gros PDF). Repli : `/api/media-proxy`.
 - **Uploads PDF admin (presigned)** : le navigateur envoie le fichier en `PUT` direct vers R2. CORS bucket obligatoire (`GET`, `PUT`, `HEAD`) pour `APP_URL` / `https://opt1mum.com` / localhost. Configurer avec :
   ```bash
   pnpm --filter @opt1mum/api configure:r2-cors
