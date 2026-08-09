@@ -37,19 +37,47 @@ const THUMB_CSS_WIDTH = 72;
 /** Cache PDF (Strict Mode remonte l’effet sans re-télécharger 20–30 Mo). */
 const pdfBytesCache = new Map<string, Promise<Uint8Array>>();
 
+/** CDN cross-origin → proxy same-origin (évite CORS R2 en lecture). */
+const PDF_PROXY_HOSTS = new Set(["cdn.opt1mum.com", "cdn.egouv.online"]);
+
+function resolvePdfFetchUrl(url: string): string {
+  try {
+    const absolute = new URL(
+      url,
+      typeof window !== "undefined" ? window.location.origin : "http://localhost",
+    );
+    if (
+      typeof window !== "undefined" &&
+      absolute.origin === window.location.origin
+    ) {
+      return url;
+    }
+    if (
+      absolute.protocol === "https:" &&
+      PDF_PROXY_HOSTS.has(absolute.hostname)
+    ) {
+      return `/api/media-proxy?u=${encodeURIComponent(absolute.toString())}`;
+    }
+  } catch {
+    /* keep original */
+  }
+  return url;
+}
+
 function loadPdfBytes(url: string, signal?: AbortSignal): Promise<Uint8Array> {
-  let pending = pdfBytesCache.get(url);
+  const fetchUrl = resolvePdfFetchUrl(url);
+  let pending = pdfBytesCache.get(fetchUrl);
   if (!pending) {
-    pending = fetch(url, { mode: "cors", credentials: "omit" })
+    pending = fetch(fetchUrl, { mode: "cors", credentials: "omit" })
       .then(async (res) => {
         if (!res.ok) throw new Error(`PDF HTTP ${res.status}`);
         return new Uint8Array(await res.arrayBuffer());
       })
       .catch((err) => {
-        pdfBytesCache.delete(url);
+        pdfBytesCache.delete(fetchUrl);
         throw err;
       });
-    pdfBytesCache.set(url, pending);
+    pdfBytesCache.set(fetchUrl, pending);
   }
   return pending.then((bytes) => {
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError");

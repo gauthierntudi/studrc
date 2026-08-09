@@ -67,11 +67,12 @@ Firewall Droplet (Cloud Firewall DO) :
 - 1 bucket prod (+ 1 staging optionnel)
 - Clés API limitées au bucket
 - CORS autorisant les domaines web
-- **Uploads PDF admin (presigned)** : le navigateur envoie le fichier en `PUT` direct vers R2. CORS bucket obligatoire (`GET`, `PUT`, `HEAD` + header `Content-Type`) pour `APP_URL` / localhost. Configurer avec :
+- **Lecture PDF (viewer)** : le front charge les PDF via `/api/media-proxy` (same-origin) pour éviter les erreurs CORS navigateur → `cdn.opt1mum.com`.
+- **Uploads PDF admin (presigned)** : le navigateur envoie le fichier en `PUT` direct vers R2. CORS bucket obligatoire (`GET`, `PUT`, `HEAD`) pour `APP_URL` / `https://opt1mum.com` / localhost. Configurer avec :
   ```bash
   pnpm --filter @opt1mum/api configure:r2-cors
   ```
-  Origins supplémentaires : `R2_CORS_ORIGINS=https://admin.example.com,https://www.example.com`
+  Origins supplémentaires : `R2_CORS_ORIGINS=https://www.opt1mum.com`
 - **Custom domain** (ex. `cdn.egouv.online`) : à lier au bucket dans Cloudflare R2 → Settings → Custom Domains. Sans enregistrement DNS, le navigateur renvoie `ERR_NAME_NOT_RESOLVED` (ce n’est pas un problème CORS). En attendant : `AVATAR_USE_CDN=false` sert les photos via `/legacy/profil`.
 
 ## 3. Services Docker (cible)

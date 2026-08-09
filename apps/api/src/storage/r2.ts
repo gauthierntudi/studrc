@@ -257,8 +257,8 @@ export async function putR2BucketCors(
           {
             AllowedOrigins: uniqueOrigins,
             AllowedMethods: ['GET', 'PUT', 'HEAD'],
-            AllowedHeaders: ['Content-Type', 'Content-Length'],
-            ExposeHeaders: ['ETag', 'Content-Length'],
+            AllowedHeaders: ['*'],
+            ExposeHeaders: ['ETag', 'Content-Length', 'Content-Range', 'Accept-Ranges'],
             MaxAgeSeconds: 3600,
           },
         ],
