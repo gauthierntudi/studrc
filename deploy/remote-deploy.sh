@@ -23,11 +23,20 @@ echo "==> recreate nginx (DNS upstream Docker)"
 docker compose up -d --force-recreate nginx
 
 echo "==> healthcheck"
-sleep 2
-if docker compose exec -T api wget -qO- http://127.0.0.1:3001/api/health | grep -q '"status":"ok"'; then
+ok=0
+for i in 1 2 3 4 5 6 7 8 9 10; do
+  if docker compose exec -T api node -e \
+    "fetch('http://127.0.0.1:3001/api/health').then(async (r)=>{const t=await r.text(); if(!r.ok||!t.includes('\"status\":\"ok\"')) process.exit(1); console.log(t);}).catch(()=>process.exit(1))"; then
+    ok=1
+    break
+  fi
+  sleep 2
+done
+if [ "$ok" -eq 1 ]; then
   echo "OK — API healthy"
 else
   echo "WARN — healthcheck API a échoué (vérifier les logs)"
   docker compose ps
+  docker compose logs api --tail 50
   exit 1
 fi
