@@ -3102,6 +3102,16 @@ a.snow-dash__rail-item:hover {
   color: #4f6ef7;
 }
 
+.admin-activity__actor-badge--system {
+  border-color: color-mix(in srgb, #a855f7 40%, var(--snow-line));
+  background: color-mix(in srgb, #a855f7 14%, transparent);
+  color: #c084fc;
+}
+
+.snow-dash[data-theme="light"] .admin-activity__actor-badge--system {
+  color: #7c3aed;
+}
+
 .admin-dash__table tr.admin-dash__table-row--click {
   cursor: pointer;
 }

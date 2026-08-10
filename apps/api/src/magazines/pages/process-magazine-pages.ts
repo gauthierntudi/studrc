@@ -1,5 +1,6 @@
 import { PrismaClient, MagazinePagesStatus } from '@prisma/client';
 import type { Job } from 'bullmq';
+import { logSystemActivity } from '../../activity/log-system-activity';
 import {
   createR2ClientFromEnv,
   getR2ObjectBuffer,
@@ -68,7 +69,7 @@ export async function processMagazinePagesJob(
 
   const magazine = await prisma.magazine.findUnique({
     where: { id: magazineId },
-    select: { id: true, downloadKey: true },
+    select: { id: true, downloadKey: true, title: true },
   });
 
   if (!magazine?.downloadKey) {
@@ -79,6 +80,12 @@ export async function processMagazinePagesJob(
         pagesError: 'Aucun PDF (downloadKey) à rasteriser',
         pagesCount: null,
       },
+    });
+    await logSystemActivity(prisma, {
+      action: 'magazine_pages_failed',
+      entity: 'magazine',
+      entityId: magazineId,
+      meta: { error: 'missing downloadKey' },
     });
     throw new Error(`Magazine ${magazineId}: missing downloadKey`);
   }
@@ -105,6 +112,18 @@ export async function processMagazinePagesJob(
         `[magazine-pages] resume ${magazineId} from page ${startPage}`,
       );
     }
+
+    await logSystemActivity(prisma, {
+      action: 'magazine_pages_started',
+      entity: 'magazine',
+      entityId: magazineId,
+      meta: {
+        title: magazine.title,
+        force,
+        startPage,
+        queue: job.queueName,
+      },
+    });
 
     const total = await rasterizePdfPages(
       new Uint8Array(pdfBuffer),
@@ -176,6 +195,17 @@ export async function processMagazinePagesJob(
           pagesError: null,
         },
       });
+      await logSystemActivity(prisma, {
+        action: 'magazine_pages_ready',
+        entity: 'magazine',
+        entityId: magazineId,
+        meta: {
+          title: magazine.title,
+          pages: count,
+          resumedFrom: startPage,
+          noop: true,
+        },
+      });
       // eslint-disable-next-line no-console
       console.log(`[magazine-pages] ready ${magazineId} (${count} pages, noop)`);
       return { pages: count, resumedFrom: startPage };
@@ -187,6 +217,17 @@ export async function processMagazinePagesJob(
         pagesStatus: MagazinePagesStatus.READY,
         pagesCount: total,
         pagesError: null,
+      },
+    });
+
+    await logSystemActivity(prisma, {
+      action: 'magazine_pages_ready',
+      entity: 'magazine',
+      entityId: magazineId,
+      meta: {
+        title: magazine.title,
+        pages: total,
+        ...(startPage > 1 ? { resumedFrom: startPage } : {}),
       },
     });
 
@@ -208,6 +249,15 @@ export async function processMagazinePagesJob(
         },
       })
       .catch(() => undefined);
+    await logSystemActivity(prisma, {
+      action: 'magazine_pages_failed',
+      entity: 'magazine',
+      entityId: magazineId,
+      meta: {
+        title: magazine.title,
+        error: message,
+      },
+    });
     throw err;
   }
 }

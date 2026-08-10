@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { ConfigService } from '@nestjs/config';
 import { AdminRole, MagazinePagesStatus } from '@prisma/client';
 import { Queue } from 'bullmq';
+import { logSystemActivity } from '../activity/log-system-activity';
 import {
   createMagazinePagesQueue,
   createMagazinePagesUrgentQueue,
@@ -157,6 +158,17 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
         'EX',
         MONITORING_ALERT_COOLDOWN_SEC,
       );
+
+      await logSystemActivity(this.prisma, {
+        action: 'monitoring_alert_sent',
+        entity: 'monitoring',
+        entityId: snap.overall,
+        meta: {
+          overall: snap.overall,
+          issues,
+          recipients: supers.map((s) => s.email),
+        },
+      });
 
       this.logger.warn(
         `Monitoring alert sent to ${supers.length} superadmin(s): ${issues.join('; ')}`,

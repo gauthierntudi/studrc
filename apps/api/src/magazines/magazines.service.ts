@@ -752,6 +752,19 @@ export class MagazinesService {
             (res.state ? ` (${res.state})` : '') +
             (res.queue ? ` @${res.queue}` : ''),
         );
+        if (res.queued) {
+          void this.activity.log({
+            actorType: ActivityActorType.SYSTEM,
+            action: 'magazine_pages_queued',
+            entity: 'magazine',
+            entityId: magazineId,
+            meta: {
+              reason: 'lazy_read_or_preview',
+              previousStatus: status,
+              queue: res.queue ?? null,
+            },
+          });
+        }
       })
       .catch((err) => {
         // eslint-disable-next-line no-console
@@ -1110,6 +1123,13 @@ export class MagazinesService {
     void enqueueMagazinePages(id).catch((err) => {
       // eslint-disable-next-line no-console
       console.error(`[magazine-pages] enqueue failed for ${id}`, err);
+    });
+    void this.activity.log({
+      actorType: ActivityActorType.SYSTEM,
+      action: 'magazine_pages_queued',
+      entity: 'magazine',
+      entityId: id,
+      meta: { reason: 'pdf_upload', via },
     });
 
     return this.toAdminMagazine(updated);

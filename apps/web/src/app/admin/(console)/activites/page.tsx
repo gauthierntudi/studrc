@@ -95,7 +95,7 @@ function ActorCell({ row }: { row: AdminActivityItem }) {
                   ? "admin-activity__actor-badge admin-activity__actor-badge--sub"
                   : row.actorType === "ADMIN"
                     ? "admin-activity__actor-badge admin-activity__actor-badge--staff"
-                    : "admin-activity__actor-badge"
+                    : "admin-activity__actor-badge admin-activity__actor-badge--system"
               }
             >
               {kind}
@@ -155,8 +155,8 @@ export default function AdminActivitiesPage() {
         <div>
           <h1>Logs activités</h1>
           <p>
-            Journal des actions staff et abonnés ({total} entrée
-            {total > 1 ? "s" : ""}).
+            Journal des actions staff, abonnés et tâches système / arrière-plan (
+            {total} entrée{total > 1 ? "s" : ""}).
           </p>
         </div>
       </header>

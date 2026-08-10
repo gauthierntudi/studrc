@@ -1,4 +1,5 @@
 import { MagazinePagesStatus, PrismaClient } from '@prisma/client';
+import { logSystemActivity } from '../../activity/log-system-activity';
 import { enqueueMagazinePages } from './magazine-pages.queue';
 
 const prisma = new PrismaClient();
@@ -33,7 +34,7 @@ export async function recoverOrphanedMagazinePages(): Promise<{
         in: [MagazinePagesStatus.PENDING, MagazinePagesStatus.PROCESSING],
       },
     },
-    select: { id: true, pagesStatus: true, updatedAt: true },
+    select: { id: true, title: true, pagesStatus: true, updatedAt: true },
     orderBy: { updatedAt: 'asc' },
     take: 80,
   });
@@ -53,6 +54,16 @@ export async function recoverOrphanedMagazinePages(): Promise<{
           `[magazine-pages] recover queued ${mag.id} (${mag.pagesStatus})` +
             (res.queue ? ` @${res.queue}` : ''),
         );
+        await logSystemActivity(prisma, {
+          action: 'magazine_pages_recovered',
+          entity: 'magazine',
+          entityId: mag.id,
+          meta: {
+            title: mag.title,
+            previousStatus: mag.pagesStatus,
+            queue: res.queue ?? null,
+          },
+        });
       }
     } catch (err) {
       // eslint-disable-next-line no-console
