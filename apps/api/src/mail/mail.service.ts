@@ -208,10 +208,12 @@ export class MailService {
 
   private async send(input: { to: string; subject: string; html: string }) {
     if (!this.resend) {
-      this.logger.warn(
+      this.logger.error(
         `RESEND_API_KEY manquant — email non envoyé à ${input.to}: ${input.subject}`,
       );
-      return;
+      throw new Error(
+        'Envoi e-mail indisponible (RESEND_API_KEY manquant). Contactez un administrateur.',
+      );
     }
 
     try {
@@ -223,11 +225,23 @@ export class MailService {
       });
       if (result.error) {
         this.logger.error(`Resend error: ${result.error.message}`);
+        throw new Error(
+          `Échec envoi e-mail (${result.error.message}). Vérifiez RESEND_API_KEY / MAIL_FROM.`,
+        );
       }
     } catch (err) {
+      if (
+        err instanceof Error &&
+        err.message.startsWith('Échec envoi e-mail')
+      ) {
+        throw err;
+      }
       this.logger.error(
         `Échec envoi email à ${input.to}`,
         err instanceof Error ? err.stack : undefined,
+      );
+      throw new Error(
+        'Échec envoi e-mail. Réessayez plus tard ou contactez un administrateur.',
       );
     }
   }

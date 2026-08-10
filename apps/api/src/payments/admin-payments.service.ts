@@ -155,16 +155,6 @@ export class AdminPaymentsService {
     const context = this.otpContext(id, input.status);
     const note = input.note?.trim() ?? '';
 
-    await this.prisma.adminUser.update({
-      where: { id: adminId },
-      data: {
-        sensitiveActionOtpHash: this.hashOtp(admin.email, otp, context),
-        sensitiveActionOtpExpiresAt: new Date(Date.now() + OTP_TTL_MS),
-        sensitiveActionOtpAttempts: 0,
-        sensitiveActionOtpContext: context,
-      },
-    });
-
     const actionLabel =
       input.status === PaymentStatus.SUCCESS
         ? 'Activer un paiement (marquer payé)'
@@ -178,12 +168,24 @@ export class AdminPaymentsService {
       .filter(Boolean)
       .join(' · ');
 
+    // Envoyer avant de persister le hash : un échec Resend ne doit pas
+    // bloquer le renvoi (cooldown) ni laisser croire que le mail est parti.
     await this.mail.sendAdminSensitiveActionOtp({
       to: admin.email,
       name: admin.name,
       otp,
       actionLabel,
       detail,
+    });
+
+    await this.prisma.adminUser.update({
+      where: { id: adminId },
+      data: {
+        sensitiveActionOtpHash: this.hashOtp(admin.email, otp, context),
+        sensitiveActionOtpExpiresAt: new Date(Date.now() + OTP_TTL_MS),
+        sensitiveActionOtpAttempts: 0,
+        sensitiveActionOtpContext: context,
+      },
     });
 
     if (this.config.get<string>('NODE_ENV') !== 'production') {
