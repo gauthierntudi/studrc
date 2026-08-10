@@ -104,6 +104,8 @@ Après upload PDF **ou** à la première lecture/aperçu (`PENDING` / `FAILED`),
 
 Sur un VPS ~8 Go (surtout avec Chrononews), garder la concurrence à 1 : un PDF rasterisé peut monter à plusieurs Go et déclencher l’OOM kernel. Le service Compose `worker` a un `mem_limit` (~2,5 Go) + `NODE_OPTIONS=--max-old-space-size=2048`.
 
+Rasterisation : binaire **Rust** `magazine-pages-raster` (PDFium **chromium/7543** → WebP, page par page ; pinné dans le Dockerfile + `Cargo.toml`). Fallback auto sur pdf.js si le binaire est absent (`MAGAZINE_PAGES_RASTERIZER=node` pour forcer).
+
 Le worker rasterise page par page (WebP → R2), **reprend** après un crash (pages déjà uploadées conservées), et un **reaper** (boot + `MAGAZINE_PAGES_RECOVER_INTERVAL_MS`, défaut 5 min) ré-enqueue les `PENDING` / `PROCESSING` orphelins (no-op si job déjà actif). Lecture/aperçu relancent aussi tant que le statut n’est pas `READY`.
 
 Le viewer flip utilise les images si `pagesStatus=READY` (ou pages déjà uploadées en `PROCESSING`), sinon repli PDF.

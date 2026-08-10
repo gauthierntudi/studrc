@@ -1,3 +1,9 @@
+import { spawn } from 'child_process';
+import { createInterface } from 'readline';
+import { mkdtemp, readFile, rm, writeFile } from 'fs/promises';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import { existsSync } from 'fs';
 import {
   createCanvas,
   type Canvas,
@@ -49,15 +55,199 @@ export type RasterizePdfOptions = {
   startPage?: number;
 };
 
-/**
- * Rasterise page par page et appelle `onPage` immédiatement
- * (évite de garder tout le magazine en RAM → concurrence worker plus sûre).
- */
-export async function rasterizePdfPages(
+function resolveRustBinary(): string | null {
+  const fromEnv = process.env.MAGAZINE_PAGES_RASTER_BIN?.trim();
+  if (fromEnv && existsSync(fromEnv)) return fromEnv;
+
+  const candidates = [
+    '/usr/local/bin/magazine-pages-raster',
+    join(
+      __dirname,
+      '../../native/magazine-pages-raster/target/release/magazine-pages-raster',
+    ),
+    join(
+      process.cwd(),
+      'native/magazine-pages-raster/target/release/magazine-pages-raster',
+    ),
+  ];
+  for (const c of candidates) {
+    if (existsSync(c)) return c;
+  }
+  return null;
+}
+
+function preferRust(): boolean {
+  const mode = process.env.MAGAZINE_PAGES_RASTERIZER?.trim().toLowerCase();
+  if (mode === 'node' || mode === 'pdfjs') return false;
+  if (mode === 'rust') return true;
+  // Auto : Rust si binaire dispo.
+  return resolveRustBinary() != null;
+}
+
+type RustPageLine = {
+  page?: number;
+  total?: number;
+  width?: number;
+  height?: number;
+  image?: string;
+  thumb?: string;
+  event?: string;
+};
+
+async function rasterizeWithRust(
   pdfBytes: Uint8Array,
-  onPage: (page: RasterizedPage, done: number, total: number) => Promise<void> | void,
+  onPage: (
+    page: RasterizedPage,
+    done: number,
+    total: number,
+  ) => Promise<void> | void,
   options?: RasterizePdfOptions,
 ): Promise<number> {
+  const bin = resolveRustBinary();
+  if (!bin) {
+    throw new Error('magazine-pages-raster binary not found');
+  }
+
+  const startPage = Math.max(1, options?.startPage ?? 1);
+  const workDir = await mkdtemp(join(tmpdir(), 'opt1mum-pages-'));
+  const pdfPath = join(workDir, 'source.pdf');
+  const outDir = join(workDir, 'out');
+
+  try {
+    await writeFile(pdfPath, Buffer.from(pdfBytes));
+
+    const args = [
+      '--input',
+      pdfPath,
+      '--out-dir',
+      outDir,
+      '--start-page',
+      String(startPage),
+      '--width',
+      String(PAGE_TARGET_WIDTH),
+      '--thumb-width',
+      String(THUMB_TARGET_WIDTH),
+      '--quality',
+      String(PAGE_WEBP_QUALITY),
+      '--thumb-quality',
+      String(THUMB_WEBP_QUALITY),
+    ];
+    const pdfiumDir = process.env.PDFIUM_DIR?.trim();
+    if (pdfiumDir) {
+      args.push('--pdfium', pdfiumDir);
+    }
+
+    // eslint-disable-next-line no-console
+    console.log(`[magazine-pages] rasterizer=rust bin=${bin}`);
+
+    let total = 0;
+
+    await new Promise<void>((resolve, reject) => {
+      const child = spawn(bin, args, {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: process.env,
+      });
+
+      let stderr = '';
+      child.stderr?.on('data', (chunk: Buffer) => {
+        stderr += chunk.toString('utf8');
+      });
+
+      const rl = createInterface({ input: child.stdout! });
+      const pageQueue: Promise<void>[] = [];
+
+      rl.on('line', (line) => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        let parsed: RustPageLine;
+        try {
+          parsed = JSON.parse(trimmed) as RustPageLine;
+        } catch {
+          return;
+        }
+
+        if (parsed.event === 'meta' && typeof parsed.total === 'number') {
+          total = parsed.total;
+          return;
+        }
+
+        if (
+          typeof parsed.page !== 'number' ||
+          typeof parsed.image !== 'string' ||
+          typeof parsed.thumb !== 'string'
+        ) {
+          return;
+        }
+
+        const pageNumber = parsed.page;
+        const pageTotal = parsed.total ?? total;
+        if (pageTotal > 0) total = pageTotal;
+
+        const task = (async () => {
+          const [image, thumb] = await Promise.all([
+            readFile(parsed.image!),
+            readFile(parsed.thumb!),
+          ]);
+          await onPage(
+            {
+              pageNumber,
+              width: parsed.width ?? PAGE_TARGET_WIDTH,
+              height: parsed.height ?? 1,
+              image,
+              thumb,
+            },
+            pageNumber,
+            total || pageNumber,
+          );
+          // Free disk ASAP.
+          await Promise.allSettled([
+            rm(parsed.image!, { force: true }),
+            rm(parsed.thumb!, { force: true }),
+          ]);
+        })();
+
+        pageQueue.push(task);
+        void task.catch(() => undefined);
+      });
+
+      child.on('error', reject);
+      child.on('close', (code) => {
+        void (async () => {
+          try {
+            await Promise.all(pageQueue);
+            if (code === 0) resolve();
+            else {
+              reject(
+                new Error(
+                  `magazine-pages-raster exited ${code}: ${stderr.slice(0, 500)}`,
+                ),
+              );
+            }
+          } catch (err) {
+            reject(err);
+          }
+        })();
+      });
+    });
+
+    return total;
+  } finally {
+    await rm(workDir, { recursive: true, force: true }).catch(() => undefined);
+  }
+}
+
+async function rasterizeWithPdfJs(
+  pdfBytes: Uint8Array,
+  onPage: (
+    page: RasterizedPage,
+    done: number,
+    total: number,
+  ) => Promise<void> | void,
+  options?: RasterizePdfOptions,
+): Promise<number> {
+  // eslint-disable-next-line no-console
+  console.log('[magazine-pages] rasterizer=pdfjs');
+
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
   const canvasFactory = new NodeCanvasFactory();
 
@@ -120,4 +310,31 @@ export async function rasterizePdfPages(
   }
 
   return total;
+}
+
+/**
+ * Rasterise page par page et appelle `onPage` immédiatement.
+ * Préfère le binaire Rust (PDFium) si disponible — bien moins gourmand en RAM.
+ */
+export async function rasterizePdfPages(
+  pdfBytes: Uint8Array,
+  onPage: (
+    page: RasterizedPage,
+    done: number,
+    total: number,
+  ) => Promise<void> | void,
+  options?: RasterizePdfOptions,
+): Promise<number> {
+  if (preferRust()) {
+    try {
+      return await rasterizeWithRust(pdfBytes, onPage, options);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(
+        '[magazine-pages] rust rasterizer failed, falling back to pdfjs',
+        err,
+      );
+    }
+  }
+  return rasterizeWithPdfJs(pdfBytes, onPage, options);
 }

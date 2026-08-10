@@ -1,0 +1,21 @@
+[package]
+name = "magazine-pages-raster"
+version = "0.1.0"
+edition = "2021"
+description = "Low-memory PDF → WebP page rasterizer for Opt1mum worker"
+license = "UNLICENSED"
+publish = false
+
+[[bin]]
+name = "magazine-pages-raster"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+image = { version = "0.25", default-features = false, features = ["webp"] }
+# Pin PDF API to chromium/7543 — must match PDFIUM_RELEASE in apps/api/Dockerfile.
+pdfium-render = { version = "0.8.37", default-features = false, features = ["pdfium_7543", "thread_safe", "image"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+webp = "0.3"
