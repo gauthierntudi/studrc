@@ -135,11 +135,7 @@ export default function AdminMonitoringPage() {
         </div>
       </header>
 
-      {error ? (
-        <p className="admin-dash__muted" style={{ color: "#b42318" }}>
-          {error}
-        </p>
-      ) : null}
+      {error ? <p className="admin-dash__muted admin-mon__error">{error}</p> : null}
       {alertMsg ? <p className="admin-dash__muted">{alertMsg}</p> : null}
 
       {loading && !snap ? (

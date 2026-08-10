@@ -4654,35 +4654,37 @@ a.snow-dash__rail-item:hover {
   padding: 1rem 1.15rem;
   border-radius: 12px;
   margin: 0 0 1.25rem;
-  border: 1px solid var(--snow-border, #d0d7de);
-  background: var(--snow-surface, #fff);
+  border: 1px solid var(--snow-line);
+  background: var(--snow-panel);
+  color: var(--snow-text);
 }
 
 .admin-mon__overall strong {
   display: block;
   font-size: 1.05rem;
+  color: var(--snow-text);
 }
 
 .admin-mon__overall span {
   display: block;
   margin-top: 0.2rem;
   font-size: 0.85rem;
-  opacity: 0.75;
+  color: var(--snow-muted);
 }
 
 .admin-mon__overall--up {
-  border-color: #b7e4c7;
-  background: #f0faf4;
+  border-color: color-mix(in srgb, #22c55e 45%, var(--snow-line));
+  background: color-mix(in srgb, #22c55e 14%, var(--snow-panel));
 }
 
 .admin-mon__overall--degraded {
-  border-color: #f5d08a;
-  background: #fff8eb;
+  border-color: color-mix(in srgb, #f59e0b 45%, var(--snow-line));
+  background: color-mix(in srgb, #f59e0b 14%, var(--snow-panel));
 }
 
 .admin-mon__overall--down {
-  border-color: #f1b4b0;
-  background: #fff1f0;
+  border-color: color-mix(in srgb, #ef4444 45%, var(--snow-line));
+  background: color-mix(in srgb, #ef4444 14%, var(--snow-panel));
 }
 
 .admin-mon__grid {
@@ -4695,8 +4697,9 @@ a.snow-dash__rail-item:hover {
 .admin-mon__card {
   padding: 0.9rem 1rem;
   border-radius: 12px;
-  border: 1px solid var(--snow-border, #d0d7de);
-  background: var(--snow-surface, #fff);
+  border: 1px solid var(--snow-line);
+  background: var(--snow-panel);
+  color: var(--snow-text);
 }
 
 .admin-mon__card header {
@@ -4711,6 +4714,7 @@ a.snow-dash__rail-item:hover {
   font-size: 0.95rem;
   font-weight: 700;
   flex: 1;
+  color: var(--snow-text);
 }
 
 .admin-mon__card em {
@@ -4719,13 +4723,13 @@ a.snow-dash__rail-item:hover {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  opacity: 0.8;
+  color: var(--snow-soft);
 }
 
 .admin-mon__card p {
   margin: 0;
   font-size: 0.8rem;
-  opacity: 0.78;
+  color: var(--snow-muted);
   word-break: break-word;
 }
 
@@ -4733,45 +4737,48 @@ a.snow-dash__rail-item:hover {
   width: 0.55rem;
   height: 0.55rem;
   border-radius: 999px;
-  background: #94a3b8;
+  background: var(--snow-muted);
   flex-shrink: 0;
 }
 
 .admin-mon__dot--up,
 .admin-mon__card--up .admin-mon__dot {
-  background: #16a34a;
+  background: #22c55e;
 }
 
 .admin-mon__dot--degraded,
 .admin-mon__card--degraded .admin-mon__dot {
-  background: #d97706;
+  background: #f59e0b;
 }
 
 .admin-mon__dot--down,
 .admin-mon__card--down .admin-mon__dot {
-  background: #dc2626;
+  background: #ef4444;
 }
 
 .admin-mon__dot--unknown {
-  background: #94a3b8;
+  background: var(--snow-muted);
 }
 
 .admin-mon__section {
   margin-top: 0.5rem;
   padding: 1.1rem 1.15rem;
   border-radius: 12px;
-  border: 1px solid var(--snow-border, #d0d7de);
-  background: var(--snow-surface, #fff);
+  border: 1px solid var(--snow-line);
+  background: var(--snow-panel);
+  color: var(--snow-text);
 }
 
 .admin-mon__section h2 {
   margin: 0 0 0.85rem;
   font-size: 1.05rem;
+  color: var(--snow-text);
 }
 
 .admin-mon__section h3 {
   margin: 1.1rem 0 0.55rem;
   font-size: 0.92rem;
+  color: var(--snow-text);
 }
 
 .admin-mon__stats {
@@ -4783,27 +4790,29 @@ a.snow-dash__rail-item:hover {
 .admin-mon__stats div {
   padding: 0.7rem 0.75rem;
   border-radius: 10px;
-  background: rgba(13, 32, 61, 0.04);
+  background: var(--snow-active);
   text-align: center;
+  color: var(--snow-text);
 }
 
 .admin-mon__stats strong {
   display: block;
   font-size: 1.35rem;
   font-weight: 800;
+  color: var(--snow-text);
 }
 
 .admin-mon__stats span {
   font-size: 0.72rem;
   font-weight: 650;
   letter-spacing: 0.04em;
-  opacity: 0.7;
+  color: var(--snow-muted);
 }
 
 .admin-mon__queues {
   margin-top: 0.85rem;
   font-size: 0.85rem;
-  opacity: 0.85;
+  color: var(--snow-soft);
 }
 
 .admin-mon__queues p {
@@ -4813,6 +4822,10 @@ a.snow-dash__rail-item:hover {
 .admin-mon__table-wrap {
   margin-top: 0.5rem;
   overflow-x: auto;
+}
+
+.admin-mon__error {
+  color: #ef4444 !important;
 }
 
 @media (max-width: 720px) {
