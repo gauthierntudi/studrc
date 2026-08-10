@@ -5,9 +5,10 @@ set -euo pipefail
 APP_DIR="${APP_DIR:-/opt/magazine}"
 cd "$APP_DIR"
 
-echo "==> git pull"
+echo "==> git sync origin/main"
 git fetch origin main
-git pull --ff-only origin main
+# Le VPS doit coller au repo ; les hotfixes locaux (ex. docker-compose) bloquent sinon le pull.
+git reset --hard origin/main
 
 echo "==> docker compose build (api, web, worker)"
 docker compose build api web worker

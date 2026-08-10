@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ── Rust PDF→WebP rasterizer (PDFium) ─────────────────────────────
-FROM rust:1.85-bookworm AS rust-build
+FROM rust:1.88-bookworm AS rust-build
 WORKDIR /src
 COPY apps/api/native/magazine-pages-raster/ ./
 RUN cargo build --release
