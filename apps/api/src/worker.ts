@@ -33,16 +33,17 @@ function readConcurrency(envKey: string, fallback: number): number {
   const raw = process.env[envKey]?.trim();
   if (!raw) return fallback;
   const n = Number(raw);
-  return Number.isFinite(n) && n >= 1 ? Math.min(Math.floor(n), 8) : fallback;
+  return Number.isFinite(n) && n >= 1 ? Math.min(Math.floor(n), 4) : fallback;
 }
 
 async function bootstrap() {
   const connection = createRedisConnection();
+  // Défauts bas : un gros PDF rasterisé peut monter à plusieurs Go de RAM.
   const urgentConcurrency = readConcurrency(
     'MAGAZINE_PAGES_URGENT_CONCURRENCY',
-    3,
+    1,
   );
-  const bulkConcurrency = readConcurrency('MAGAZINE_PAGES_CONCURRENCY', 2);
+  const bulkConcurrency = readConcurrency('MAGAZINE_PAGES_CONCURRENCY', 1);
 
   const makeWorker = (queueName: string, concurrency: number) => {
     const worker = new Worker<MagazinePagesJobData>(

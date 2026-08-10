@@ -99,8 +99,10 @@ Sur le VPS partagé avec Chrononews : copier
 
 Après upload PDF **ou** à la première lecture/aperçu (`PENDING` / `FAILED`), l’API enqueue un job BullMQ. Deux files séparées :
 
-- `magazine-pages-urgent` — lecture / aperçu (jusqu’à `MAGAZINE_PAGES_URGENT_CONCURRENCY`, défaut 3) : ne attend **pas** le backfill
-- `magazine-pages` — upload + backfill (`MAGAZINE_PAGES_CONCURRENCY`, défaut 2)
+- `magazine-pages-urgent` — lecture / aperçu (`MAGAZINE_PAGES_URGENT_CONCURRENCY`, défaut **1**)
+- `magazine-pages` — upload + backfill (`MAGAZINE_PAGES_CONCURRENCY`, défaut **1**)
+
+Sur un VPS ~8 Go (surtout avec Chrononews), garder la concurrence à 1 : un PDF rasterisé peut monter à plusieurs Go et déclencher l’OOM kernel. Le service Compose `worker` a un `mem_limit` (~2,5 Go) + `NODE_OPTIONS=--max-old-space-size=2048`.
 
 Le worker rasterise page par page (WebP → R2), **reprend** après un crash (pages déjà uploadées conservées), et un **reaper** (boot + `MAGAZINE_PAGES_RECOVER_INTERVAL_MS`, défaut 5 min) ré-enqueue les `PENDING` / `PROCESSING` orphelins (no-op si job déjà actif). Lecture/aperçu relancent aussi tant que le statut n’est pas `READY`.
 
