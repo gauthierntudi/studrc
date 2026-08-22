@@ -418,7 +418,7 @@ export function KiosqueClient() {
           </div>
 
           <div className="opt-kq__body">
-            <p className="opt-kq__eyebrow">Kiosque Opt1mum</p>
+            <p className="opt-kq__eyebrow">STU MAG</p>
             <h1 id="kq-title" className="opt-kq__title">
               {mag.title}
             </h1>

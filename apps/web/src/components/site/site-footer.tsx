@@ -2,25 +2,20 @@ import Link from "next/link";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { FooterRecent } from "@/components/site/footer-recent";
 import { FooterSocial } from "@/components/site/footer-social";
+import { BrandLogo } from "@/components/site/brand-logo";
+import { BRAND } from "@/lib/brand";
+import { RUBRIQUES } from "@/lib/rubriques";
 import "./site-footer.css";
 
 const QUICK = [
   { href: "/", label: "Accueil" },
   { href: "/abonnement", label: "Abonnement" },
-  { href: "/kiosque", label: "Kiosque" },
+  { href: "/kiosque", label: "STU MAG" },
   { href: "/actualites", label: "Actualités" },
 ];
 
-const RUBRIQUES = [
-  { href: "/rubrique/start-up", label: "Start-up" },
-  { href: "/rubrique/inspirationnel", label: "Inspirationnel" },
-  { href: "/rubrique/zoom", label: "Zoom" },
-  { href: "/rubrique/game-changers", label: "Game changers" },
-  { href: "/rubrique/decryptages", label: "Décryptages" },
-];
-
 /**
- * Footer presse moderne — identité Opt1mum.
+ * Footer presse — identité STUDRC.
  */
 export function SiteFooter() {
   const year = new Date().getFullYear();
@@ -31,13 +26,9 @@ export function SiteFooter() {
         <div className="opt-ft__inner">
           <div className="opt-ft__brand">
             <Link href="/" className="opt-ft__logo">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/legacy/img/logo-hd.png" alt="Opt1mum" />
+              <BrandLogo onDark height={64} />
             </Link>
-            <p className="opt-ft__tagline">
-              Contenu premium pour décideurs — accessible en temps réel,
-              partout.
-            </p>
+            <p className="opt-ft__tagline">{BRAND.tagline}</p>
             <Link href="/abonnement" className="opt-ft__cta">
               S&apos;abonner
             </Link>
@@ -76,19 +67,21 @@ export function SiteFooter() {
             <ul className="opt-ft__contact">
               <li>
                 <MapPin size={15} strokeWidth={1.75} aria-hidden />
-                <span>8 Avenue Kalemie, Kinshasa-Gombe</span>
+                <span>{BRAND.address}</span>
               </li>
               <li>
                 <Mail size={15} strokeWidth={1.75} aria-hidden />
-                <a href="mailto:contact@opt1mum.com">contact@opt1mum.com</a>
+                <a href={`mailto:${BRAND.email}`}>{BRAND.email}</a>
               </li>
               <li>
                 <Phone size={15} strokeWidth={1.75} aria-hidden />
-                <a href="tel:+243828504000">+243 828 504 000</a>
+                <a href={`tel:${BRAND.phone.replace(/\s/g, "")}`}>{BRAND.phone}</a>
               </li>
               <li>
                 <Phone size={15} strokeWidth={1.75} aria-hidden />
-                <a href="tel:+243843966000">+243 843 966 000</a>
+                <a href={`tel:${BRAND.phoneAlt.replace(/\s/g, "")}`}>
+                  {BRAND.phoneAlt}
+                </a>
               </li>
             </ul>
           </div>
@@ -98,8 +91,8 @@ export function SiteFooter() {
       <div className="opt-ft__bottom">
         <div className="opt-ft__bottom-inner">
           <p className="opt-ft__copy">
-            © {year}{" "}
-            <Link href="/">Opt1mum Corporate</Link>. Tous droits réservés.
+            © {year} <Link href="/">{BRAND.legalName}</Link>. Tous droits
+            réservés.
           </p>
           <ul className="opt-ft__legal">
             <li>

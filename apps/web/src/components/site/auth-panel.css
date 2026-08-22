@@ -74,9 +74,9 @@
 
 .opt-auth__brand-logo img {
   display: block;
-  height: 34px;
+  height: 56px;
   width: auto;
-  filter: brightness(0) invert(1);
+  object-fit: contain;
 }
 
 .opt-auth__brand-footer {
@@ -718,8 +718,9 @@
 
   .opt-auth__panel-logo img {
     display: block;
-    height: 28px;
+    height: 44px;
     width: auto;
+    object-fit: contain;
   }
 
   .opt-auth__panel-top-actions {

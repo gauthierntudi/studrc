@@ -180,7 +180,7 @@ export default function MonAbonnementPage() {
                   ? "Votre accès lecture est suspendu. Prolongez votre abonnement pour le rétablir immédiatement."
                   : status === "pending"
                     ? "Un paiement est encore en cours ou incomplet. Finalisez pour activer votre accès."
-                    : "Souscrivez à une formule pour lire tous les magazines Opt1mum sans limite."}
+                    : "Souscrivez à une formule pour lire tous les numéros STU MAG sans limite."}
             </p>
 
             <Link href="/abonnement" className="opt-sub-card__cta">

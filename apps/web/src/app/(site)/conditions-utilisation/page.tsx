@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalDoc } from "@/components/site/legal-doc";
+import { BRAND } from "@/lib/brand";
 
 export const metadata: Metadata = {
   title: "Conditions d'utilisation",
   description:
-    "Conditions générales d’utilisation du site et des services Opt1mum.",
+    "Conditions générales d’utilisation du site et des services STUDRC.",
 };
 
 export default function ConditionsUtilisationPage() {
@@ -13,9 +14,9 @@ export default function ConditionsUtilisationPage() {
     <LegalDoc title="Conditions d'utilisation" updatedAt="8 août 2026">
       <p>
         Les présentes conditions régissent l’accès et l’utilisation du site{" "}
-        <Link href="/">opt1mum.com</Link>, du kiosque numérique, des articles,
+        <Link href="/">{BRAND.domain}</Link>, du kiosque numérique, des articles,
         des magazines et des services d’abonnement proposés par{" "}
-        <strong>Opt1mum Corporate</strong> («&nbsp;Opt1mum&nbsp;», «&nbsp;nous&nbsp;»).
+        <strong>STUDRC</strong> («&nbsp;nous&nbsp;»).
       </p>
       <p>
         En créant un compte, en vous abonnant, en effectuant un achat ou en
@@ -24,7 +25,7 @@ export default function ConditionsUtilisationPage() {
       </p>
 
       <h2>1. Objet du service</h2>
-      <p>Opt1mum propose notamment :</p>
+      <p>STUDRC propose notamment :</p>
       <ul>
         <li>la consultation d’articles et de contenus éditoriaux ;</li>
         <li>l’achat unitaire de magazines numériques ;</li>
@@ -105,7 +106,7 @@ export default function ConditionsUtilisationPage() {
       <h2>5. Propriété intellectuelle</h2>
       <p>
         L’ensemble des contenus du site (textes, images, logos, magazines, mise
-        en page, marques «&nbsp;Opt1mum&nbsp;», etc.) est protégé. Toute
+        en page, marques «&nbsp;STUDRC&nbsp;», etc.) est protégé. Toute
         reproduction, extraction, redistribution ou exploitation commerciale
         non autorisée est interdite.
       </p>
@@ -144,7 +145,7 @@ export default function ConditionsUtilisationPage() {
 
       <h2>8. Responsabilité</h2>
       <p>
-        Dans les limites permises par la loi, Opt1mum ne saurait être tenu
+        Dans les limites permises par la loi, STUDRC ne saurait être tenu
         responsable des dommages indirects, pertes de données côté utilisateur,
         ou préjudices résultant d’un usage non conforme du service, d’un cas de
         force majeure, ou d’une défaillance d’un prestataire tiers.
@@ -178,7 +179,7 @@ export default function ConditionsUtilisationPage() {
       <ul>
         <li>
           E-mail :{" "}
-          <a href="mailto:info@opt1mum.com">info@opt1mum.com</a>
+          <a href={`mailto:${BRAND.infoEmail}`}>{BRAND.infoEmail}</a>
         </li>
         <li>
           Téléphone :{" "}

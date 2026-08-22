@@ -39,8 +39,9 @@
 
 .opt-ft__logo img {
   display: block;
-  height: 42px;
+  height: 64px;
   width: auto;
+  object-fit: contain;
 }
 
 .opt-ft__tagline {

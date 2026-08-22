@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalDoc } from "@/components/site/legal-doc";
+import { BRAND } from "@/lib/brand";
 
 export const metadata: Metadata = {
   title: "Politique de confidentialité",
   description:
-    "Comment Opt1mum collecte, utilise et protège vos données personnelles.",
+    "Comment STUDRC collecte, utilise et protège vos données personnelles.",
 };
 
 export default function ConfidentialitePage() {
@@ -13,9 +14,9 @@ export default function ConfidentialitePage() {
     <LegalDoc title="Politique de confidentialité" updatedAt="8 août 2026">
       <p>
         La présente politique décrit la manière dont{" "}
-        <strong>Opt1mum Corporate</strong> («&nbsp;Opt1mum&nbsp;», «&nbsp;nous&nbsp;»)
+        <strong>STUDRC</strong> («&nbsp;nous&nbsp;»)
         traite les données personnelles dans le cadre du site{" "}
-        <Link href="/">opt1mum.com</Link>, de l’application web associée, des
+        <Link href="/">{BRAND.domain}</Link>, de l’application web associée, des
         abonnements et de l’achat de magazines numériques.
       </p>
       <p>
@@ -25,16 +26,16 @@ export default function ConfidentialitePage() {
 
       <h2>1. Responsable du traitement</h2>
       <p>
-        Le responsable du traitement est Opt1mum Corporate, éditeur du magazine
-        Opt1mum.
+        Le responsable du traitement est STUDRC, plateforme média et
+        observatoire du système éducatif de la RDC.
       </p>
       <ul>
         <li>
-          Site : <Link href="/">https://opt1mum.com</Link>
+          Site : <Link href="/">{BRAND.siteUrl}</Link>
         </li>
         <li>
           E-mail :{" "}
-          <a href="mailto:info@opt1mum.com">info@opt1mum.com</a>
+          <a href={`mailto:${BRAND.infoEmail}`}>{BRAND.infoEmail}</a>
         </li>
         <li>
           Téléphone :{" "}
@@ -123,7 +124,7 @@ export default function ConfidentialitePage() {
 
       <h2>5. Destinataires et sous-traitants</h2>
       <p>
-        Les données sont accessibles aux équipes habilitées d’Opt1mum. Elles
+        Les données sont accessibles aux équipes habilitées de STUDRC. Elles
         peuvent être traitées pour notre compte par des prestataires
         techniques, notamment&nbsp;:
       </p>
@@ -211,7 +212,7 @@ export default function ConfidentialitePage() {
       <p>
         Vous pouvez mettre à jour une partie de vos informations depuis votre{" "}
         <Link href="/compte">espace compte</Link>. Pour toute autre demande :
-        <a href="mailto:info@opt1mum.com"> info@opt1mum.com</a>.
+        <a href={`mailto:${BRAND.infoEmail}`}> {BRAND.infoEmail}</a>.
       </p>
 
       <h2>10. Cookies</h2>

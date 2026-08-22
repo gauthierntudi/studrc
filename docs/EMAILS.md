@@ -8,17 +8,17 @@ Pas de SMTP classique. Envoi via API Resend depuis NestJS, idéalement passé pa
 
 ```bash
 RESEND_API_KEY=re_...
-MAIL_FROM=Optimum <noreply@egouv.online>
+MAIL_FROM=STUDRC <noreply@studrc.com>
 ```
 
 ## Setup Resend (checklist)
 
 1. [ ] Compte Resend + créer une API key
-2. [ ] Ajouter le domaine `egouv.online` dans Resend
+2. [ ] Ajouter le domaine `studrc.com` dans Resend
 3. [ ] Configurer les DNS (SPF, DKIM, éventuellement DMARC) selon Resend
 4. [ ] Attendre la vérification du domaine
 5. [ ] Coller `RESEND_API_KEY` dans `v2/.env`
-6. [ ] Expéditeur : adresse d’un domaine vérifié (`noreply@egouv.online`)
+6. [ ] Expéditeur : adresse d’un domaine vérifié (`noreply@studrc.com`)
 
 Sans domaine vérifié, Resend limite souvent l’envoi (ex. uniquement vers ton email de compte).
 
@@ -51,7 +51,7 @@ import { Resend } from 'resend';
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 await resend.emails.send({
-  from: process.env.MAIL_FROM!, // Optimum <noreply@egouv.online>
+  from: process.env.MAIL_FROM!, // STUDRC <noreply@studrc.com>
   to: user.email,
   subject: '...',
   html: '...', // ou React Email plus tard

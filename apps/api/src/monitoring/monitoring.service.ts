@@ -142,7 +142,7 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
         return { sent: false, reason: 'no-superadmins' };
       }
 
-      const subject = `[Opt1mum] Monitoring — ${snap.overall.toUpperCase()}`;
+      const subject = `[STUDRC] Monitoring — ${snap.overall.toUpperCase()}`;
       const html = this.buildAlertHtml(snap, issues);
       for (const admin of supers) {
         await this.mail.sendRaw({
@@ -207,14 +207,14 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
 
   private buildAlertHtml(snap: MonitoringSnapshot, issues: string[]): string {
     const appUrl = (
-      this.config.get<string>('APP_URL') ?? 'https://opt1mum.com'
+      this.config.get<string>('APP_URL') ?? 'https://studrc.com'
     ).replace(/\/$/, '');
     const rows = issues
       .map((i) => `<li style="margin:0.35rem 0;">${escapeHtml(i)}</li>`)
       .join('');
     return `
       <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;color:#111;line-height:1.5;">
-        <p style="margin:0;font-size:13px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#e9262a;">OPT1MUM MONITORING</p>
+        <p style="margin:0;font-size:13px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#e9262a;">STUDRC MONITORING</p>
         <p style="margin:1rem 0 0.5rem;font-size:20px;font-weight:800;">État : ${escapeHtml(snap.overall)}</p>
         <p style="margin:0 0 1rem;color:#555;">Vérifié à ${escapeHtml(snap.checkedAt)}</p>
         <ul style="padding-left:1.2rem;">${rows}</ul>
@@ -562,7 +562,7 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
         method: 'GET',
         redirect: 'follow',
         signal: controller.signal,
-        headers: { 'User-Agent': 'Opt1mum-Monitoring/1.0' },
+        headers: { 'User-Agent': 'STUDRC-Monitoring/1.0' },
       });
       const ok = okStatuses.includes(res.status);
       return {

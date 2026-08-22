@@ -28,20 +28,20 @@ export async function generateMetadata({
     const url = `${site}/kiosque`;
     return {
       title: "Kiosque",
-      description: "Parcourez les numéros Opt1mum dans le kiosque numérique.",
+      description: "Parcourez les numéros STUDRC dans le kiosque numérique.",
       alternates: { canonical: url },
       openGraph: {
         type: "website",
         locale: "fr_FR",
-        siteName: "Opt1mum",
-        title: "Kiosque · Opt1mum",
-        description: "Parcourez les numéros Opt1mum dans le kiosque numérique.",
+        siteName: "STUDRC",
+        title: "Kiosque · STUDRC",
+        description: "Parcourez les numéros STUDRC dans le kiosque numérique.",
         url,
       },
       twitter: {
         card: "summary_large_image",
-        title: "Kiosque · Opt1mum",
-        description: "Parcourez les numéros Opt1mum dans le kiosque numérique.",
+        title: "Kiosque · STUDRC",
+        description: "Parcourez les numéros STUDRC dans le kiosque numérique.",
       },
     };
   }
@@ -54,8 +54,8 @@ export async function generateMetadata({
     const description =
       plainDescription(mag.description) ??
       (issue
-        ? `Numéro ${issue} du magazine Opt1mum — disponible dans le kiosque.`
-        : "Magazine Opt1mum — disponible dans le kiosque.");
+        ? `Numéro ${issue} de STU MAG — disponible dans le kiosque.`
+        : "STU MAG — disponible dans le kiosque.");
     const image = absoluteMediaUrl(mag.coverUrl);
     const url = `${site}/kiosque?magazine=${encodeURIComponent(mag.id)}`;
 
@@ -66,7 +66,7 @@ export async function generateMetadata({
       openGraph: {
         type: "website",
         locale: "fr_FR",
-        siteName: "Opt1mum",
+        siteName: "STUDRC",
         title,
         description,
         url,
@@ -90,7 +90,7 @@ export async function generateMetadata({
     const url = `${site}/kiosque`;
     return {
       title: "Kiosque",
-      description: "Magazine Opt1mum — kiosque numérique.",
+      description: "STU MAG — kiosque numérique.",
       alternates: { canonical: url },
     };
   }

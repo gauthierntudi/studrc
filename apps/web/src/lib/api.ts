@@ -1,9 +1,10 @@
 import { notifyAdminActivityRefresh } from "@/lib/admin-activity-bus";
+import { ARTICLE_CATEGORY_OPTIONS } from "@/lib/rubriques";
 
 /**
  * Côté navigateur : URL publique (NEXT_PUBLIC_*).
  * Côté serveur (SSR Docker) : préférer API_INTERNAL_URL (ex. http://api:3001)
- * pour éviter le hairpin NAT vers api.opt1mum.com.
+ * pour éviter le hairpin NAT vers api.studrc.com.
  */
 const API_URL =
   (typeof window === "undefined"
@@ -1335,12 +1336,12 @@ export type PublicCategoryFeed = {
 export type PublicHomeArticles = {
   featured: PublicArticleCard[];
   topGrid: PublicArticleCard[];
-  decryptages: PublicArticleCard[];
+  stuData: PublicArticleCard[];
   filInfo: PublicArticleCard[];
-  startup: PublicArticleCard[];
-  inspirationnel: PublicArticleCard[];
-  zoom: PublicArticleCard[];
-  gameChangers: PublicArticleCard[];
+  stuNews: PublicArticleCard[];
+  stuStories: PublicArticleCard[];
+  stuTalk: PublicArticleCard[];
+  stuMag: PublicArticleCard[];
   plusVus: PublicArticleCard[];
   aNePasManquer: PublicArticleCard[];
 };
@@ -1787,18 +1788,7 @@ function putFileToPresignedUrl(
   });
 }
 
-export const ARTICLE_CATEGORIES = [
-  { value: "edito", label: "Édito" },
-  { value: "grandes-entrevues", label: "Grandes entrevues" },
-  { value: "decryptages", label: "Décryptages" },
-  { value: "zoom", label: "Zoom" },
-  { value: "entrevue-croisee", label: "Entrevue croisée" },
-  { value: "start-up", label: "Start-up" },
-  { value: "inspirationnel", label: "Inspirationnel" },
-  { value: "game-changers", label: "Game changers" },
-  { value: "vus-sur-le-net", label: "Vus sur le net" },
-] as const;
-
+export const ARTICLE_CATEGORIES = ARTICLE_CATEGORY_OPTIONS;
 export type ArticleCategoryValue =
   (typeof ARTICLE_CATEGORIES)[number]["value"];
 

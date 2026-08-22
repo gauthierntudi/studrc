@@ -47,7 +47,7 @@ function StripePayForm({
   customerEmail,
   customerPhone,
   returnPath = "/abonnement/retour",
-  headNote = "Règlement sécurisé de votre abonnement Opt1mum.",
+  headNote = "Règlement sécurisé de votre abonnement STUDRC.",
   onClose,
   onSuccess,
 }: Omit<StripePaymentModalProps, "clientSecret" | "publishableKey">) {

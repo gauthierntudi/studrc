@@ -158,10 +158,9 @@ body:has(.opt-lecture) {
 
 .opt-lecture__brand img {
   display: block;
-  height: 2.35rem;
+  height: 2.75rem;
   width: auto;
   object-fit: contain;
-  filter: brightness(0);
 }
 
 .opt-lecture__tools {
@@ -331,7 +330,7 @@ body:has(.opt-lecture) {
   }
 
   .opt-lecture__brand img {
-    height: 1.85rem;
+    height: 2.5rem;
   }
 }
 

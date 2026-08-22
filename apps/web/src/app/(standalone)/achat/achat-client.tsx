@@ -571,7 +571,7 @@ function AchatInner() {
             customerEmail={user.email}
             customerPhone={user.phone}
             returnPath="/achat/retour"
-            headNote="Règlement sécurisé de votre numéro Opt1mum."
+            headNote="Règlement sécurisé de votre numéro STU MAG."
             onClose={() => setStripePay(null)}
             onSuccess={onStripeSuccess}
           />

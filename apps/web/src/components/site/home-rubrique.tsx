@@ -186,22 +186,22 @@ export function HomeRubrique({
 }: Partial<HomeRubriqueBlockProps> = {}) {
   return (
     <HomeRubriqueBlock
-      ariaLabel="Start-up, Inspirationnel et les plus vus"
+      ariaLabel="STU NEWS, STU STORIES et les plus vus"
       primary={
         primary ?? {
-          title: "Start-up",
-          href: "/rubrique/start-up",
-          titleClass: "opt-rub__title--teal",
-          dotClass: "opt-rub__dot--teal",
+          title: "STU NEWS",
+          href: "/rubrique/stu-news",
+          titleClass: "opt-rub__title--red",
+          dotClass: "opt-rub__dot--red",
           featured: DEMO_STARTUP_FEATURED,
           grid: DEMO_STARTUP_GRID,
         }
       }
       split={
         split ?? {
-          title: "Inspirationnel",
-          href: "/rubrique/inspirationnel",
-          accentClass: "opt-rsplit__title--red",
+          title: "STU STORIES",
+          href: "/rubrique/stu-stories",
+          accentClass: "opt-rsplit__title--gold",
           featured: DEMO_INSPIRATIONNEL_FEATURED,
           grid: DEMO_INSPIRATIONNEL_GRID,
         }
@@ -219,7 +219,7 @@ export function HomeRubrique({
   );
 }
 
-/** Après newsletter : Zoom + Game changers + À ne pas manquer */
+/** Après newsletter : STU TALK + STU MAG + À ne pas manquer */
 export function HomeRubriqueSuite({
   primary,
   split,

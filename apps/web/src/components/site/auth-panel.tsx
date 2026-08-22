@@ -86,7 +86,7 @@ export function AuthPanel({
 
           <Link href="/" className="opt-auth__brand-logo">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/legacy/img/logo-hd.png" alt="Opt1mum" />
+            <img src="/brand/studrc-logo.png" alt="STUDRC" />
           </Link>
 
           <div className="opt-auth__brand-footer">
@@ -109,9 +109,9 @@ export function AuthPanel({
 
         <div className="opt-auth__panel">
           <div className="opt-auth__panel-top">
-            <Link href="/" className="opt-auth__panel-logo" aria-label="Opt1mum — accueil">
+            <Link href="/" className="opt-auth__panel-logo" aria-label="STUDRC — accueil">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/legacy/img/logo-hd.png" alt="Opt1mum" />
+              <img src="/brand/studrc-logo.png" alt="STUDRC" />
             </Link>
             <div className="opt-auth__panel-top-actions">
               {badgeHref ? (

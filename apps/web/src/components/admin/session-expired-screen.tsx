@@ -85,8 +85,8 @@ export function SessionExpiredScreen({
         <AdminBrandLogo
           variant="black"
           href={resolvedLoginHref}
-          width={148}
-          height={36}
+          width={180}
+          height={64}
           className="session-expired__logo"
         />
 

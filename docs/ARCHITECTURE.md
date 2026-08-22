@@ -10,8 +10,8 @@ Internet
    ▼
 DigitalOcean Droplet (Docker Compose)
 ├─ nginx          :80 / :443  (reverse proxy + TLS)
-├─ web            :3000       Next.js 16     → https://egouv.online
-├─ api            :3001       NestJS         → https://api.egouv.online
+├─ web            :3000       Next.js 16     → https://studrc.com
+├─ api            :3001       NestJS         → https://api.studrc.com
 └─ worker                     même image NestJS, process BullMQ
          │
          ├── Managed PostgreSQL (Prisma)
@@ -23,9 +23,9 @@ Domaines :
 
 | Hôte | Service |
 |------|---------|
-| `egouv.online` / `www.egouv.online` | Front Next.js |
-| `api.egouv.online` | API NestJS (+ webhooks Stripe / FlexPaie) |
-| `cdn.egouv.online` (optionnel) | Médias R2 |
+| `studrc.com` / `www.studrc.com` | Front Next.js |
+| `api.studrc.com` | API NestJS (+ webhooks Stripe / FlexPaie) |
+| `cdn.studrc.com` (optionnel) | Médias R2 |
 
 ## Applications
 

@@ -119,7 +119,7 @@ export default function AdminHomePage() {
         <div>
           <h1>Tableau de bord</h1>
           <p>
-            Pilotage OPT1MUM — abonnés, magazines et paiements
+            Pilotage STUDRC — abonnés, magazines et paiements
             {admin?.name ? ` · ${admin.name}` : ""}.
           </p>
         </div>

@@ -8,32 +8,32 @@ export const SOCIAL_NETWORK_META: Record<
   facebook: {
     label: "Facebook",
     tone: "#1877f2",
-    placeholder: "https://facebook.com/Opt1mumMag",
+    placeholder: "https://facebook.com/studrc",
   },
   twitter: {
     label: "X / Twitter",
     tone: "#111111",
-    placeholder: "https://x.com/OptimumCorp",
+    placeholder: "https://x.com/studrc",
   },
   instagram: {
     label: "Instagram",
     tone: "#e1306c",
-    placeholder: "https://instagram.com/opt1mum",
+    placeholder: "https://instagram.com/studrc",
   },
   linkedin: {
     label: "LinkedIn",
     tone: "#0a66c2",
-    placeholder: "https://linkedin.com/company/opt1mum",
+    placeholder: "https://linkedin.com/company/studrc",
   },
   youtube: {
     label: "YouTube",
     tone: "#ff0000",
-    placeholder: "https://youtube.com/@opt1mum",
+    placeholder: "https://youtube.com/@studrc",
   },
   tiktok: {
     label: "TikTok",
     tone: "#111111",
-    placeholder: "https://tiktok.com/@opt1mum",
+    placeholder: "https://tiktok.com/@studrc",
   },
   whatsapp: {
     label: "WhatsApp",

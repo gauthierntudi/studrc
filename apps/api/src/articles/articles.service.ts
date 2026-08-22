@@ -20,6 +20,12 @@ import {
   CreateArticleDto,
   UpdateArticleDto,
 } from './dto/admin-article.dto';
+import {
+  CATEGORY_META,
+  categoryDisplay,
+  categoryQuerySlugs,
+  resolveCategorySlug,
+} from './categories';
 
 type UploadFile = {
   originalname: string;
@@ -171,20 +177,6 @@ export class ArticlesService {
     return this.toAdmin(article);
   }
 
-  private static readonly CATEGORY_META: Record<
-    string,
-    { label: string; tone: string }
-  > = {
-    edito: { label: 'Édito', tone: 'dark' },
-    'grandes-entrevues': { label: 'Grandes entrevues', tone: 'blue' },
-    decryptages: { label: 'Décryptages', tone: 'teal' },
-    zoom: { label: 'Zoom', tone: 'dark' },
-    'entrevue-croisee': { label: 'Entrevue croisée', tone: 'gold' },
-    'start-up': { label: 'Start-up', tone: 'teal' },
-    inspirationnel: { label: 'Inspirationnel', tone: 'red' },
-    'game-changers': { label: 'Game changers', tone: 'gold' },
-    'vus-sur-le-net': { label: 'Vus sur le net', tone: 'orange' },
-  };
 
   private readonly publicCardSelect = PUBLIC_CARD_SELECT;
 
@@ -194,11 +186,11 @@ export class ArticlesService {
     const [
       featured,
       recent,
-      decryptages,
-      startup,
-      inspirationnel,
-      zoom,
-      gameChangers,
+      stuData,
+      stuNews,
+      stuStories,
+      stuTalk,
+      stuMag,
       plusVus,
       aNePasManquer,
     ] = await Promise.all([
@@ -214,11 +206,11 @@ export class ArticlesService {
         take: 16,
         select: this.publicCardSelect,
       }),
-      this.byCategory('decryptages', 4),
-      this.byCategory('start-up', 5),
-      this.byCategory('inspirationnel', 4),
-      this.byCategory('zoom', 5),
-      this.byCategory('game-changers', 4),
+      this.byCategory('stu-data', 4),
+      this.byCategory('stu-news', 5),
+      this.byCategory('stu-stories', 4),
+      this.byCategory('stu-talk', 5),
+      this.byCategory('stu-mag', 4),
       this.prisma.article.findMany({
         where: published,
         orderBy: [{ viewCount: 'desc' }, { publishedAt: 'desc' }],
@@ -228,11 +220,13 @@ export class ArticlesService {
       this.prisma.article.findMany({
         where: {
           ...published,
-          OR: [
-            { category: 'edito' },
-            { category: 'grandes-entrevues' },
-            { category: 'vus-sur-le-net' },
-          ],
+          category: {
+            in: [
+              ...categoryQuerySlugs('stu-talk'),
+              ...categoryQuerySlugs('stu-stories'),
+              ...categoryQuerySlugs('stu-news'),
+            ],
+          },
         },
         orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
         take: 5,
@@ -249,12 +243,12 @@ export class ArticlesService {
     return {
       featured: featured.map((a) => this.toPublicCard(a)),
       topGrid: topGrid.map((a) => this.toPublicCard(a)),
-      decryptages: decryptages.map((a) => this.toPublicCard(a)),
+      stuData: stuData.map((a) => this.toPublicCard(a)),
       filInfo: filInfo.map((a) => this.toPublicCard(a)),
-      startup: startup.map((a) => this.toPublicCard(a)),
-      inspirationnel: inspirationnel.map((a) => this.toPublicCard(a)),
-      zoom: zoom.map((a) => this.toPublicCard(a)),
-      gameChangers: gameChangers.map((a) => this.toPublicCard(a)),
+      stuNews: stuNews.map((a) => this.toPublicCard(a)),
+      stuStories: stuStories.map((a) => this.toPublicCard(a)),
+      stuTalk: stuTalk.map((a) => this.toPublicCard(a)),
+      stuMag: stuMag.map((a) => this.toPublicCard(a)),
       plusVus: plusVus.map((a) => this.toPublicCard(a)),
       aNePasManquer: aNePasManquer.map((a) => this.toPublicCard(a)),
     };
@@ -323,12 +317,12 @@ export class ArticlesService {
     }
 
     const category = rawCategory
-      ? this.resolveCategorySlug(rawCategory)
+      ? resolveCategorySlug(rawCategory)
       : null;
 
     const where: Prisma.ArticleWhereInput = {
       isPublished: true,
-      ...(category ? { category } : {}),
+      ...(category ? { category: { in: categoryQuerySlugs(category) } } : {}),
       OR: [
         { title: { contains: q, mode: 'insensitive' } },
         { slug: { contains: q, mode: 'insensitive' } },
@@ -411,14 +405,17 @@ export class ArticlesService {
 
   /** Catalogue public d’une rubrique (paginé). */
   async listByCategory(rawSlug: string, take = 12, skip = 0) {
-    const slug = this.resolveCategorySlug(rawSlug);
+    const slug = resolveCategorySlug(rawSlug);
     if (!slug) {
       throw new NotFoundException('Rubrique introuvable');
     }
-    const meta = ArticlesService.CATEGORY_META[slug]!;
+    const meta = CATEGORY_META[slug]!;
     const limit = Math.min(Math.max(take, 1), 48);
     const offset = Math.max(skip, 0);
-    const where = { isPublished: true, category: slug } as const;
+    const where = {
+      isPublished: true,
+      category: { in: categoryQuerySlugs(slug) },
+    };
 
     const [total, items, mostRead] = await this.prisma.$transaction([
       this.prisma.article.count({ where }),
@@ -449,21 +446,6 @@ export class ArticlesService {
     };
   }
 
-  private resolveCategorySlug(raw: string): string | null {
-    const key = raw.trim().toLowerCase();
-    if (!key) return null;
-    const aliases: Record<string, string> = {
-      decryptage: 'decryptages',
-      decryptages: 'decryptages',
-      'grandes-entrevues': 'grandes-entrevues',
-      'grande-entrevue': 'grandes-entrevues',
-      'start-ups': 'start-up',
-      startup: 'start-up',
-      'game-changer': 'game-changers',
-    };
-    const resolved = aliases[key] ?? key;
-    return ArticlesService.CATEGORY_META[resolved] ? resolved : null;
-  }
 
   /** Autres articles (même rubrique en priorité), hors article courant. */
   async listRelatedPublished(slug: string, take = 6) {
@@ -481,11 +463,15 @@ export class ArticlesService {
       { createdAt: 'desc' as const },
     ];
 
-    let items = current.category
+    const relatedCategory = current.category
+      ? resolveCategorySlug(current.category)
+      : null;
+
+    let items = relatedCategory
       ? await this.prisma.article.findMany({
           where: {
             isPublished: true,
-            category: current.category,
+            category: { in: categoryQuerySlugs(relatedCategory) },
             id: { not: current.id },
           },
           orderBy,
@@ -532,7 +518,10 @@ export class ArticlesService {
 
   private byCategory(category: string, take: number) {
     return this.prisma.article.findMany({
-      where: { isPublished: true, category },
+      where: {
+        isPublished: true,
+        category: { in: categoryQuerySlugs(category) },
+      },
       orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
       take,
       select: this.publicCardSelect,
@@ -542,13 +531,7 @@ export class ArticlesService {
   private toPublicCard(
     article: Prisma.ArticleGetPayload<{ select: typeof PUBLIC_CARD_SELECT }>,
   ) {
-    const key = article.category?.trim() || '';
-    const meta =
-      ArticlesService.CATEGORY_META[key] ??
-      ({
-        label: key || 'Actualité',
-        tone: 'teal',
-      } as const);
+    const meta = categoryDisplay(article.category);
     const when = article.publishedAt ?? article.createdAt;
 
     return {
@@ -560,7 +543,7 @@ export class ArticlesService {
       category: article.category,
       categoryLabel: meta.label,
       categoryTone: meta.tone,
-      authorName: article.author?.name?.trim() || 'Opt1mum',
+      authorName: article.author?.name?.trim() || 'STUDRC',
       publishedAt: article.publishedAt?.toISOString() ?? null,
       dateLabel: new Intl.DateTimeFormat('fr-FR', {
         day: 'numeric',

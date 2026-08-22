@@ -2,58 +2,58 @@
 export const AUTH_HERO_POOL = [
   {
     cover: "/legacy/img/slide01.jpg",
-    title: "Le regard des décideurs",
-    lead: "Analyses, entrevues et dossiers pour rester en avance.",
+    title: "Éclairer l’école congolaise",
+    lead: "Information, données, histoires et voix de ceux qui transforment l’école chaque jour.",
   },
   {
     cover: "/legacy/img/slide02.jpg",
-    title: "Votre kiosque, partout",
-    lead: "Lisez Opt1mum en temps réel, sur tous vos écrans.",
+    title: "STU MAG, partout",
+    lead: "Le magazine numérique bimestriel, à lire sur tous vos écrans.",
   },
   {
     cover: "/legacy/img/slide03.jpg",
-    title: "L’essentiel du marché",
-    lead: "Start-up, zoom et game changers — chaque semaine.",
+    title: "L’actualité éducative en continu",
+    lead: "Réformes, politiques, initiatives et événements — STU NEWS.",
   },
   {
     cover: "/legacy/img/slide04.jpg",
     title: "Des voix qui comptent",
-    lead: "Grandes entrevues et portraits exclusifs.",
+    lead: "Podcasts, interviews et débats d’experts — STU TALK.",
   },
   {
     cover: "/legacy/img/slide05.jpg",
-    title: "Décrypter l’actualité",
-    lead: "Clarté et profondeur sur les enjeux qui façonnent demain.",
+    title: "Comprendre pour décider",
+    lead: "Données, statistiques et cartographies — STU DATA.",
   },
   {
     cover: "/legacy/img/slide06.jpg",
-    title: "Inspiration & leadership",
-    lead: "Parcours, stratégies et idées pour agir.",
+    title: "Des écoles qui inspirent",
+    lead: "Visages, parcours et initiatives — STU STORIES.",
   },
   {
     cover: "/legacy/img/slide07.jpg",
-    title: "L’Afrique en mouvement",
-    lead: "Business, innovation et société au plus près du terrain.",
+    title: "L’observatoire de l’éducation",
+    lead: "Un regard lucide sur le système éducatif de la RDC.",
   },
   {
     cover: "/legacy/img/slide08.jpg",
-    title: "Un magazine premium",
-    lead: "Une expérience de lecture soignée, du papier au digital.",
+    title: "Analyses approfondies",
+    lead: "STU MAG : le magazine bimestriel pour aller plus loin.",
   },
   {
     cover: "/legacy/img/slide09.jpg",
-    title: "Abonnez-vous à Opt1mum",
-    lead: "Accédez à tous les numéros et aux contenus exclusifs.",
+    title: "Rejoindre STUDRC",
+    lead: "Accédez aux numéros, aux articles et aux contenus exclusifs.",
   },
   {
     cover: "/legacy/img/slide010.jpg",
-    title: "Au cœur des décisions",
-    lead: "Ce que les leaders lisent pour anticiper.",
+    title: "Au plus près du terrain",
+    lead: "Les acteurs qui transforment l’école, chaque jour.",
   },
   {
     cover: "/legacy/img/slide011.jpg",
     title: "Restez connectés",
-    lead: "Actualités, dossiers et analyses — où que vous soyez.",
+    lead: "Actualités, données et récits — où que vous soyez.",
   },
 ] as const;
 

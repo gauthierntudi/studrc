@@ -72,7 +72,7 @@ function RegisterForm() {
   return (
     <AuthPanel
       title="Créez votre compte"
-      subtitle="Rejoignez Opt1mum et accédez à tous les contenus"
+      subtitle="Rejoignez STUDRC et accédez à tous les contenus"
       badge="Se connecter"
       badgeHref="/connexion"
       footer={
@@ -204,7 +204,7 @@ export default function RegisterPage() {
       fallback={
         <AuthPanel
           title="Créez votre compte"
-          subtitle="Rejoignez Opt1mum"
+          subtitle="Rejoignez STUDRC"
           footer={null}
         >
           <p className="auth-error">Chargement…</p>

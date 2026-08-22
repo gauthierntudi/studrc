@@ -53,17 +53,12 @@ export function HomeKiosque({
           <div className="opt-kiosque__head-text">
             <h2 id="opt-kiosque-title" className="opt-kiosque__title">
               <Link href="/kiosque" className="opt-kiosque__logo-link">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/legacy/img/kios.png"
-                  alt="Kiosque"
-                  className="opt-kiosque__logo"
-                />
+                STU MAG
               </Link>
             </h2>
             <p className="opt-kiosque__lead">
-              Feuilletez les derniers numéros Opt1mum — lecture sur smartphone,
-              tablette et ordinateur.
+              Feuilletez STU MAG, le magazine numérique bimestriel — analyses
+              approfondies sur smartphone, tablette et ordinateur.
             </p>
           </div>
           <div className="opt-kiosque__head-actions">

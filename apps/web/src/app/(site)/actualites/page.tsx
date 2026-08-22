@@ -8,7 +8,7 @@ import "../rubrique/[slug]/rubrique.css";
 export const metadata: Metadata = {
   title: "Actualités",
   description:
-    "Tous les articles Opt1mum — entrevues, décryptages, start-up et plus.",
+    "Toute l’actualité éducative STUDRC — STU NEWS, DATA, STORIES, TALK et MAG.",
 };
 
 const PACK_COUNT = 8;

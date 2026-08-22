@@ -184,7 +184,7 @@ export class AuthService {
     const name =
       googleUser.name ||
       email.split('@')[0] ||
-      'Abonné Opt1mum';
+      'Abonné STUDRC';
 
     let subscriber = await this.prisma.subscriber.findUnique({
       where: { email },

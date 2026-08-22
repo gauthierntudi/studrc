@@ -9,7 +9,7 @@ Cible retenue : **contrôle maximal** via Droplet(s) Dockerisés, avec **Postgre
                            │
               ┌────────────┴────────────┐
               ▼                         ▼
-     egouv.online                  api.egouv.online
+     studrc.com                    api.studrc.com
               │                         │
               └────────────┬────────────┘
                            ▼
@@ -67,13 +67,13 @@ Firewall Droplet (Cloud Firewall DO) :
 - 1 bucket prod (+ 1 staging optionnel)
 - Clés API limitées au bucket
 - CORS autorisant les domaines web
-- **Lecture PDF (viewer)** : en prod, nginx sert `/cdn-media/*` en proxy stream vers `cdn.opt1mum.com` (évite CORS + timeout Next sur gros PDF). Repli : `/api/media-proxy`.
-- **Uploads PDF admin (presigned)** : le navigateur envoie le fichier en `PUT` direct vers R2. CORS bucket obligatoire (`GET`, `PUT`, `HEAD`) pour `APP_URL` / `https://opt1mum.com` / localhost. Configurer avec :
+- **Lecture PDF (viewer)** : en prod, nginx sert `/cdn-media/*` en proxy stream vers `cdn.studrc.com` (évite CORS + timeout Next sur gros PDF). Repli : `/api/media-proxy`.
+- **Uploads PDF admin (presigned)** : le navigateur envoie le fichier en `PUT` direct vers R2. CORS bucket obligatoire (`GET`, `PUT`, `HEAD`) pour `APP_URL` / `https://studrc.com` / localhost. Configurer avec :
   ```bash
   pnpm --filter @opt1mum/api configure:r2-cors
   ```
-  Origins supplémentaires : `R2_CORS_ORIGINS=https://www.opt1mum.com`
-- **Custom domain** (ex. `cdn.egouv.online`) : à lier au bucket dans Cloudflare R2 → Settings → Custom Domains. Sans enregistrement DNS, le navigateur renvoie `ERR_NAME_NOT_RESOLVED` (ce n’est pas un problème CORS). En attendant : `AVATAR_USE_CDN=false` sert les photos via `/legacy/profil`.
+  Origins supplémentaires : `R2_CORS_ORIGINS=https://www.studrc.com`
+- **Custom domain** (ex. `cdn.studrc.com`) : à lier au bucket dans Cloudflare R2 → Settings → Custom Domains. Sans enregistrement DNS, le navigateur renvoie `ERR_NAME_NOT_RESOLVED` (ce n’est pas un problème CORS). En attendant : `AVATAR_USE_CDN=false` sert les photos via `/legacy/profil`.
 
 ## 3. Services Docker (cible)
 
@@ -178,8 +178,8 @@ services:
 
 ### Routage Nginx
 
-- `egouv.online` / `www.egouv.online` → `web:3000`
-- `api.egouv.online` → `api:3001`
+- `studrc.com` / `www.studrc.com` → `web:3000`
+- `api.studrc.com` → `api:3001`
 
 TLS : Certbot (Let’s Encrypt) ou certificats Cloudflare (Full Strict).
 
@@ -190,14 +190,14 @@ Fichier sur le Droplet : `/opt/magazine/v2/.env` (jamais commitré).
 ```bash
 # Apps
 NODE_ENV=production
-APP_URL=https://egouv.online
-API_URL=https://api.egouv.online
-NEXT_PUBLIC_API_URL=https://api.egouv.online
+APP_URL=https://studrc.com
+API_URL=https://api.studrc.com
+NEXT_PUBLIC_API_URL=https://api.studrc.com
 
 # Auth
 JWT_ACCESS_SECRET=
 JWT_REFRESH_SECRET=
-COOKIE_DOMAIN=.egouv.online
+COOKIE_DOMAIN=.studrc.com
 
 # Database (Managed Postgres)
 DATABASE_URL=postgresql://user:pass@host:25060/magazine?sslmode=require
@@ -211,7 +211,7 @@ R2_ACCESS_KEY_ID=
 R2_SECRET_ACCESS_KEY=
 R2_BUCKET=magazine-prod
 R2_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
-R2_PUBLIC_URL=https://cdn.egouv.online
+R2_PUBLIC_URL=https://cdn.studrc.com
 
 # Stripe (carte) — LIVE
 STRIPE_SECRET_KEY=sk_live_...
@@ -225,11 +225,11 @@ FLEXPAIE_TOKEN=
 FLEXPAIE_MOBILE_API_URL=https://backend.flexpay.cd/api/rest/v1/paymentService
 FLEXPAIE_CARD_API_URL=https://cardpayment.flexpay.cd/v1.1/pay
 FLEXPAIE_CHECK_API_URL=https://backend.flexpay.cd/api/rest/v1/check
-FLEXPAIE_CALLBACK_URL=https://api.egouv.online/payments/flexpaie/callback
+FLEXPAIE_CALLBACK_URL=https://api.studrc.com/payments/flexpaie/callback
 
 # Email — Resend
 RESEND_API_KEY=re_...
-MAIL_FROM=Optimum <noreply@egouv.online>
+MAIL_FROM=STUDRC <noreply@studrc.com>
 ```
 
 > **Note** : MaxiCash / PayPal / MoMo ne sont plus utilisés en v2. Emails via **Resend** (pas SMTP).
@@ -412,7 +412,7 @@ Toujours : DB et bucket R2 **séparés** de la prod.
 | Managed Postgres | ~$/mois |
 | Managed Redis | ~$/mois |
 | R2 | stockage + class A/B ops (souvent faible) |
-| Domaine / Resend | variable (domaine `egouv.online` vérifié chez Resend) |
+| Domaine / Resend | variable (domaine `studrc.com` vérifié chez Resend) |
 
 Documenter les montants réels dans un suivi interne une fois les plans choisis.
 

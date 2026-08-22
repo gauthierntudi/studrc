@@ -98,7 +98,7 @@ async function bootstrap() {
 
   // eslint-disable-next-line no-console
   console.log(
-    `OPT1MUM worker started — urgent×${urgentConcurrency} + bulk×${bulkConcurrency}`,
+    `STUDRC worker started — urgent×${urgentConcurrency} + bulk×${bulkConcurrency}`,
   );
 
   const shutdown = async (signal: string) => {

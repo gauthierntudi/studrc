@@ -43,7 +43,11 @@ const THUMB_CSS_WIDTH = 72;
 const pdfBytesCache = new Map<string, Promise<Uint8Array>>();
 
 /** CDN cross-origin → chemins same-origin (nginx /cdn-media ou /api/media-proxy). */
-const PDF_PROXY_HOSTS = new Set(["cdn.opt1mum.com", "cdn.egouv.online"]);
+const PDF_PROXY_HOSTS = new Set([
+  "cdn.studrc.com",
+  "cdn.opt1mum.com",
+  "cdn.egouv.online",
+]);
 
 function isLocalDevHost(): boolean {
   if (typeof window === "undefined") return false;

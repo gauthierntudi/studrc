@@ -8,9 +8,9 @@ type FilItem = { id: string | number; slug?: string; titre: string };
 type DossierItem = (typeof DEMO_DOSSIERS)[number];
 
 /**
- * Après le kiosque (ordre index.php) :
- * 1. Décryptages (une catégorie) — UI type Séries & Enquêtes
- * 2. Fil info — bandeau de titres
+ * Après le kiosque :
+ * 1. STU DATA — analyses et cartographies
+ * 2. Fil info — bandeau STU NEWS
  */
 export function HomeDossiers({
   decryptages = DEMO_DOSSIERS,
@@ -20,10 +20,12 @@ export function HomeDossiers({
   filInfo?: FilItem[];
 } = {}) {
   return (
-    <section className="opt-dossiers" aria-label="Dossiers et fil info">
+    <section className="opt-dossiers" aria-label="STU DATA et fil info">
       <div className="opt-dossiers__inner">
         <header className="opt-dossiers__head">
-          <h2 className="opt-dossiers__title">Décryptages</h2>
+          <h2 className="opt-dossiers__title">
+            <Link href="/rubrique/stu-data">STU DATA</Link>
+          </h2>
         </header>
 
         <ul className="opt-dossiers__grid">
@@ -34,7 +36,7 @@ export function HomeDossiers({
                 <div className="opt-dossiers__shade" aria-hidden />
                 <div className="opt-dossiers__overlay">
                   <div className="opt-dossiers__tags">
-                    <span className="opt-dossiers__badge">Décryptage</span>
+                    <span className="opt-dossiers__badge">STU DATA</span>
                   </div>
                   <h3 className="opt-dossiers__card-title">{item.titre}</h3>
                 </div>

@@ -33,8 +33,8 @@ async function main() {
 
   const origins = [
     appUrl,
-    'https://opt1mum.com',
-    'https://www.opt1mum.com',
+    'https://studrc.com',
+    'https://www.studrc.com',
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     ...extra,

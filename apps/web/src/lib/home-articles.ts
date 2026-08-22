@@ -124,18 +124,18 @@ function pickOne<T>(api: T[], demo: T): T {
 export type HomeArticlesView = {
   featured: TopStory[];
   topGrid: TopStory[];
-  decryptages: DossierCard[];
+  stuData: DossierCard[];
   filInfo: { id: string | number; slug?: string; titre: string }[];
-  startupFeatured: RubriqueStory;
-  startupGrid: RubriqueStory[];
-  inspirationnelFeatured: RubriqueSplitStory;
-  inspirationnelGrid: RubriqueSplitStory[];
+  stuNewsFeatured: RubriqueStory;
+  stuNewsGrid: RubriqueStory[];
+  stuStoriesFeatured: RubriqueSplitStory;
+  stuStoriesGrid: RubriqueSplitStory[];
   plusVusFeatured: RubriqueStory;
   plusVusList: RubriqueStory[];
-  zoomFeatured: RubriqueStory;
-  zoomGrid: RubriqueStory[];
-  gameFeatured: RubriqueSplitStory;
-  gameGrid: RubriqueSplitStory[];
+  stuTalkFeatured: RubriqueStory;
+  stuTalkGrid: RubriqueStory[];
+  stuMagFeatured: RubriqueSplitStory;
+  stuMagGrid: RubriqueSplitStory[];
   aNePasManquerFeatured: RubriqueStory;
   aNePasManquerList: RubriqueStory[];
 };
@@ -145,45 +145,45 @@ export function buildHomeArticlesView(
 ): HomeArticlesView {
   const featured = (feed?.featured ?? []).map(toTopStory);
   const topGrid = (feed?.topGrid ?? []).map(toTopStory);
-  const decryptages = (feed?.decryptages ?? []).map(toDossierCard);
+  const stuData = (feed?.stuData ?? []).map(toDossierCard);
   const filInfo = (feed?.filInfo ?? []).map((a) => ({
     id: a.id,
     slug: a.slug,
     titre: a.title,
   }));
-  const startup = (feed?.startup ?? []).map(toRubriqueStory);
-  const inspirationnel = (feed?.inspirationnel ?? []).map(toSplitStory);
+  const stuNews = (feed?.stuNews ?? []).map(toRubriqueStory);
+  const stuStories = (feed?.stuStories ?? []).map(toSplitStory);
   const plusVus = (feed?.plusVus ?? []).map(toRubriqueStory);
-  const zoom = (feed?.zoom ?? []).map(toRubriqueStory);
-  const game = (feed?.gameChangers ?? []).map(toSplitStory);
+  const stuTalk = (feed?.stuTalk ?? []).map(toRubriqueStory);
+  const stuMag = (feed?.stuMag ?? []).map(toSplitStory);
   const miss = (feed?.aNePasManquer ?? []).map(toRubriqueStory);
 
   return {
     featured: pick(featured, DEMO_FEATURED, 1),
     topGrid: pick(topGrid, DEMO_TOP_GRID, 1),
-    decryptages: pick(decryptages, DEMO_DOSSIERS, 1),
+    stuData: pick(stuData, DEMO_DOSSIERS, 1),
     filInfo: pick(
       filInfo,
       DEMO_FIL_INFO as { id: string | number; slug?: string; titre: string }[],
       1,
     ).slice(0, 5),
-    startupFeatured: pickOne(startup, DEMO_STARTUP_FEATURED),
-    startupGrid: pick(startup.slice(1), DEMO_STARTUP_GRID, 1),
-    inspirationnelFeatured: pickOne(
-      inspirationnel,
+    stuNewsFeatured: pickOne(stuNews, DEMO_STARTUP_FEATURED),
+    stuNewsGrid: pick(stuNews.slice(1), DEMO_STARTUP_GRID, 1),
+    stuStoriesFeatured: pickOne(
+      stuStories,
       DEMO_INSPIRATIONNEL_FEATURED,
     ),
-    inspirationnelGrid: pick(
-      inspirationnel.slice(1),
+    stuStoriesGrid: pick(
+      stuStories.slice(1),
       DEMO_INSPIRATIONNEL_GRID,
       1,
     ),
     plusVusFeatured: pickOne(plusVus, DEMO_PLUS_VUS_FEATURED),
     plusVusList: pick(plusVus.slice(1), DEMO_PLUS_VUS_LIST, 1),
-    zoomFeatured: pickOne(zoom, DEMO_ZOOM_FEATURED),
-    zoomGrid: pick(zoom.slice(1), DEMO_ZOOM_GRID, 1),
-    gameFeatured: pickOne(game, DEMO_GAME_FEATURED),
-    gameGrid: pick(game.slice(1), DEMO_GAME_GRID, 1),
+    stuTalkFeatured: pickOne(stuTalk, DEMO_ZOOM_FEATURED),
+    stuTalkGrid: pick(stuTalk.slice(1), DEMO_ZOOM_GRID, 1),
+    stuMagFeatured: pickOne(stuMag, DEMO_GAME_FEATURED),
+    stuMagGrid: pick(stuMag.slice(1), DEMO_GAME_GRID, 1),
     aNePasManquerFeatured: pickOne(miss, DEMO_A_NE_PAS_MANQUER_FEATURED),
     aNePasManquerList: pick(miss.slice(1), DEMO_A_NE_PAS_MANQUER_LIST, 1),
   };

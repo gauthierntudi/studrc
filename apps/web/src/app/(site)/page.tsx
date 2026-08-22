@@ -55,24 +55,24 @@ async function HomeContent() {
       <TopStories featured={articles.featured} grid={articles.topGrid} />
       <HomeKiosque magazines={magazines} />
       <HomeDossiers
-        decryptages={articles.decryptages}
+        decryptages={articles.stuData}
         filInfo={articles.filInfo}
       />
       <HomeRubrique
         primary={{
-          title: "Start-up",
-          href: "/rubrique/start-up",
-          titleClass: "opt-rub__title--teal",
-          dotClass: "opt-rub__dot--teal",
-          featured: articles.startupFeatured,
-          grid: articles.startupGrid,
+          title: "STU NEWS",
+          href: "/rubrique/stu-news",
+          titleClass: "opt-rub__title--red",
+          dotClass: "opt-rub__dot--red",
+          featured: articles.stuNewsFeatured,
+          grid: articles.stuNewsGrid,
         }}
         split={{
-          title: "Inspirationnel",
-          href: "/rubrique/inspirationnel",
-          accentClass: "opt-rsplit__title--red",
-          featured: articles.inspirationnelFeatured,
-          grid: articles.inspirationnelGrid,
+          title: "STU STORIES",
+          href: "/rubrique/stu-stories",
+          accentClass: "opt-rsplit__title--gold",
+          featured: articles.stuStoriesFeatured,
+          grid: articles.stuStoriesGrid,
         }}
         sidebar={{
           title: "Les plus vus",
@@ -85,19 +85,19 @@ async function HomeContent() {
       <HomeNewsletter />
       <HomeRubriqueSuite
         primary={{
-          title: "Zoom",
-          href: "/rubrique/zoom",
-          titleClass: "opt-rub__title--dark",
-          dotClass: "opt-rub__dot--dark",
-          featured: articles.zoomFeatured,
-          grid: articles.zoomGrid,
+          title: "STU TALK",
+          href: "/rubrique/stu-talk",
+          titleClass: "opt-rub__title--teal",
+          dotClass: "opt-rub__dot--teal",
+          featured: articles.stuTalkFeatured,
+          grid: articles.stuTalkGrid,
         }}
         split={{
-          title: "Game changers",
-          href: "/rubrique/game-changers",
-          accentClass: "opt-rsplit__title--gold",
-          featured: articles.gameFeatured,
-          grid: articles.gameGrid,
+          title: "STU MAG",
+          href: "/kiosque",
+          accentClass: "opt-rsplit__title--dark",
+          featured: articles.stuMagFeatured,
+          grid: articles.stuMagGrid,
         }}
         sidebar={{
           title: "À ne pas manquer",

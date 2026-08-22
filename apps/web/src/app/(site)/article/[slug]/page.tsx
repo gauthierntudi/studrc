@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const description =
       plainDescription(article.excerpt) ??
       plainDescription(article.content) ??
-      "Article Opt1mum";
+      "Article STUDRC";
     const image = absoluteMediaUrl(article.coverUrl);
     const url = `${getSiteUrl()}/article/${encodeURIComponent(article.slug)}`;
     const authors = article.author?.name ? [article.author.name] : undefined;
@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       openGraph: {
         type: "article",
         locale: "fr_FR",
-        siteName: "Opt1mum",
+        siteName: "STUDRC",
         title,
         description,
         url,

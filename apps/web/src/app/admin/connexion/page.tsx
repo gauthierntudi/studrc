@@ -155,9 +155,9 @@ export default function AdminLoginPage() {
           ))}
           <div className="admin-auth__hero-shade" />
           <div className="admin-auth__hero-copy">
-            <h2>Pilotez le magazine en toute confiance.</h2>
+            <h2>Pilotez STUDRC en toute confiance.</h2>
             <p>
-              Console staff OPT1MUM — magazines, abonnements et rédaction.
+              Console staff STUDRC — magazines, abonnements et rédaction.
             </p>
           </div>
           <div className="admin-auth__hero-nav">
@@ -176,13 +176,13 @@ export default function AdminLoginPage() {
           <AdminBrandLogo
             variant="default"
             href="/"
-            width={148}
-            height={36}
+            width={180}
+            height={64}
             priority
           />
           <div className="admin-auth__intro">
             <h1>Bon retour</h1>
-            <p>Accès réservé au staff OPT1MUM.</p>
+            <p>Accès réservé au staff STUDRC.</p>
           </div>
 
           {message ? <Alert variant="error">{message}</Alert> : null}
@@ -195,7 +195,7 @@ export default function AdminLoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="username"
-              placeholder="admin@opt1mum.com"
+              placeholder="admin@studrc.com"
             />
           </label>
 

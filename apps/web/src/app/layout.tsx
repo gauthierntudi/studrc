@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, Plus_Jakarta_Sans } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { BRAND, BRAND_META_DESCRIPTION } from "@/lib/brand";
 import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
@@ -23,38 +24,37 @@ const fontDisplay = Archivo({
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
   title: {
-    default: "Opt1mum",
-    template: "%s · Opt1mum",
+    default: BRAND.name,
+    template: `%s · ${BRAND.name}`,
   },
-  description: "Magazine Opt1mum — kiosque et abonnements",
+  description: BRAND_META_DESCRIPTION,
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/legacy/img/icon-flat.jpg", type: "image/jpeg", sizes: "512x512" },
+      { url: BRAND.icon, type: "image/png", sizes: "512x512" },
     ],
-    apple: "/apple-touch-icon.png",
-    shortcut: "/favicon.ico",
+    apple: BRAND.icon,
+    shortcut: BRAND.icon,
   },
   openGraph: {
     type: "website",
     locale: "fr_FR",
-    siteName: "Opt1mum",
-    title: "Opt1mum",
-    description: "Magazine Opt1mum — kiosque et abonnements",
+    siteName: BRAND.name,
+    title: BRAND.name,
+    description: BRAND_META_DESCRIPTION,
     images: [
       {
-        url: "/legacy/img/icon-flat.jpg",
+        url: BRAND.icon,
         width: 512,
         height: 512,
-        alt: "Opt1mum",
+        alt: BRAND.name,
       },
     ],
   },
   twitter: {
     card: "summary",
-    title: "Opt1mum",
-    description: "Magazine Opt1mum — kiosque et abonnements",
-    images: ["/legacy/img/icon-flat.jpg"],
+    title: BRAND.name,
+    description: BRAND_META_DESCRIPTION,
+    images: [BRAND.icon],
   },
 };
 

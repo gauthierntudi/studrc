@@ -13,6 +13,7 @@ import {
   articlesPublicApi,
   type PublicArticleCard,
 } from "@/lib/api";
+import { SEARCH_FILTERS } from "@/lib/rubriques";
 import "./recherche.css";
 
 const COVER_FALLBACK = "/legacy/articles/1591543587.jpg";
@@ -25,18 +26,7 @@ function truncateTitle(title: string): string {
   return `${t.slice(0, TITLE_MAX).trimEnd()}…`;
 }
 
-const FILTERS = [
-  { slug: "", label: "Toutes" },
-  { slug: "grandes-entrevues", label: "Grandes entrevues" },
-  { slug: "decryptages", label: "Décryptages" },
-  { slug: "zoom", label: "Zoom" },
-  { slug: "entrevue-croisee", label: "Entrevue croisée" },
-  { slug: "start-up", label: "Start-up" },
-  { slug: "inspirationnel", label: "Inspirationnel" },
-  { slug: "game-changers", label: "Game changers" },
-  { slug: "edito", label: "Édito" },
-  { slug: "vus-sur-le-net", label: "Vus sur le net" },
-] as const;
+const FILTERS = SEARCH_FILTERS;
 
 function buildPageItems(current: number, pageCount: number): Array<number | "…"> {
   if (pageCount <= 7) {

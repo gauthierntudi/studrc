@@ -53,8 +53,8 @@ export function HomeNewsletter() {
       <div className="opt-nl__inner">
         <h2 className="opt-nl__title">Restons en contact</h2>
         <p className="opt-nl__lead">
-          Abonnez-vous à notre newsletter pour recevoir instantanément nos
-          nouveaux articles&nbsp;!
+          Recevez l’actualité éducative, les données et les histoires STUDRC
+          directement dans votre boîte mail.
         </p>
 
         {done ? (

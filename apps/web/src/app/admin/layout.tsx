@@ -3,7 +3,7 @@ import { AdminAuthProvider } from "@/components/admin/admin-auth-provider";
 import "../admin-ui.css";
 
 export const metadata: Metadata = {
-  title: "OPT1MUM Admin",
+  title: "STUDRC Admin",
   robots: { index: false, follow: false },
 };
 

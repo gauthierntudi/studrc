@@ -674,7 +674,7 @@ function AdminMagazinesPageInner() {
               color: normalizeHex(value.accentColor, DEFAULT_ACCENT),
             }}
           >
-            <strong>Opt1mum</strong>
+            <strong>STUDRC</strong>
             <em style={{ color: "#fff" }}>Fond + accent</em>
           </div>
         </div>

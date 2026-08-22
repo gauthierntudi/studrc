@@ -1,19 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
-
-const LOGO_SRC: Record<"default" | "black" | "white", string> = {
-  default: "/legacy/img/logo-hd.png",
-  black: "/legacy/img/logo-hd.png",
-  white: "/legacy/img/logo2.png",
-};
 
 export function AdminBrandLogo({
   href = "/admin",
-  variant = "default",
+  variant: _variant = "default",
   width = 148,
-  height = 36,
+  height = 52,
   className,
   priority,
 }: {
@@ -24,26 +19,20 @@ export function AdminBrandLogo({
   className?: string;
   priority?: boolean;
 }) {
-  const filter =
-    variant === "white"
-      ? "brightness(0) invert(1)"
-      : variant === "black"
-        ? "brightness(0)"
-        : undefined;
-
   return (
     <Link href={href} className={cn("admin-brand-logo", className)}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={LOGO_SRC[variant]}
-        alt="OPT1MUM"
+        src={BRAND.logo}
+        alt={BRAND.name}
         width={width}
         height={height}
         style={{
-          width,
-          height: "auto",
+          width: "auto",
+          maxWidth: width,
+          height,
           display: "block",
-          filter,
+          objectFit: "contain",
         }}
         {...(priority ? { fetchPriority: "high" as const } : {})}
       />

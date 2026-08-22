@@ -19,37 +19,24 @@ import { avatarLocalFallback, avatarSrc } from "@/lib/avatar";
 import { libraryApi } from "@/lib/api";
 import { EmailVerifyBanner } from "./email-verify-banner";
 import { HeaderLiveSearch } from "./header-live-search";
+import { BrandLogo } from "./brand-logo";
+import { RUBRIQUES } from "@/lib/rubriques";
 import "./site-header.css";
 
 const ICON = { size: 18, strokeWidth: 1.75 } as const;
 
-const RUBRIQUES = [
-  { href: "/rubrique/grandes-entrevues", label: "Grandes entrevues" },
-  { href: "/rubrique/decryptages", label: "Décryptages" },
-  { href: "/rubrique/zoom", label: "Zoom" },
-  { href: "/rubrique/entrevue-croisee", label: "Entrevue croisée" },
-  { href: "/rubrique/start-up", label: "Start-up" },
-  { href: "/rubrique/inspirationnel", label: "Inspirationnel" },
-  { href: "/rubrique/game-changers", label: "Game changers" },
-  { href: "/rubrique/vus-sur-le-net", label: "Vus sur le net" },
-  { href: "/rubrique/edito", label: "Édito" },
-];
-
-const NAV_PRIMARY = [
-  { href: "/rubrique/grandes-entrevues", label: "Grandes entrevues" },
-  { href: "/rubrique/decryptages", label: "Décryptages" },
-  { href: "/rubrique/zoom", label: "Zoom" },
-  { href: "/rubrique/start-up", label: "Start-up" },
-];
+const NAV_PRIMARY = RUBRIQUES.filter((r) => r.slug !== "stu-mag").map((r) => ({
+  href: r.href,
+  label: r.label,
+}));
 
 const FEATURED = {
   href: "/kiosque",
-  label: "Nouveau numéro en kiosque",
+  label: "Nouveau numéro STU MAG",
 };
 
 /**
- * Header presse moderne (structure type Jeune Afrique),
- * identité Opt1mum : logo centré, cyan/rouge, CTA abonnement.
+ * Header presse — identité STUDRC, logo centré, CTA abonnement.
  */
 export function SiteHeader({ showNav = true }: { showNav?: boolean } = {}) {
   const router = useRouter();
@@ -217,15 +204,14 @@ export function SiteHeader({ showNav = true }: { showNav?: boolean } = {}) {
             <HeaderLiveSearch variant="header" />
           </div>
 
-          <Link href="/" className="opt-header__brand" aria-label="Opt1mum — Accueil">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/legacy/img/logo-hd.png" alt="Opt1mum" />
+          <Link href="/" className="opt-header__brand" aria-label="STUDRC — Accueil">
+            <BrandLogo height={52} />
           </Link>
 
           <div className="opt-header__side opt-header__side--right">
             <Link href="/kiosque" className="opt-header__action">
               <BookOpen {...ICON} aria-hidden />
-              <span>Kiosque</span>
+              <span>STU MAG</span>
             </Link>
 
             <span className="opt-header__vsep" aria-hidden />
@@ -407,7 +393,7 @@ export function SiteHeader({ showNav = true }: { showNav?: boolean } = {}) {
             ))}
             <li>
               <Link href="/kiosque" onClick={() => setMenuOpen(false)}>
-                Kiosque
+                STU MAG
               </Link>
             </li>
           </ul>

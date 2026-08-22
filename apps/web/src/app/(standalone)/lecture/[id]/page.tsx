@@ -282,9 +282,9 @@ function LectureContent() {
           </div>
         </div>
 
-        <Link href="/" className="opt-lecture__brand" aria-label="Opt1mum — Accueil">
+        <Link href="/" className="opt-lecture__brand" aria-label="STUDRC — Accueil">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/legacy/img/logo-hd.png" alt="Opt1mum" />
+          <img src="/brand/studrc-logo.png" alt="STUDRC" />
         </Link>
 
         <div className="opt-lecture__tools">

@@ -47,7 +47,7 @@ export default function VerifyEmailPage() {
           href="/"
           className="font-display text-2xl tracking-[0.08em]"
         >
-          OPT1MUM
+          STUDRC
         </Link>
         <h1 className="mt-10 font-display text-3xl">
           Confirmation email

@@ -66,7 +66,7 @@ function LoginForm() {
   return (
     <AuthPanel
       title="Connectez-vous"
-      subtitle="Accédez à votre compte Opt1mum"
+      subtitle="Accédez à votre compte STUDRC"
       badge="S'inscrire"
       badgeHref={`/inscription?next=${encodeURIComponent(next)}`}
       footer={
@@ -173,7 +173,7 @@ export default function LoginPage() {
       fallback={
         <AuthPanel
           title="Connectez-vous"
-          subtitle="Accédez à votre compte Opt1mum"
+          subtitle="Accédez à votre compte STUDRC"
           footer={null}
         >
           <p className="auth-error">Chargement…</p>

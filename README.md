@@ -1,9 +1,10 @@
-# OPT1MUM v2
+# STUDRC
+
+Plateforme média et observatoire du système éducatif de la République Démocratique du Congo.
+
+**Domaine :** [studrc.com](https://studrc.com) · API `api.studrc.com`
 
 Monorepo Next.js 16 + NestJS.
-
-**Domaine actuel :** [egouv.online](https://egouv.online) · API `api.egouv.online`  
-**Cible plus tard :** `opt1mum.com` — voir [docs/DOMAINES.md](./docs/DOMAINES.md)
 
 ## Stack
 
@@ -71,4 +72,4 @@ Configurer les secrets dans `v2/.env` (jamais committer).
 - [ ] UI kiosque / lecteur PDF / admin magazines (données)
 - [ ] Stripe + FlexPaie branchés
 - [ ] ETL MySQL → Postgres + médias R2
-- [ ] Cutover production (`egouv.online` puis `opt1mum.com`)
+- [ ] Cutover production (`studrc.com`)

@@ -35,6 +35,16 @@
   line-height: 1.1;
 }
 
+.opt-dossiers__title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.opt-dossiers__title a:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
 .opt-dossiers__title--fil {
   margin-bottom: 1.15rem;
 }

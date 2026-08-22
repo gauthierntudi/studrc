@@ -13,7 +13,7 @@ export class MailService {
     const apiKey = this.config.get<string>('RESEND_API_KEY');
     this.resend = apiKey ? new Resend(apiKey) : null;
     this.from =
-      this.config.get<string>('MAIL_FROM') ?? 'Optimum <noreply@egouv.online>';
+      this.config.get<string>('MAIL_FROM') ?? 'STUDRC <noreply@studrc.com>';
     this.appUrl = this.config.get<string>('APP_URL') ?? 'http://localhost:3000';
   }
 
@@ -21,11 +21,11 @@ export class MailService {
     const url = `${this.appUrl.replace(/\/$/, '')}/verifier-email?token=${encodeURIComponent(token)}`;
     await this.send({
       to,
-      subject: 'Confirmez votre adresse e-mail — OPT1MUM',
+      subject: 'Confirmez votre adresse e-mail — STUDRC',
       html: `
         <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;color:#111;line-height:1.5;">
           <div style="padding:20px 0 8px;border-bottom:3px solid #e9262a;">
-            <p style="margin:0;font-size:13px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#e9262a;">OPT1MUM</p>
+            <p style="margin:0;font-size:13px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#e9262a;">STUDRC</p>
           </div>
           <p style="margin:1.35rem 0 0.75rem;font-size:22px;font-weight:800;line-height:1.2;">Confirmez votre adresse e-mail</p>
           <p style="margin:0 0 1rem;">Bonjour ${escapeHtml(name)},</p>
@@ -48,7 +48,7 @@ export class MailService {
             Bouton inactif ? Ouvrez ce lien :<br />
             <a href="${escapeHtml(url)}" style="color:#e9262a;">${escapeHtml(url)}</a>
           </p>
-          <p style="margin:0;padding-top:1rem;border-top:1px solid #eee;color:#666;font-size:13px;">— L’équipe OPT1MUM</p>
+          <p style="margin:0;padding-top:1rem;border-top:1px solid #eee;color:#666;font-size:13px;">— L’équipe STUDRC</p>
         </div>
       `,
     });
@@ -57,13 +57,13 @@ export class MailService {
   async sendPasswordResetOtp(to: string, name: string, otp: string) {
     await this.send({
       to,
-      subject: 'Code de réinitialisation — OPT1MUM',
+      subject: 'Code de réinitialisation — STUDRC',
       html: `
         <p>Bonjour ${escapeHtml(name)},</p>
         <p>Votre code de réinitialisation de mot de passe est :</p>
         <p style="font-size:28px;font-weight:700;letter-spacing:6px;font-family:monospace;">${escapeHtml(otp)}</p>
         <p>Ce code expire dans 15 minutes. Si vous n’êtes pas à l’origine de cette demande, ignorez cet email.</p>
-        <p>— L’équipe OPT1MUM</p>
+        <p>— L’équipe STUDRC</p>
       `,
     });
   }
@@ -77,12 +77,12 @@ export class MailService {
   }) {
     await this.send({
       to: input.to,
-      subject: 'Code de confirmation admin — OPT1MUM',
+      subject: 'Code de confirmation admin — STUDRC',
       html: `
         <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;color:#111;line-height:1.5;">
           <p style="margin:0 0 0.75rem;">Bonjour ${escapeHtml(input.name)},</p>
           <p style="margin:0 0 0.75rem;">
-            Une action sensible a été demandée sur l’admin OPT1MUM :
+            Une action sensible a été demandée sur l’admin STUDRC :
             <strong>${escapeHtml(input.actionLabel)}</strong>.
           </p>
           ${
@@ -95,7 +95,7 @@ export class MailService {
           <p style="margin:0 0 0.75rem;color:#666;font-size:13px;">
             Ce code expire dans <strong>10 minutes</strong>. Si vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail et contactez un super-admin.
           </p>
-          <p style="margin:0;color:#666;font-size:13px;">— L’équipe OPT1MUM</p>
+          <p style="margin:0;color:#666;font-size:13px;">— L’équipe STUDRC</p>
         </div>
       `,
     });
@@ -105,16 +105,16 @@ export class MailService {
     const homeUrl = this.appUrl.replace(/\/$/, '');
     await this.send({
       to,
-      subject: 'Bienvenue dans la newsletter OPT1MUM',
+      subject: 'Bienvenue dans la newsletter STUDRC',
       html: `
         <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;color:#111;line-height:1.5;">
           <div style="padding:20px 0 8px;border-bottom:3px solid #e9262a;">
-            <p style="margin:0;font-size:13px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#e9262a;">OPT1MUM</p>
+            <p style="margin:0;font-size:13px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#e9262a;">STUDRC</p>
           </div>
           <p style="margin:1.35rem 0 0.75rem;font-size:22px;font-weight:800;line-height:1.2;">Inscription confirmée</p>
           <p style="margin:0 0 1rem;">Bonjour,</p>
           <p style="margin:0 0 1rem;color:#444;">
-            Merci de vous être inscrit à la newsletter OPT1MUM avec l’adresse
+            Merci de vous être inscrit à la newsletter STUDRC avec l’adresse
             <strong>${escapeHtml(to)}</strong>.
           </p>
           <p style="margin:0 0 1rem;color:#444;">
@@ -124,14 +124,14 @@ export class MailService {
           <p style="margin:1.5rem 0;">
             <a href="${escapeHtml(homeUrl)}"
                style="display:inline-block;padding:13px 22px;background:#e9262a;color:#fff;text-decoration:none;border-radius:999px;font-weight:700;font-size:15px;">
-              Lire OPT1MUM
+              Lire STUDRC
             </a>
           </p>
           <p style="margin:0 0 1.25rem;color:#888;font-size:12px;">
             Si vous n’êtes pas à l’origine de cette inscription, ignorez cet e-mail
             ou contactez-nous.
           </p>
-          <p style="margin:0;padding-top:1rem;border-top:1px solid #eee;color:#666;font-size:13px;">— L’équipe OPT1MUM</p>
+          <p style="margin:0;padding-top:1rem;border-top:1px solid #eee;color:#666;font-size:13px;">— L’équipe STUDRC</p>
         </div>
       `,
     });
@@ -159,8 +159,8 @@ export class MailService {
 
     const subject =
       input.purpose === 'PURCHASE'
-        ? `Paiement confirmé — ${input.productLabel} — OPT1MUM`
-        : `Abonnement activé — ${input.productLabel} — OPT1MUM`;
+        ? `Paiement confirmé — ${input.productLabel} — STUDRC`
+        : `Abonnement activé — ${input.productLabel} — STUDRC`;
 
     const intro =
       input.purpose === 'PURCHASE'
@@ -195,7 +195,7 @@ export class MailService {
             </a>
           </p>
           <p style="color:#666;font-size:13px;">Si le bouton ne fonctionne pas, ouvrez : ${escapeHtml(input.actionUrl)}</p>
-          <p>— L’équipe OPT1MUM</p>
+          <p>— L’équipe STUDRC</p>
         </div>
       `,
     });

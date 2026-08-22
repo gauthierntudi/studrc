@@ -70,6 +70,12 @@ h6 {
   font-family: var(--opt-font-sans) !important;
 }
 
+.brand-logo--on-dark {
+  background: #fff;
+  border-radius: 10px;
+  padding: 0.35rem 0.55rem;
+}
+
 /* Utilitaires admin / auth (hors CSS Material Pro complet) */
 .admin-topbar {
   background: linear-gradient(

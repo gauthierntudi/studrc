@@ -54,7 +54,7 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
 2. **Developers** → **Webhooks** → **Add endpoint**
 3. **Endpoint URL** (prod) :
    ```
-   https://api.egouv.online/payments/stripe/webhook
+   https://api.studrc.com/payments/stripe/webhook
    ```
 4. Événements à écouter :
    - `checkout.session.completed`
@@ -95,7 +95,7 @@ FLEXPAIE_TOKEN=Bearer ...
 FLEXPAIE_MOBILE_API_URL=https://backend.flexpay.cd/api/rest/v1/paymentService
 FLEXPAIE_CARD_API_URL=https://cardpayment.flexpay.cd/v1.1/pay
 FLEXPAIE_CHECK_API_URL=https://backend.flexpay.cd/api/rest/v1/check
-FLEXPAIE_CALLBACK_URL=https://api.egouv.online/payments/flexpaie/callback
+FLEXPAIE_CALLBACK_URL=https://api.studrc.com/payments/flexpaie/callback
 ```
 
 > En prod, `FLEXPAIE_CALLBACK_URL` doit être une URL **HTTPS publique**, pas `localhost`.

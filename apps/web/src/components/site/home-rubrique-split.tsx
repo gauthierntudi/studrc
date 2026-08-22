@@ -71,8 +71,8 @@ export type HomeRubriqueSplitProps = {
  * Rubrique colonne principale — featured split + grille 3 cols.
  */
 export function HomeRubriqueSplit({
-  title = "Inspirationnel",
-  href = "/rubrique/inspirationnel",
+  title = "STU STORIES",
+  href = "/rubrique/stu-stories",
   accentClass,
   featured = DEMO_INSPIRATIONNEL_FEATURED,
   grid = DEMO_INSPIRATIONNEL_GRID,

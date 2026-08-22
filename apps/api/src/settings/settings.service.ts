@@ -33,13 +33,13 @@ const DEFAULT_LINKS: SocialLink[] = [
     id: 'fb-default',
     network: 'facebook',
     label: 'Facebook',
-    url: 'https://web.facebook.com/Opt1mumMag',
+    url: 'https://web.facebook.com/',
   },
   {
     id: 'x-default',
     network: 'twitter',
     label: 'X / Twitter',
-    url: 'https://twitter.com/OptimumCorp',
+    url: 'https://twitter.com/',
   },
   {
     id: 'ig-default',

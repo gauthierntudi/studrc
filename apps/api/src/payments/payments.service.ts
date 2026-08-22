@@ -96,7 +96,7 @@ export class PaymentsService {
       currency: plan.currency.toLowerCase(),
       payment_method_types: ['card'],
       receipt_email: subscriber.email,
-      description: `Abonnement Opt1mum — ${plan.name}`,
+      description: `Abonnement STUDRC — ${plan.name}`,
       metadata: {
         paymentId: payment.id,
         planId: plan.id,
@@ -166,7 +166,7 @@ export class PaymentsService {
       currency: currency.toLowerCase(),
       payment_method_types: ['card'],
       receipt_email: subscriber.email,
-      description: `Achat Opt1mum — ${magazine.title}`,
+      description: `Achat STUDRC — ${magazine.title}`,
       metadata: {
         paymentId: payment.id,
         magazineId: magazine.id,

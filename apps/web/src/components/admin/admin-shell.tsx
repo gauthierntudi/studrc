@@ -160,8 +160,8 @@ export function AdminShell({
       <div className="snow-dash__brand">
         <AdminBrandLogo
           variant={theme === "dark" ? "white" : "default"}
-          width={118}
-          height={28}
+          width={148}
+          height={52}
           href="/admin"
         />
       </div>
