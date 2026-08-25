@@ -237,7 +237,7 @@ html[data-theme="dark"] .opt-rsplit__title,
 html[data-theme="dark"] .opt-article h1,
 html[data-theme="dark"] .opt-article h2,
 html[data-theme="dark"] .opt-article h3,
-html[data-theme="dark"] .opt-rubrique__title {
+html[data-theme="dark"] .opt-rubrique__more-title {
   color: var(--site-ink);
 }
 
