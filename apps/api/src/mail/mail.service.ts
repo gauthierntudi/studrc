@@ -2,6 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 
+const NAVY = '#00132b';
+const GOLD = '#fdbd01';
+const INK = '#111111';
+const MUTED = '#5c6b7a';
+const LINE = '#e6e6e6';
+const PAGE = '#f4f5f7';
+
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
@@ -29,35 +36,25 @@ export class MailService {
     await this.send({
       to,
       subject: 'Confirmez votre adresse e-mail — STUDRC',
-      html: `
-        <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;color:#111;line-height:1.5;">
-          <div style="padding:20px 0 8px;border-bottom:3px solid #e9262a;">
-            <p style="margin:0;font-size:13px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#e9262a;">STUDRC</p>
-          </div>
-          <p style="margin:1.35rem 0 0.75rem;font-size:22px;font-weight:800;line-height:1.2;">Confirmez votre adresse e-mail</p>
-          <p style="margin:0 0 1rem;">Bonjour ${escapeHtml(name)},</p>
-          <p style="margin:0 0 1rem;color:#444;">
-            Merci de votre inscription. Pour sécuriser votre compte et activer
-            toutes les fonctionnalités, confirmez votre adresse
-            <strong>${escapeHtml(to)}</strong>.
+      html: wrapTransactionalMail({
+        appUrl: this.appUrl,
+        title: 'Confirmez votre adresse',
+        preheader: 'Un clic pour activer votre compte STUDRC.',
+        bodyHtml: `
+          <p style="margin:0 0 12px;font-size:16px;line-height:1.55;color:${INK};">Bonjour ${escapeHtml(name)},</p>
+          <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:${MUTED};">
+            Merci de votre inscription. Confirmez
+            <strong style="color:${INK};">${escapeHtml(to)}</strong>
+            pour sécuriser votre compte.
           </p>
-          <p style="margin:1.5rem 0;">
-            <a href="${escapeHtml(url)}"
-               style="display:inline-block;padding:13px 22px;background:#e9262a;color:#fff;text-decoration:none;border-radius:999px;font-weight:700;font-size:15px;">
-              Confirmer mon e-mail
-            </a>
+          ${mailButton(url, 'Confirmer mon e-mail')}
+          <p style="margin:20px 0 0;font-size:13px;line-height:1.55;color:${MUTED};">
+            Ce lien expire dans <strong style="color:${INK};">24 heures</strong>.
+            Si vous n’êtes pas à l’origine de cette inscription, ignorez cet e-mail.
           </p>
-          <p style="margin:0 0 0.75rem;color:#666;font-size:13px;">
-            Ce lien expire dans <strong>24 heures</strong>. Si vous n’êtes pas à
-            l’origine de cette inscription, ignorez cet e-mail.
-          </p>
-          <p style="margin:0 0 1.25rem;color:#888;font-size:12px;word-break:break-all;">
-            Bouton inactif ? Ouvrez ce lien :<br />
-            <a href="${escapeHtml(url)}" style="color:#e9262a;">${escapeHtml(url)}</a>
-          </p>
-          <p style="margin:0;padding-top:1rem;border-top:1px solid #eee;color:#666;font-size:13px;">— L’équipe STUDRC</p>
-        </div>
-      `,
+          ${mailFallbackLink(url)}
+        `,
+      }),
     });
   }
 
@@ -65,13 +62,22 @@ export class MailService {
     await this.send({
       to,
       subject: 'Code de réinitialisation — STUDRC',
-      html: `
-        <p>Bonjour ${escapeHtml(name)},</p>
-        <p>Votre code de réinitialisation de mot de passe est :</p>
-        <p style="font-size:28px;font-weight:700;letter-spacing:6px;font-family:monospace;">${escapeHtml(otp)}</p>
-        <p>Ce code expire dans 15 minutes. Si vous n’êtes pas à l’origine de cette demande, ignorez cet email.</p>
-        <p>— L’équipe STUDRC</p>
-      `,
+      html: wrapTransactionalMail({
+        appUrl: this.appUrl,
+        title: 'Réinitialiser le mot de passe',
+        preheader: 'Votre code STUDRC expire dans 15 minutes.',
+        bodyHtml: `
+          <p style="margin:0 0 12px;font-size:16px;line-height:1.55;color:${INK};">Bonjour ${escapeHtml(name)},</p>
+          <p style="margin:0 0 18px;font-size:15px;line-height:1.6;color:${MUTED};">
+            Voici le code pour choisir un nouveau mot de passe :
+          </p>
+          ${mailCode(otp)}
+          <p style="margin:20px 0 0;font-size:13px;line-height:1.55;color:${MUTED};">
+            Ce code expire dans <strong style="color:${INK};">15 minutes</strong>.
+            Si vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail.
+          </p>
+        `,
+      }),
     });
   }
 
@@ -85,26 +91,28 @@ export class MailService {
     await this.send({
       to: input.to,
       subject: 'Code de confirmation admin — STUDRC',
-      html: `
-        <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;color:#111;line-height:1.5;">
-          <p style="margin:0 0 0.75rem;">Bonjour ${escapeHtml(input.name)},</p>
-          <p style="margin:0 0 0.75rem;">
-            Une action sensible a été demandée sur l’admin STUDRC :
-            <strong>${escapeHtml(input.actionLabel)}</strong>.
+      html: wrapTransactionalMail({
+        appUrl: this.appUrl,
+        title: 'Action admin à confirmer',
+        preheader: `Code pour : ${input.actionLabel}`,
+        bodyHtml: `
+          <p style="margin:0 0 12px;font-size:16px;line-height:1.55;color:${INK};">Bonjour ${escapeHtml(input.name)},</p>
+          <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:${MUTED};">
+            Une action sensible a été demandée :
+            <strong style="color:${INK};">${escapeHtml(input.actionLabel)}</strong>.
           </p>
           ${
             input.detail
-              ? `<p style="margin:0 0 0.75rem;color:#444;">${escapeHtml(input.detail)}</p>`
+              ? `<p style="margin:0 0 18px;font-size:14px;line-height:1.55;color:${MUTED};">${escapeHtml(input.detail)}</p>`
               : ''
           }
-          <p style="margin:0 0 0.5rem;">Votre code de confirmation :</p>
-          <p style="font-size:28px;font-weight:700;letter-spacing:6px;font-family:monospace;margin:0 0 1rem;">${escapeHtml(input.otp)}</p>
-          <p style="margin:0 0 0.75rem;color:#666;font-size:13px;">
-            Ce code expire dans <strong>10 minutes</strong>. Si vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail et contactez un super-admin.
+          ${mailCode(input.otp)}
+          <p style="margin:20px 0 0;font-size:13px;line-height:1.55;color:${MUTED};">
+            Ce code expire dans <strong style="color:${INK};">10 minutes</strong>.
+            Si vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail.
           </p>
-          <p style="margin:0;color:#666;font-size:13px;">— L’équipe STUDRC</p>
-        </div>
-      `,
+        `,
+      }),
     });
   }
 
@@ -113,34 +121,25 @@ export class MailService {
     await this.send({
       to,
       subject: 'Bienvenue dans la newsletter STUDRC',
-      html: `
-        <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;color:#111;line-height:1.5;">
-          <div style="padding:20px 0 8px;border-bottom:3px solid #e9262a;">
-            <p style="margin:0;font-size:13px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#e9262a;">STUDRC</p>
-          </div>
-          <p style="margin:1.35rem 0 0.75rem;font-size:22px;font-weight:800;line-height:1.2;">Inscription confirmée</p>
-          <p style="margin:0 0 1rem;">Bonjour,</p>
-          <p style="margin:0 0 1rem;color:#444;">
-            Merci de vous être inscrit à la newsletter STUDRC avec l’adresse
-            <strong>${escapeHtml(to)}</strong>.
+      html: wrapTransactionalMail({
+        appUrl: this.appUrl,
+        title: 'Inscription confirmée',
+        preheader: 'Vous recevrez les actualités STUDRC dans votre boîte mail.',
+        bodyHtml: `
+          <p style="margin:0 0 12px;font-size:16px;line-height:1.55;color:${INK};">Bonjour,</p>
+          <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:${MUTED};">
+            Merci de vous être inscrit avec
+            <strong style="color:${INK};">${escapeHtml(to)}</strong>.
           </p>
-          <p style="margin:0 0 1rem;color:#444;">
-            Vous recevrez désormais nos actualités, analyses et coups de projecteur
-            directement dans votre boîte mail.
+          <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:${MUTED};">
+            Vous recevrez nos actualités, analyses et coups de projecteur sur l’école en RDC.
           </p>
-          <p style="margin:1.5rem 0;">
-            <a href="${escapeHtml(homeUrl)}"
-               style="display:inline-block;padding:13px 22px;background:#e9262a;color:#fff;text-decoration:none;border-radius:999px;font-weight:700;font-size:15px;">
-              Lire STUDRC
-            </a>
+          ${mailButton(homeUrl, 'Lire STUDRC')}
+          <p style="margin:20px 0 0;font-size:13px;line-height:1.55;color:${MUTED};">
+            Si vous n’êtes pas à l’origine de cette inscription, ignorez cet e-mail.
           </p>
-          <p style="margin:0 0 1.25rem;color:#888;font-size:12px;">
-            Si vous n’êtes pas à l’origine de cette inscription, ignorez cet e-mail
-            ou contactez-nous.
-          </p>
-          <p style="margin:0;padding-top:1rem;border-top:1px solid #eee;color:#666;font-size:13px;">— L’équipe STUDRC</p>
-        </div>
-      `,
+        `,
+      }),
     });
   }
 
@@ -151,10 +150,8 @@ export class MailService {
     amountCents: number;
     currency: string;
     providerLabel: string;
-    /** Titre magazine ou nom de formule */
     productLabel: string;
     issueNumber?: string | null;
-    /** Lien lecture / kiosque / magazines */
     actionUrl: string;
     actionLabel: string;
   }) {
@@ -171,46 +168,52 @@ export class MailService {
 
     const intro =
       input.purpose === 'PURCHASE'
-        ? 'Votre paiement a bien été reçu. Ce numéro est disponible immédiatement dans votre bibliothèque.'
+        ? 'Votre paiement a bien été reçu. Ce numéro est disponible dans votre bibliothèque.'
         : 'Votre paiement a bien été reçu. Votre abonnement est maintenant actif.';
 
     await this.send({
       to: input.to,
       subject,
-      html: `
-        <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;color:#111;">
-          <p>Bonjour ${escapeHtml(input.name)},</p>
-          <p>${escapeHtml(intro)}</p>
-          <table style="width:100%;border-collapse:collapse;margin:1.25rem 0;font-size:14px;">
+      html: wrapTransactionalMail({
+        appUrl: this.appUrl,
+        title:
+          input.purpose === 'PURCHASE'
+            ? 'Paiement confirmé'
+            : 'Abonnement activé',
+        preheader: intro,
+        bodyHtml: `
+          <p style="margin:0 0 12px;font-size:16px;line-height:1.55;color:${INK};">Bonjour ${escapeHtml(input.name)},</p>
+          <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:${MUTED};">${escapeHtml(intro)}</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 22px;font-size:14px;">
             <tr>
-              <td style="padding:8px 0;color:#666;">Produit</td>
-              <td style="padding:8px 0;text-align:right;font-weight:600;">${escapeHtml(product)}</td>
+              <td style="padding:10px 0;color:${MUTED};border-bottom:1px solid ${LINE};">Produit</td>
+              <td style="padding:10px 0;text-align:right;font-weight:700;color:${NAVY};border-bottom:1px solid ${LINE};">${escapeHtml(product)}</td>
             </tr>
             <tr>
-              <td style="padding:8px 0;color:#666;border-top:1px solid #eee;">Montant</td>
-              <td style="padding:8px 0;text-align:right;font-weight:600;border-top:1px solid #eee;">${escapeHtml(amount)}</td>
+              <td style="padding:10px 0;color:${MUTED};border-bottom:1px solid ${LINE};">Montant</td>
+              <td style="padding:10px 0;text-align:right;font-weight:700;color:${NAVY};border-bottom:1px solid ${LINE};">${escapeHtml(amount)}</td>
             </tr>
             <tr>
-              <td style="padding:8px 0;color:#666;border-top:1px solid #eee;">Moyen</td>
-              <td style="padding:8px 0;text-align:right;font-weight:600;border-top:1px solid #eee;">${escapeHtml(input.providerLabel)}</td>
+              <td style="padding:10px 0;color:${MUTED};">Moyen</td>
+              <td style="padding:10px 0;text-align:right;font-weight:700;color:${NAVY};">${escapeHtml(input.providerLabel)}</td>
             </tr>
           </table>
-          <p style="margin:1.5rem 0;">
-            <a href="${escapeHtml(input.actionUrl)}"
-               style="display:inline-block;padding:12px 20px;background:#e9262a;color:#fff;text-decoration:none;border-radius:999px;font-weight:700;">
-              ${escapeHtml(input.actionLabel)}
-            </a>
-          </p>
-          <p style="color:#666;font-size:13px;">Si le bouton ne fonctionne pas, ouvrez : ${escapeHtml(input.actionUrl)}</p>
-          <p>— L’équipe STUDRC</p>
-        </div>
-      `,
+          ${mailButton(input.actionUrl, input.actionLabel)}
+          ${mailFallbackLink(input.actionUrl)}
+        `,
+      }),
     });
   }
 
-  /** Email libre (monitoring, ops). */
   async sendRaw(input: { to: string; subject: string; html: string }) {
     await this.send(input);
+  }
+
+  wrap(input: { title: string; preheader?: string; bodyHtml: string }) {
+    return wrapTransactionalMail({
+      appUrl: this.appUrl,
+      ...input,
+    });
   }
 
   private async send(input: { to: string; subject: string; html: string }) {
@@ -255,6 +258,88 @@ export class MailService {
       );
     }
   }
+}
+
+export function wrapTransactionalMail(input: {
+  appUrl: string;
+  title: string;
+  preheader?: string;
+  bodyHtml: string;
+}): string {
+  const home = input.appUrl.replace(/\/$/, '') || 'https://studrc.com';
+  const pre = input.preheader
+    ? `<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${escapeHtml(input.preheader)}</div>`
+    : '';
+
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>${escapeHtml(input.title)}</title>
+</head>
+<body style="margin:0;padding:0;background:${PAGE};">
+  ${pre}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${PAGE};">
+    <tr>
+      <td align="center" style="padding:28px 16px;">
+        <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="width:100%;max-width:560px;background:#ffffff;border:1px solid ${LINE};">
+          <tr>
+            <td style="background:${NAVY};padding:22px 28px;">
+              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:${GOLD};">STUDRC</p>
+              <p style="margin:6px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.4;color:rgba(255,255,255,0.72);">Média et observatoire de l’école en RDC</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="height:3px;background:${GOLD};font-size:0;line-height:0;">&nbsp;</td>
+          </tr>
+          <tr>
+            <td style="padding:28px 28px 8px;font-family:Arial,Helvetica,sans-serif;">
+              <h1 style="margin:0 0 18px;font-size:22px;line-height:1.25;letter-spacing:-0.02em;color:${NAVY};">${escapeHtml(input.title)}</h1>
+              ${input.bodyHtml}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:8px 28px 24px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;color:${MUTED};">
+              <p style="margin:0;padding-top:16px;border-top:1px solid ${LINE};">
+                STUDRC · 8 Avenue Kalemie, Kinshasa-Gombe<br />
+                <a href="${escapeHtml(home)}" style="color:${NAVY};text-decoration:underline;">${escapeHtml(home.replace(/^https?:\/\//, ''))}</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+function mailButton(url: string, label: string): string {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 8px;">
+    <tr>
+      <td style="border-radius:10px;background:${GOLD};">
+        <a href="${escapeHtml(url)}" style="display:inline-block;padding:13px 22px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:700;color:${NAVY};text-decoration:none;">${escapeHtml(label)}</a>
+      </td>
+    </tr>
+  </table>`;
+}
+
+function mailCode(otp: string): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px;">
+    <tr>
+      <td align="center" style="background:${NAVY};padding:18px 12px;">
+        <p style="margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:28px;font-weight:700;letter-spacing:0.28em;color:${GOLD};">${escapeHtml(otp)}</p>
+      </td>
+    </tr>
+  </table>`;
+}
+
+function mailFallbackLink(url: string): string {
+  return `<p style="margin:16px 0 0;font-size:12px;line-height:1.5;color:${MUTED};word-break:break-all;">
+    Bouton inactif ? Ouvrez ce lien :<br />
+    <a href="${escapeHtml(url)}" style="color:${NAVY};">${escapeHtml(url)}</a>
+  </p>`;
 }
 
 function escapeHtml(value: string) {

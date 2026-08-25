@@ -143,7 +143,11 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
       }
 
       const subject = `[STUDRC] Monitoring — ${snap.overall.toUpperCase()}`;
-      const html = this.buildAlertHtml(snap, issues);
+      const html = this.mail.wrap({
+        title: `Monitoring — ${snap.overall.toUpperCase()}`,
+        preheader: issues[0] ?? 'Alerte infrastructure STUDRC',
+        bodyHtml: this.buildAlertHtml(snap, issues),
+      });
       for (const admin of supers) {
         await this.mail.sendRaw({
           to: admin.email,
@@ -210,21 +214,28 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
       this.config.get<string>('APP_URL') ?? 'https://studrc.com'
     ).replace(/\/$/, '');
     const rows = issues
-      .map((i) => `<li style="margin:0.35rem 0;">${escapeHtml(i)}</li>`)
+      .map(
+        (i) =>
+          `<tr><td style="padding:8px 0;border-bottom:1px solid #e6e6e6;font-size:14px;color:#111;">${escapeHtml(i)}</td></tr>`,
+      )
       .join('');
     return `
-      <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;color:#111;line-height:1.5;">
-        <p style="margin:0;font-size:13px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#e9262a;">STUDRC MONITORING</p>
-        <p style="margin:1rem 0 0.5rem;font-size:20px;font-weight:800;">État : ${escapeHtml(snap.overall)}</p>
-        <p style="margin:0 0 1rem;color:#555;">Vérifié à ${escapeHtml(snap.checkedAt)}</p>
-        <ul style="padding-left:1.2rem;">${rows}</ul>
-        <p style="margin:1.5rem 0;">
-          <a href="${escapeHtml(appUrl)}/admin/monitoring"
-             style="display:inline-block;padding:12px 18px;background:#0d203d;color:#fff;text-decoration:none;border-radius:8px;font-weight:700;">
-            Ouvrir le monitoring
-          </a>
-        </p>
-      </div>
+      <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#5c6b7a;">
+        Vérifié à ${escapeHtml(snap.checkedAt)}
+      </p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 20px;">
+        ${rows}
+      </table>
+      <table role="presentation" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="border-radius:10px;background:#fdbd01;">
+            <a href="${escapeHtml(appUrl)}/admin/monitoring"
+               style="display:inline-block;padding:13px 22px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:700;color:#00132b;text-decoration:none;">
+              Ouvrir le monitoring
+            </a>
+          </td>
+        </tr>
+      </table>
     `;
   }
 

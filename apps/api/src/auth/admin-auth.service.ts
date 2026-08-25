@@ -226,9 +226,6 @@ export class AdminAuthService {
     const filename = `${Date.now()}_${randomBytes(4).toString('hex')}.${ext}`;
     const avatarKey = `profil/${filename}`;
     const r2 = createR2ClientFromEnv();
-    const uploadDir =
-      this.config.get<string>('PROFILE_UPLOAD_DIR')?.trim() ||
-      resolve(process.cwd(), '../../../profil');
 
     if (r2) {
       await putR2Object(r2, {
@@ -236,10 +233,15 @@ export class AdminAuthService {
         body: file.buffer,
         contentType: contentTypeForExt(ext),
       });
+    } else {
+      const uploadDir =
+        this.config.get<string>('PROFILE_UPLOAD_DIR')?.trim() ||
+        (process.env.NODE_ENV === 'production'
+          ? '/tmp/profil'
+          : resolve(process.cwd(), '../../../profil'));
+      await mkdir(uploadDir, { recursive: true });
+      await writeFile(join(uploadDir, filename), file.buffer);
     }
-
-    await mkdir(uploadDir, { recursive: true });
-    await writeFile(join(uploadDir, filename), file.buffer);
 
     const updated = await this.prisma.adminUser.update({
       where: { id: adminId },

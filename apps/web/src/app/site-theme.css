@@ -356,6 +356,19 @@ html[data-theme="dark"] .opt-auth__panel {
   background: var(--site-bg);
 }
 
+html[data-theme="dark"] .opt-auth-status {
+  background: var(--site-card);
+  border-color: var(--site-line);
+}
+
+html[data-theme="dark"] .opt-auth-status--ok .opt-auth-status__icon {
+  color: #86efac;
+}
+
+html[data-theme="dark"] .opt-auth a.auth-submit {
+  color: #00132b;
+}
+
 html[data-theme="dark"] .opt-auth__title,
 html[data-theme="dark"] .opt-auth__subtitle,
 html[data-theme="dark"] .opt-auth label {
