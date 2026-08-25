@@ -81,6 +81,16 @@ html[data-theme="dark"] .opt-menu__profile > svg {
   color: var(--site-muted);
 }
 
+html[data-theme="dark"] .opt-menu a.opt-menu__btn--outline {
+  background: #fff;
+  color: #00132b;
+}
+
+html[data-theme="dark"] .opt-menu a.opt-menu__btn--outline:hover {
+  background: #f2f4f7;
+  color: #00132b;
+}
+
 html[data-theme="dark"] .opt-menu a.opt-menu__btn--cta {
   background: #fff;
   color: #00132b;

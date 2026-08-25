@@ -12,6 +12,7 @@ import {
   Receipt,
   Settings,
   UserRound,
+  UserPlus,
   X,
 } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
@@ -493,14 +494,24 @@ export function SiteHeader({ showNav = true }: { showNav?: boolean } = {}) {
                 </button>
               </div>
             ) : (
-              <Link
-                href={authHref}
-                className="opt-menu__btn opt-menu__btn--ghost"
-                onClick={() => setMenuOpen(false)}
-              >
-                <UserRound size={18} strokeWidth={1.85} aria-hidden />
-                {authLabel}
-              </Link>
+              <>
+                <Link
+                  href={authHref}
+                  className="opt-menu__btn opt-menu__btn--ghost"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <UserRound size={18} strokeWidth={1.85} aria-hidden />
+                  {authLabel}
+                </Link>
+                <Link
+                  href="/inscription"
+                  className="opt-menu__btn opt-menu__btn--outline"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <UserPlus size={18} strokeWidth={1.85} aria-hidden />
+                  Créer un compte
+                </Link>
+              </>
             )}
           </div>
           </div>

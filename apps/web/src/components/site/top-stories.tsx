@@ -6,9 +6,9 @@ import {
   useEffect,
   useRef,
   useState,
+  type PointerEvent as ReactPointerEvent,
   type TransitionEvent,
 } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { DEMO_FEATURED, DEMO_TOP_GRID, type TopStory } from "@/lib/legacy-demo";
 import { articleHref } from "@/lib/home-articles";
 import { CoverImage } from "@/components/site/cover-image";
@@ -113,6 +113,15 @@ function FeaturedSlider({ stories }: { stories: TopStory[] }) {
   const [slideW, setSlideW] = useState(0);
   const trackRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
+  const skipClickRef = useRef(false);
+  const dragRef = useRef({
+    pointerId: -1,
+    startX: 0,
+    startY: 0,
+    axis: null as null | "x" | "y",
+  });
+  const [dragX, setDragX] = useState(0);
+  const [swiping, setSwiping] = useState(false);
 
   const realIndex = multi ? (pos - 1 + n) % n : 0;
 
@@ -170,21 +179,122 @@ function FeaturedSlider({ stories }: { stories: TopStory[] }) {
     return () => window.clearInterval(id);
   }, [multi, paused, busy, go, pos]);
 
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el || !multi) return;
+    const blockScroll = (e: Event) => {
+      if (dragRef.current.axis === "x") e.preventDefault();
+    };
+    el.addEventListener("touchmove", blockScroll, { passive: false });
+    el.addEventListener("pointermove", blockScroll, { passive: false });
+    return () => {
+      el.removeEventListener("touchmove", blockScroll);
+      el.removeEventListener("pointermove", blockScroll);
+    };
+  }, [multi]);
+
+  const endDrag = useCallback(
+    (clientX: number) => {
+      const d = dragRef.current;
+      const dx = clientX - d.startX;
+      const wasSwipe = d.axis === "x";
+      d.pointerId = -1;
+      d.axis = null;
+      setSwiping(false);
+      setPaused(false);
+      if (!wasSwipe) {
+        setDragX(0);
+        return;
+      }
+      const threshold = Math.max(48, slideW * 0.16);
+      if (dx <= -threshold) {
+        skipClickRef.current = true;
+        setAnimate(true);
+        setDragX(0);
+        go(1);
+      } else if (dx >= threshold) {
+        skipClickRef.current = true;
+        setAnimate(true);
+        setDragX(0);
+        go(-1);
+      } else {
+        setAnimate(true);
+        setDragX(0);
+      }
+    },
+    [go, slideW],
+  );
+
+  const onPointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (!multi || busy) return;
+      if (e.pointerType === "mouse") return;
+      dragRef.current = {
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        axis: null,
+      };
+      setPaused(true);
+      e.currentTarget.setPointerCapture(e.pointerId);
+    },
+    [busy, multi],
+  );
+
+  const onPointerMove = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
+    const d = dragRef.current;
+    if (d.pointerId !== e.pointerId) return;
+    const dx = e.clientX - d.startX;
+    const dy = e.clientY - d.startY;
+    if (d.axis === null) {
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+      d.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+      if (d.axis === "x") {
+        setAnimate(false);
+        setSwiping(true);
+      }
+    }
+    if (d.axis !== "x") return;
+    e.preventDefault();
+    setDragX(dx);
+  }, []);
+
+  const onPointerUp = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (dragRef.current.pointerId !== e.pointerId) return;
+      endDrag(e.clientX);
+    },
+    [endDrag],
+  );
+
   if (!multi) {
     return <FeaturedSlide story={stories[0]} />;
   }
 
-  const offsetPx = slideW > 0 ? -(pos * slideW) : 0;
+  const offsetPx = slideW > 0 ? -(pos * slideW) + dragX : 0;
 
   return (
     <div
-      className={`opt-top__slider${paused ? " is-paused" : ""}`}
+      className={`opt-top__slider${paused ? " is-paused" : ""}${swiping ? " is-swiping" : ""}`}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
       onBlurCapture={() => setPaused(false)}
+      onClickCapture={(e) => {
+        if (!skipClickRef.current) return;
+        e.preventDefault();
+        e.stopPropagation();
+        skipClickRef.current = false;
+      }}
     >
-      <div className="opt-top__slider-viewport" ref={viewportRef}>
+      <div
+        className="opt-top__slider-viewport"
+        ref={viewportRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+      >
         <div
           ref={trackRef}
           className={`opt-top__slider-track${animate ? "" : " is-instant"}`}
@@ -216,23 +326,6 @@ function FeaturedSlider({ stories }: { stories: TopStory[] }) {
           style={{ animationDuration: `${AUTO_MS}ms` }}
         />
       </div>
-
-      <button
-        type="button"
-        className="opt-top__slider-nav opt-top__slider-nav--prev"
-        aria-label="Article précédent"
-        onClick={() => go(-1)}
-      >
-        <ChevronLeft size={20} strokeWidth={2} aria-hidden />
-      </button>
-      <button
-        type="button"
-        className="opt-top__slider-nav opt-top__slider-nav--next"
-        aria-label="Article suivant"
-        onClick={() => go(1)}
-      >
-        <ChevronRight size={20} strokeWidth={2} aria-hidden />
-      </button>
 
       <div className="opt-top__slider-dots" role="tablist" aria-label="À la une">
         {stories.map((story, i) => (

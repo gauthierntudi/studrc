@@ -628,6 +628,17 @@
   color: var(--studrc-navy, #00132b);
 }
 
+.opt-menu__btn--outline {
+  background: #111111;
+  color: #fff;
+  border: 0;
+}
+
+.opt-menu__btn--outline:hover {
+  background: #000;
+  color: #fff;
+}
+
 .opt-menu__account-list {
   display: grid;
   gap: 0.15rem;
