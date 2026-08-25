@@ -15,7 +15,10 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { AdminDropzone } from "@/components/admin/admin-dropzone";
+import { AdminArticleVideo } from "@/components/admin/admin-article-video";
+import { AdminProgressModal } from "@/components/admin/admin-progress-modal";
 import { AdminRichEditor } from "@/components/admin/admin-rich-editor";
+import { ImageCropper } from "@/components/site/avatar-cropper";
 import {
   ARTICLE_CATEGORIES,
   adminArticlesApi,
@@ -23,6 +26,7 @@ import {
   type AdminArticle,
   type AdminMagazine,
 } from "@/lib/api";
+import { isVideoRubrique } from "@/lib/rubriques";
 
 const MAG_FALLBACK_COVER = "/legacy/covers/1591457791.jpg";
 
@@ -155,11 +159,34 @@ export function AdminArticleForm({ mode, articleId }: AdminArticleFormProps) {
   const [loading, setLoading] = useState(isEdit);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverCropSrc, setCoverCropSrc] = useState<string | null>(null);
+  const coverCropSrcRef = useRef<string | null>(null);
+  const coverPreviewRef = useRef<string | null>(null);
+  const [savedArticle, setSavedArticle] = useState<AdminArticle | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoUploadPercent, setVideoUploadPercent] = useState<number | null>(
+    null,
+  );
+  const [saveProgress, setSaveProgress] = useState<{
+    label: string;
+    percent: number;
+  } | null>(null);
   const [magazines, setMagazines] = useState<AdminMagazine[]>([]);
   const [magPickerOpen, setMagPickerOpen] = useState(false);
   const [magSearch, setMagSearch] = useState("");
   const magPickerRef = useRef<HTMLDivElement>(null);
   const magSearchRef = useRef<HTMLInputElement>(null);
+  coverCropSrcRef.current = coverCropSrc;
+  coverPreviewRef.current = coverPreview;
+
+  useEffect(() => {
+    return () => {
+      const crop = coverCropSrcRef.current;
+      const preview = coverPreviewRef.current;
+      if (crop?.startsWith("blob:")) URL.revokeObjectURL(crop);
+      if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
+    };
+  }, []);
 
   useEffect(() => {
     if (!magPickerOpen) return;
@@ -211,7 +238,11 @@ export function AdminArticleForm({ mode, articleId }: AdminArticleFormProps) {
         setForm(fromArticle(row));
         setSlugTouched(true);
         setCoverFile(null);
-        setCoverPreview(row.coverUrl);
+        setCoverPreview((prev) => {
+          if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+          return row.coverUrl;
+        });
+        setSavedArticle(row);
         if (row.magazine) {
           const linked = row.magazine;
           setMagazines((prev) => {
@@ -226,7 +257,7 @@ export function AdminArticleForm({ mode, articleId }: AdminArticleFormProps) {
                 accessType: "PAID",
                 priceCents: null,
                 currency: "USD",
-                theme: { bgColor: "#0d203d", accentColor: "#02d0d1" },
+                theme: { bgColor: "#00132b", accentColor: "#0565ab" },
                 coverKey: null,
                 coverUrl: linked.coverUrl,
                 pdfKey: null,
@@ -261,6 +292,42 @@ export function AdminArticleForm({ mode, articleId }: AdminArticleFormProps) {
       cancelled = true;
     };
   }, [isEdit, articleId]);
+
+  function closeCoverCropper() {
+    setCoverCropSrc((src) => {
+      if (src?.startsWith("blob:")) URL.revokeObjectURL(src);
+      return null;
+    });
+  }
+
+  function onCoverPick(file: File | null) {
+    if (!file) return;
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+    const okType =
+      ["png", "jpg", "jpeg", "webp"].includes(ext) ||
+      file.type.startsWith("image/");
+    if (!okType) {
+      toast.error("Formats acceptés : JPG, PNG, WEBP");
+      return;
+    }
+    if (file.size > 12_000_000) {
+      toast.error("Image trop lourde (12 Mo max)");
+      return;
+    }
+    setCoverCropSrc((src) => {
+      if (src?.startsWith("blob:")) URL.revokeObjectURL(src);
+      return URL.createObjectURL(file);
+    });
+  }
+
+  function onCoverCropConfirm(file: File) {
+    setCoverPreview((prev) => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+    setCoverFile(file);
+    closeCoverCropper();
+  }
 
   function updateBlock(key: string, patch: Partial<FormBlock>) {
     setForm((f) => ({
@@ -318,34 +385,88 @@ export function AdminArticleForm({ mode, articleId }: AdminArticleFormProps) {
     }
 
     setSaving(true);
+    const pendingCovers = form.blocks
+      .map((b) => b.coverFile)
+      .filter((file): file is File => Boolean(file));
+    const sendVideo = Boolean(videoFile && isVideoRubrique(form.category));
+    const coverBytes = coverFile?.size ?? 0;
+    const videoBytes = sendVideo && videoFile ? videoFile.size : 0;
+    const blockBytes = pendingCovers.reduce((sum, file) => sum + file.size, 0);
+    const filesWeight = coverBytes + videoBytes + blockBytes;
+    const metaWeight =
+      filesWeight > 0 ? Math.max(Math.round(filesWeight * 0.05), 80_000) : 1;
+    const totalWeight = metaWeight + filesWeight;
+    let completedWeight = 0;
+
+    const report = (label: string, extra = 0) => {
+      const raw = ((completedWeight + extra) / totalWeight) * 100;
+      setSaveProgress({
+        label,
+        percent: Math.max(1, Math.min(99, Math.round(raw))),
+      });
+    };
+
+    setSaveProgress({ label: "Enregistrement de l’article…", percent: 1 });
     try {
-      const pendingCovers = form.blocks.map((b) => b.coverFile);
       const payload = toPayload(form);
       let saved: AdminArticle;
+      report("Enregistrement de l’article…");
       if (isEdit && articleId) {
         saved = await adminArticlesApi.update(articleId, payload);
       } else {
         saved = await adminArticlesApi.create(payload);
       }
+      completedWeight += metaWeight;
+
       if (coverFile) {
-        saved = await adminArticlesApi.uploadCover(saved.id, coverFile);
+        report("Envoi de la cover…");
+        saved = await adminArticlesApi.uploadCover(saved.id, coverFile, {
+          onProgress: (p) =>
+            report("Envoi de la cover…", (p / 100) * coverBytes),
+        });
+        completedWeight += coverBytes;
       }
-      for (let i = 0; i < pendingCovers.length; i++) {
-        const file = pendingCovers[i];
+      if (sendVideo && videoFile) {
+        setVideoUploadPercent(0);
+        report("Envoi de la vidéo…");
+        saved = await adminArticlesApi.uploadVideoDirect(saved.id, videoFile, {
+          onProgress: (p) => {
+            setVideoUploadPercent(p);
+            report("Envoi de la vidéo…", (p / 100) * videoBytes);
+          },
+        });
+        completedWeight += videoBytes;
+      }
+      for (let i = 0; i < form.blocks.length; i++) {
+        const file = form.blocks[i]?.coverFile;
         const blockId = saved.blocks[i]?.id;
         if (file && blockId) {
+          report("Envoi des images de section…");
           saved = await adminArticlesApi.uploadBlockCover(
             saved.id,
             blockId,
             file,
+            {
+              onProgress: (p) =>
+                report("Envoi des images de section…", (p / 100) * file.size),
+            },
           );
+          completedWeight += file.size;
         }
       }
 
+      setSaveProgress({ label: "Finalisation…", percent: 100 });
+      await new Promise((resolve) => window.setTimeout(resolve, 280));
       setForm(fromArticle(saved));
       setSlugTouched(true);
       setCoverFile(null);
-      setCoverPreview(saved.coverUrl);
+      setCoverPreview((prev) => {
+        if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+        return saved.coverUrl;
+      });
+      setSavedArticle(saved);
+      setVideoFile(null);
+      setVideoUploadPercent(null);
       toast.success(
         isEdit ? "Actualité mise à jour" : "Actualité créée",
       );
@@ -359,6 +480,8 @@ export function AdminArticleForm({ mode, articleId }: AdminArticleFormProps) {
       );
     } finally {
       setSaving(false);
+      setVideoUploadPercent(null);
+      setSaveProgress(null);
     }
   }
 
@@ -483,14 +606,19 @@ export function AdminArticleForm({ mode, articleId }: AdminArticleFormProps) {
                     <select
                       value={form.category}
                       disabled={saving}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, category: e.target.value }))
-                      }
+                      onChange={(e) => {
+                        const category = e.target.value;
+                        setForm((f) => ({ ...f, category }));
+                        if (!isVideoRubrique(category)) setVideoFile(null);
+                      }}
                     >
                       <option value="">Sans rubrique</option>
                       {ARTICLE_CATEGORIES.map((c) => (
                         <option key={c.value} value={c.value}>
                           {c.label}
+                          {c.value === "stu-talk" || c.value === "stu-stories"
+                            ? " — vidéo"
+                            : ""}
                         </option>
                       ))}
                     </select>
@@ -700,16 +828,29 @@ export function AdminArticleForm({ mode, articleId }: AdminArticleFormProps) {
                 </label>
                 <AdminDropzone
                 variant="image"
+                thumbRatio="wide"
                 accept="image/jpeg,image/png,image/webp"
                 label="Cover principale"
-                hint="Glisser-déposer ou cliquer · JPG, PNG, WEBP · max 5 Mo"
+                hint="Glisser-déposer ou cliquer · recadrage 16:9 · JPG, PNG, WEBP · max 5 Mo"
                 fileName={coverFile?.name ?? (coverPreview ? "cover" : null)}
                 previewUrl={coverPreview}
-                onFile={(file) => {
-                  setCoverFile(file);
-                  if (file) setCoverPreview(URL.createObjectURL(file));
-                }}
+                onFile={onCoverPick}
               />
+              {isVideoRubrique(form.category) ? (
+                <div className="admin-dash__field">
+                  <span>Vidéo (STU TALK / STU STORIES)</span>
+                  <AdminArticleVideo
+                    articleId={articleId ?? savedArticle?.id}
+                    category={form.category}
+                    article={savedArticle}
+                    pendingFile={videoFile}
+                    onPick={setVideoFile}
+                    onUpdated={setSavedArticle}
+                    uploading={saving && videoUploadPercent != null}
+                    uploadPercent={videoUploadPercent}
+                  />
+                </div>
+              ) : null}
               <label className="admin-dash__field">
                 <span>Légende de la cover</span>
                 <input
@@ -887,6 +1028,29 @@ export function AdminArticleForm({ mode, articleId }: AdminArticleFormProps) {
           </div>
         </div>
       )}
+      <ImageCropper
+        open={Boolean(coverCropSrc)}
+        imageSrc={coverCropSrc ?? ""}
+        aspect={16 / 9}
+        cropShape="rect"
+        wide
+        title="Recadrer la cover"
+        description="Ajustez le cadrage — format 16:9 pour la une et les listes."
+        confirmLabel="Valider"
+        busyLabel="Recadrage…"
+        filePrefix="cover"
+        maxWidth={1920}
+        maxHeight={1080}
+        maxBytes={5_000_000}
+        onCancel={closeCoverCropper}
+        onConfirm={onCoverCropConfirm}
+      />
+      <AdminProgressModal
+        open={Boolean(saveProgress)}
+        title="Envoi en cours"
+        label={saveProgress?.label ?? "Envoi des données…"}
+        percent={saveProgress?.percent ?? 0}
+      />
     </div>
   );
 }

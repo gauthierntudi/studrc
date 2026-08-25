@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, type CSSProperties } from "react";
 import {
   ArrowLeft,
   Lock,
@@ -15,6 +15,9 @@ import {
   magazinesPublicApi,
   type MagazineReadSession,
 } from "@/lib/api";
+import { ThemeToggle } from "@/components/site/theme-toggle";
+import { SUBSCRIPTIONS_ENABLED } from "@/lib/features";
+import { contrastOn } from "./flip-preview-cta";
 import { PdfFlipViewer } from "./pdf-flip-viewer";
 import { PagesFlipViewer } from "./pages-flip-viewer";
 import "./lecture.css";
@@ -192,6 +195,10 @@ function LectureContent() {
     Array.isArray(session.pages) &&
     session.pages.length > 0;
   const canOpen = session.canRead && (hasPages || Boolean(session.readerUrl));
+  const isFree = session.accessType === "FREE";
+  const loggedIn = Boolean(user);
+  const lectureHref = id ? `/lecture/${id}` : "/kiosque";
+  const loginHref = `/connexion?next=${encodeURIComponent(lectureHref)}`;
 
   if (!canOpen) {
     return (
@@ -219,10 +226,18 @@ function LectureContent() {
           <h1>Accès restreint</h1>
           <p>
             {session.message ||
-              "Un abonnement actif ou l’achat de ce numéro est requis."}
+              (isFree
+                ? "Connectez-vous pour lire ce numéro en entier."
+                : SUBSCRIPTIONS_ENABLED
+                  ? "Un abonnement actif ou l’achat de ce numéro est requis."
+                  : "L’achat de ce numéro est requis.")}
           </p>
           <div className="opt-lecture__actions">
-            {id ? (
+            {isFree ? (
+              <Link href={loginHref} className="opt-lecture__btn">
+                Se connecter
+              </Link>
+            ) : id ? (
               <Link
                 href={`/achat?magazine=${encodeURIComponent(id)}`}
                 className="opt-lecture__btn"
@@ -230,12 +245,14 @@ function LectureContent() {
                 Acheter ce numéro
               </Link>
             ) : null}
-            <Link
-              href="/abonnement"
-              className={`opt-lecture__btn${id ? " opt-lecture__btn--ghost" : ""}`}
-            >
-              Voir les formules
-            </Link>
+            {!isFree && SUBSCRIPTIONS_ENABLED ? (
+              <Link
+                href="/abonnement"
+                className={`opt-lecture__btn${id ? " opt-lecture__btn--ghost" : ""}`}
+              >
+                Voir les formules
+              </Link>
+            ) : null}
             <Link
               href={id ? `/lecture/${id}?preview=1` : "/kiosque"}
               className="opt-lecture__btn opt-lecture__btn--ghost"
@@ -254,11 +271,20 @@ function LectureContent() {
   const previewMode = Boolean(session.preview || isPreview);
   const maxPages = session.maxPages ?? (previewMode ? 15 : null);
   const backHref = `/kiosque?magazine=${encodeURIComponent(session.id)}`;
+  const accent = session.theme?.accentColor ?? "#0565ab";
+  const magazineBg = session.theme?.bgColor ?? "#00132b";
+  const lectureVars = {
+    ["--cta-bg"]: magazineBg,
+    ["--cta-ink"]: contrastOn(magazineBg),
+    ["--cta-accent"]: accent,
+    ["--cta-on-accent"]: contrastOn(accent),
+  } as CSSProperties;
 
   return (
     <section
       className={`opt-lecture${fullscreen ? " is-fullscreen" : ""}${thumbsOpen ? " has-thumbs" : ""}${previewMode ? " is-preview" : ""}`}
       aria-label={`${previewMode ? "Aperçu" : "Lecture"} — ${session.title}`}
+      style={lectureVars}
     >
       <header className="opt-lecture__bar">
         <Link
@@ -288,6 +314,9 @@ function LectureContent() {
         </Link>
 
         <div className="opt-lecture__tools">
+          <span className="opt-lecture__theme">
+            <ThemeToggle />
+          </span>
           {progress.total > 0 ? (
             <span className="opt-lecture__pagechip" aria-live="polite">
               {progress.page + 1}
@@ -326,6 +355,9 @@ function LectureContent() {
       <div className="opt-lecture__stage">
         {fullscreen ? (
           <div className="opt-lecture__fs-tools">
+            <span className="opt-lecture__theme">
+              <ThemeToggle />
+            </span>
             <button
               type="button"
               className={`opt-lecture__fs-exit${thumbsOpen ? " is-active" : ""}`}
@@ -357,6 +389,8 @@ function LectureContent() {
             magazineId={previewMode ? session.id : null}
             coverUrl={previewMode ? session.coverUrl : null}
             theme={previewMode ? session.theme ?? null : null}
+            isFree={isFree}
+            loggedIn={loggedIn}
             onProgress={(page, total) => setProgress({ page, total })}
           />
         ) : (
@@ -368,6 +402,8 @@ function LectureContent() {
             magazineId={previewMode ? session.id : null}
             coverUrl={previewMode ? session.coverUrl : null}
             theme={previewMode ? session.theme ?? null : null}
+            isFree={isFree}
+            loggedIn={loggedIn}
             onProgress={(page, total) => setProgress({ page, total })}
           />
         )}

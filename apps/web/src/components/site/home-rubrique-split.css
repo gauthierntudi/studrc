@@ -5,9 +5,9 @@
   --opt-rs-muted: #6b6b6b;
   --opt-rs-line: #e6e6e6;
   --opt-rs-accent: #c4d600;
-  --opt-rs-panel: #02d0d1;
+  --opt-rs-panel: #0565ab;
   --opt-rs-tag: #ea580c;
-  --opt-rs-red: #e9262a;
+  --opt-rs-red: #d63026;
 
   margin-top: 2.5rem;
   padding-top: 0.25rem;
@@ -16,6 +16,10 @@
 .opt-rsplit a {
   text-decoration: none;
   color: inherit;
+}
+
+.opt-rsplit a.opt-rsplit__more {
+  color: var(--opt-rs-ink);
 }
 
 .opt-rsplit__head {
@@ -39,6 +43,26 @@
   letter-spacing: -0.02em;
   color: var(--opt-rs-accent);
   line-height: 1;
+}
+
+.opt-rsplit__title.opt-rsplit__title--red {
+  color: #0462a9;
+}
+
+.opt-rsplit__title.opt-rsplit__title--blue {
+  color: #febb00;
+}
+
+.opt-rsplit__title.opt-rsplit__title--gold {
+  color: #ff0c00;
+}
+
+.opt-rsplit__title.opt-rsplit__title--teal {
+  color: #022144;
+}
+
+.opt-rsplit__title.opt-rsplit__title--dark {
+  color: #e1045c;
 }
 
 .opt-rsplit__dot {
@@ -68,7 +92,7 @@
   width: 22px;
   height: 22px;
   border-radius: 999px;
-  background: #111;
+  background: var(--opt-rs-ink);
   color: #fff;
   display: inline-flex;
   align-items: center;
@@ -102,7 +126,7 @@
   gap: 0.55rem;
   padding: 1.35rem 1.4rem;
   background: var(--opt-rs-panel);
-  color: #111;
+  color: #fff;
 }
 
 .opt-rsplit__tag {
@@ -124,7 +148,7 @@
   font-weight: 800;
   line-height: 1.22;
   letter-spacing: -0.025em;
-  color: #111 !important;
+  color: #fff !important;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
@@ -137,7 +161,7 @@
   font-size: 0.88rem;
   font-weight: 500;
   line-height: 1.45;
-  color: #222;
+  color: rgba(255, 255, 255, 0.88);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -153,7 +177,7 @@
   font-family: var(--opt-font-sans);
   font-size: 0.78rem;
   font-weight: 500;
-  color: #333;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .opt-rsplit__meta strong {
@@ -193,6 +217,10 @@
   background: #ececec;
 }
 
+.opt-rsplit--video .opt-rsplit__card-media {
+  aspect-ratio: 16 / 9;
+}
+
 .opt-rsplit__card-media .opt-cover {
   position: absolute;
   inset: 0;
@@ -202,7 +230,7 @@
   position: absolute;
   left: 0.45rem;
   top: 0.45rem;
-  z-index: 2;
+  z-index: 3;
 }
 
 .opt-rsplit__card-title {
@@ -223,6 +251,119 @@
   color: var(--opt-rs-red);
 }
 
+/* Rayon STU MAG */
+.opt-rsplit__mags {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem 0.85rem;
+}
+
+.opt-rsplit__mag {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.opt-rsplit__mag-cover {
+  position: relative;
+  display: block;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  background: #ececec;
+  box-shadow:
+    0 1px 0 rgba(0, 19, 43, 0.04),
+    0 12px 24px rgba(0, 19, 43, 0.12);
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease;
+}
+
+.opt-rsplit__mag-cover .opt-cover {
+  position: absolute;
+  inset: 0;
+}
+
+.opt-rsplit__mag:hover .opt-rsplit__mag-cover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 1px 0 rgba(0, 19, 43, 0.04),
+    0 20px 36px rgba(0, 19, 43, 0.18);
+}
+
+.opt-rsplit__mag-badge {
+  position: absolute;
+  top: 0.45rem;
+  left: 0.45rem;
+  z-index: 2;
+  padding: 0.16rem 0.38rem;
+  background: #e1045c;
+  color: #fff;
+  font-family: var(--opt-font-sans);
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.opt-rsplit__mag-num {
+  position: absolute;
+  bottom: 0.45rem;
+  left: 0.45rem;
+  z-index: 2;
+  padding: 0.16rem 0.38rem;
+  background: #00132b;
+  color: #fff;
+  font-family: var(--opt-font-sans);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
+.opt-rsplit__mag-tag {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  z-index: 2;
+  padding: 0.16rem 0.38rem;
+  background: #d63026;
+  color: #fff;
+  font-family: var(--opt-font-sans);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.opt-rsplit__mag-title {
+  margin: 0;
+  font-family: var(--opt-font-display);
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--opt-rs-ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.opt-rsplit__mag:hover .opt-rsplit__mag-title {
+  color: var(--opt-rs-red);
+}
+
+.opt-rsplit__mag-date {
+  margin: 0;
+  font-family: var(--opt-font-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--opt-rs-muted);
+}
+
 @media (max-width: 899px) {
   .opt-rsplit__featured {
     grid-template-columns: 1fr;
@@ -241,6 +382,11 @@
 
   .opt-rsplit__card-title {
     font-size: 0.85rem;
+  }
+
+  .opt-rsplit__mags {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem 0.7rem;
   }
 }
 

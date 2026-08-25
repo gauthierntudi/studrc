@@ -10,11 +10,18 @@ export class MailService {
   private readonly appUrl: string;
 
   constructor(private readonly config: ConfigService) {
-    const apiKey = this.config.get<string>('RESEND_API_KEY');
+    const apiKey = this.config.get<string>('RESEND_API_KEY')?.trim();
     this.resend = apiKey ? new Resend(apiKey) : null;
     this.from =
       this.config.get<string>('MAIL_FROM') ?? 'STUDRC <noreply@studrc.com>';
     this.appUrl = this.config.get<string>('APP_URL') ?? 'http://localhost:3000';
+    if (this.resend && apiKey) {
+      this.logger.log(
+        `Resend prêt · from=${this.from} · clé …${apiKey.slice(-4)}`,
+      );
+    } else {
+      this.logger.warn('RESEND_API_KEY absente — aucun e-mail ne partira');
+    }
   }
 
   async sendVerifyEmail(to: string, name: string, token: string) {
@@ -225,8 +232,11 @@ export class MailService {
       });
       if (result.error) {
         this.logger.error(`Resend error: ${result.error.message}`);
+        const hint = /domain is not verified/i.test(result.error.message)
+          ? ' La clé chargée par Nest n’est pas celle du compte où studrc.com est Verified (souvent .env racine ≠ apps/api/.env).'
+          : '';
         throw new Error(
-          `Échec envoi e-mail (${result.error.message}). Vérifiez RESEND_API_KEY / MAIL_FROM.`,
+          `Échec envoi e-mail (${result.error.message}).${hint} Vérifiez RESEND_API_KEY / MAIL_FROM.`,
         );
       }
     } catch (err) {

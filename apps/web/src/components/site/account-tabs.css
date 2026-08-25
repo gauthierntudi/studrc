@@ -1,8 +1,9 @@
 .opt-account-tabs {
-  --opt-navy: #0d203d;
-  --opt-teal: #02d0d1;
-  --opt-muted: #6b7280;
-  --opt-line: rgba(13, 32, 61, 0.12);
+  --opt-navy: #00132b;
+  --opt-teal: #0565ab;
+  --opt-ink: var(--site-ink, var(--opt-navy));
+  --opt-muted: var(--site-muted, #6b7280);
+  --opt-line: var(--site-line, rgba(13, 32, 61, 0.12));
 
   display: flex;
   align-items: stretch;
@@ -41,7 +42,7 @@
   height: 1.25rem;
   padding: 0 0.35rem;
   border-radius: 999px;
-  background: #e9262a;
+  background: #d63026;
   color: #fff;
   font-size: 0.68rem;
   font-weight: 750;
@@ -51,8 +52,8 @@
 }
 
 .opt-account-tabs__badge--muted {
-  background: rgba(13, 32, 61, 0.14);
-  color: var(--opt-navy);
+  background: color-mix(in srgb, var(--opt-ink) 14%, transparent);
+  color: var(--opt-ink);
 }
 
 .opt-account-tabs__tab::after {
@@ -67,11 +68,11 @@
 }
 
 .opt-account-tabs__tab:hover {
-  color: var(--opt-navy);
+  color: var(--opt-ink);
 }
 
 .opt-account-tabs__tab.is-active {
-  color: var(--opt-navy);
+  color: var(--opt-ink);
 }
 
 .opt-account-tabs__tab.is-active::after {

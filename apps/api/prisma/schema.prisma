@@ -57,6 +57,14 @@ enum MagazinePagesStatus {
   FAILED
 }
 
+enum VideoStatus {
+  NONE
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}
+
 model Subscriber {
   id                        String    @id @default(cuid())
   legacyId                  Int?      @unique
@@ -283,6 +291,15 @@ model Article {
   authorId    String?
   /// Magazine lié (affiché sur l’article + kiosque)
   magazineId  String?
+  /// MP4 source (R2) — STU TALK / STU STORIES
+  videoSourceKey   String?
+  /// Playlist HLS master (R2)
+  videoHlsKey      String?
+  /// Miniature extraite
+  videoPosterKey   String?
+  videoStatus      VideoStatus @default(NONE)
+  videoError       String?
+  videoDurationSec Int?
   publishedAt DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -295,6 +312,7 @@ model Article {
   @@index([isPublished, publishedAt])
   @@index([isFeatured, isPublished])
   @@index([magazineId])
+  @@index([videoStatus])
   @@map("articles")
 }
 

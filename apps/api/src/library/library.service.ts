@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  AccessType,
   PaymentProvider,
   PaymentPurpose,
   PaymentStatus,
@@ -72,21 +73,35 @@ export class LibraryService {
       }
     }
 
-    const magazines =
-      status === 'active'
-        ? await this.prisma.magazine.findMany({
-            where: { isPublished: true, isActive: true },
-            orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
-            select: {
-              id: true,
-              title: true,
-              issueNumber: true,
-              coverKey: true,
-              pdfKey: true,
-              publishedAt: true,
+    const published = { isPublished: true, isActive: true } as const;
+    const magazines = await this.prisma.magazine.findMany({
+      where:
+        status === 'active'
+          ? published
+          : {
+              ...published,
+              OR: [
+                { accessType: AccessType.FREE },
+                {
+                  purchases: {
+                    some: {
+                      subscriberId,
+                      paymentStatus: PaymentStatus.SUCCESS,
+                    },
+                  },
+                },
+              ],
             },
-          })
-        : [];
+      orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
+      select: {
+        id: true,
+        title: true,
+        issueNumber: true,
+        coverKey: true,
+        accessType: true,
+        publishedAt: true,
+      },
+    });
 
     return {
       status,
@@ -98,7 +113,8 @@ export class LibraryService {
         issueNumber: m.issueNumber,
         coverUrl: this.resolveCoverUrl(m.coverKey),
         publishedAt: m.publishedAt,
-        readPath: m.pdfKey ? `/lecture/${m.id}` : null,
+        accessType: m.accessType,
+        readPath: `/lecture/${m.id}`,
       })),
     };
   }

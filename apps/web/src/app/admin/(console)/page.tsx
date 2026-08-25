@@ -11,6 +11,7 @@ import {
   adminDashboardApi,
   type AdminDashboardStats,
 } from "@/lib/api";
+import { SUBSCRIPTIONS_ENABLED } from "@/lib/features";
 import { cn } from "@/lib/utils";
 
 const PURPOSE_LABEL: Record<string, string> = {
@@ -19,7 +20,7 @@ const PURPOSE_LABEL: Record<string, string> = {
 };
 
 const PURPOSE_COLOR: Record<string, string> = {
-  SUBSCRIPTION: "#02d0d1",
+  SUBSCRIPTION: "#0565ab",
   PURCHASE: "#5b7cfa",
 };
 
@@ -61,11 +62,15 @@ export default function AdminHomePage() {
       value: stats ? formatCount(stats.subscribersCount) : "—",
       color: "teal" as const,
     },
-    {
-      label: "Abonnements actifs",
-      value: stats ? formatCount(stats.activeSubscriptions) : "—",
-      color: "blue" as const,
-    },
+    ...(SUBSCRIPTIONS_ENABLED
+      ? [
+          {
+            label: "Abonnements actifs",
+            value: stats ? formatCount(stats.activeSubscriptions) : "—",
+            color: "blue" as const,
+          },
+        ]
+      : []),
     {
       label: "Magazines",
       value: stats
@@ -151,7 +156,7 @@ export default function AdminHomePage() {
         <AdminBarChart
           title="Volume payé (14 jours)"
           points={volumePoints}
-          color="#02d0d1"
+          color="#0565ab"
           currency="USD"
         />
         <AdminDonutChart

@@ -25,7 +25,7 @@ import { DEMO_MAGAZINES } from "@/lib/legacy-demo";
 import { cn } from "@/lib/utils";
 import "./abonnement.css";
 
-const DEFAULT_THEME = { bgColor: "#0d203d", accentColor: "#02d0d1" };
+const DEFAULT_THEME = { bgColor: "#00132b", accentColor: "#0565ab" };
 
 type CoverState = {
   id: string;

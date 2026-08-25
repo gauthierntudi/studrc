@@ -13,7 +13,8 @@ import {
   articlesPublicApi,
   type PublicArticleCard,
 } from "@/lib/api";
-import { SEARCH_FILTERS } from "@/lib/rubriques";
+import { SEARCH_FILTERS, isVideoRubrique } from "@/lib/rubriques";
+import { VideoPlay } from "@/components/site/video-play";
 import "./recherche.css";
 
 const COVER_FALLBACK = "/legacy/articles/1591543587.jpg";
@@ -225,7 +226,13 @@ function RechercheInner() {
                       href={`/article/${encodeURIComponent(item.slug)}`}
                       className="opt-search__link"
                     >
-                      <span className="opt-search__cover">
+                      <span
+                        className={`opt-search__cover${
+                          isVideoRubrique(item.category, item.categoryLabel)
+                            ? " opt-search__cover--video"
+                            : ""
+                        }`}
+                      >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={item.coverUrl || COVER_FALLBACK}
@@ -235,6 +242,9 @@ function RechercheInner() {
                             e.currentTarget.src = COVER_FALLBACK;
                           }}
                         />
+                        {isVideoRubrique(item.category, item.categoryLabel) ? (
+                          <VideoPlay size={18} className="opt-video-play--sm" />
+                        ) : null}
                       </span>
                       <span className="opt-search__body">
                         <span className="opt-search__item-title">

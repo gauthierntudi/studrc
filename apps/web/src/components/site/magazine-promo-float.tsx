@@ -6,7 +6,7 @@ import { Maximize2, X } from "lucide-react";
 import "./magazine-promo-float.css";
 
 const FALLBACK_COVER = "/legacy/covers/1591457791.jpg";
-const DEFAULT_THEME = { bgColor: "#0d203d", accentColor: "#02d0d1" };
+const DEFAULT_THEME = { bgColor: "#00132b", accentColor: "#0565ab" };
 const MOBILE_MQ = "(max-width: 640px)";
 
 function contrastOn(hex: string): string {
@@ -25,7 +25,7 @@ function contrastOn(hex: string): string {
   const lin = (c: number) =>
     c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
   const L = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
-  return L < 0.45 ? "#ffffff" : "#0d203d";
+  return L < 0.45 ? "#ffffff" : "#00132b";
 }
 
 function isMobileViewport() {

@@ -203,11 +203,11 @@ export function StripePaymentModal(props: StripePaymentModalProps) {
     () => ({
       theme: "night" as const,
       variables: {
-        colorPrimary: "#e9262a",
+        colorPrimary: "#d63026",
         colorBackground: "#121c2e",
         colorText: "#f4f6f8",
         colorTextSecondary: "rgba(244, 246, 248, 0.65)",
-        colorDanger: "#e9262a",
+        colorDanger: "#d63026",
         fontFamily: "Plus Jakarta Sans, system-ui, sans-serif",
         borderRadius: "10px",
         spacingUnit: "3px",
@@ -225,7 +225,7 @@ export function StripePaymentModal(props: StripePaymentModalProps) {
         },
         ".Input--invalid": {
           boxShadow: "none",
-          border: "1px solid #e9262a",
+          border: "1px solid #d63026",
         },
         ".Tab": {
           boxShadow: "none",

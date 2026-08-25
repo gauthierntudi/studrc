@@ -1,0 +1,91 @@
+.opt-switch {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  flex-shrink: 0;
+}
+
+.opt-switch__track {
+  position: relative;
+  display: block;
+  width: 40px;
+  height: 20px;
+  border-radius: 999px;
+  background: #e4e4e4;
+  box-shadow: inset 0 0 0 1px rgba(17, 17, 17, 0.08);
+  transition: background 0.2s ease;
+}
+
+.opt-switch__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(17, 17, 17, 0.22);
+  transition: transform 0.2s ease;
+}
+
+.opt-switch__icon {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.opt-switch__icon--sun {
+  left: 5px;
+  color: #b45309;
+}
+
+.opt-switch__icon--moon {
+  right: 5px;
+  color: #64748b;
+}
+
+html[data-theme="dark"] .opt-switch__track {
+  background: var(--studrc-blue, #0565ab);
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .opt-switch__thumb {
+  transform: translateX(20px);
+}
+
+html[data-theme="dark"] .opt-switch__icon--sun {
+  color: #fff;
+}
+
+html[data-theme="dark"] .opt-switch__icon--moon {
+  color: #fff;
+}
+
+.opt-switch--menu {
+  width: 100%;
+  justify-content: flex-start;
+  gap: 0.75rem;
+}
+
+.opt-switch:focus-visible .opt-switch__track {
+  outline: 2px solid var(--studrc-blue, #0565ab);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opt-switch__track,
+  .opt-switch__thumb {
+    transition: none;
+  }
+}

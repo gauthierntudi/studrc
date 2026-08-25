@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { libraryApi } from "@/lib/api";
+import { SUBSCRIPTIONS_ENABLED } from "@/lib/features";
 import "./account-tabs.css";
 
 const TABS = [
@@ -19,6 +20,10 @@ const TABS = [
   },
   { href: "/historique", label: "Historique" },
 ] as const;
+
+const VISIBLE_TABS = SUBSCRIPTIONS_ENABLED
+  ? TABS
+  : TABS.filter((tab) => tab.href !== "/mon-abonnement");
 
 export function AccountTabs() {
   const pathname = usePathname();
@@ -76,7 +81,7 @@ export function AccountTabs() {
 
   return (
     <nav className="opt-account-tabs" aria-label="Espace abonné">
-      {TABS.map((tab) => {
+      {VISIBLE_TABS.map((tab) => {
         const active =
           pathname === tab.href || pathname.startsWith(`${tab.href}/`);
         const showPurchasesBadge =

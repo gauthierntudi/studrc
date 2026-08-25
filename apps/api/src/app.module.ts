@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { existsSync } from 'fs';
 import { join } from 'path';
+import { config as loadEnv } from 'dotenv';
 import { ActivityModule } from './activity/activity.module';
 import { ArticlesModule } from './articles/articles.module';
 import { AuthModule } from './auth/auth.module';
@@ -17,15 +19,16 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { PaymentsModule } from './payments/payments.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 
+const envApi = join(__dirname, '../.env');
+const envRoot = join(__dirname, '../../../.env');
+if (existsSync(envApi)) loadEnv({ path: envApi });
+if (existsSync(envRoot)) loadEnv({ path: envRoot, override: true });
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [
-        join(__dirname, '../../../.env'),
-        join(__dirname, '../../.env'),
-        '.env',
-      ],
+      envFilePath: [envApi, envRoot],
     }),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     PrismaModule,

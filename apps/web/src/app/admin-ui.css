@@ -1,5 +1,5 @@
 /* Ported from trompette-next admin UI (snow-dash / admin-auth / admin-dash) */
-/* Accent OPT1MUM: --snow-teal → #02d0d1 */
+/* Accent STUDRC: --snow-teal → bleu charte #0565ab */
 
 /* Empêche les titres globaux magazine d’écraser la typo admin */
 .snow-dash h1,
@@ -27,7 +27,7 @@
   --snow-kpi-a: #e6f1fd;
   --snow-kpi-b: #edeefc;
   --snow-kpi-ink: #111111;
-  --snow-teal: #02d0d1;
+  --snow-teal: #0565ab;
   --snow-radius: 16px;
   --snow-font: var(--opt-font-sans), system-ui, sans-serif;
   --snow-sidebar-w: 232px;
@@ -174,6 +174,15 @@
   max-height: 52px;
 }
 
+.admin-brand-logo--white img,
+.snow-dash:not([data-theme="light"]) .snow-dash__brand .admin-brand-logo img {
+  filter: brightness(0) invert(1);
+}
+
+.admin-brand-logo--black img {
+  filter: brightness(0);
+}
+
 .snow-dash__nav-scroll {
   display: flex;
   flex: 1 1 auto;
@@ -255,12 +264,12 @@
 
 .snow-dash__nav-item--active {
   background: var(--snow-teal);
-  color: #0d203d;
+  color: #ffffff;
 }
 
 .snow-dash__nav-item--active .snow-dash__nav-icon {
   opacity: 1;
-  color: #0d203d;
+  color: #ffffff;
 }
 
 .snow-dash__nav-item--active::before {
@@ -1044,7 +1053,7 @@
 
 .admin-auth__field input:focus,
 .admin-auth__password-wrap input:focus {
-  border-color: #02d0d1;
+  border-color: #0565ab;
   background: #fff;
   box-shadow: 0 0 0 3px rgba(2, 208, 209, 0.18);
 }
@@ -1061,7 +1070,7 @@
   height: 3.1rem;
   border: 0;
   border-radius: 16px;
-  background: #02d0d1;
+  background: #0565ab;
   color: #fff;
   font: inherit;
   font-size: 0.98rem;
@@ -1098,7 +1107,7 @@
 .admin-auth__link {
   border: 0;
   background: transparent;
-  color: #02d0d1;
+  color: #0565ab;
   font-size: 0.86rem;
   font-weight: 650;
   cursor: pointer;
@@ -1265,25 +1274,25 @@
   height: 3.75rem;
   margin-top: 0.25rem;
   border-radius: 999px;
-  background: color-mix(in srgb, #02d0d1 16%, white);
-  color: #02d0d1;
-  box-shadow: 0 0 0 8px color-mix(in srgb, #02d0d1 10%, transparent);
+  background: color-mix(in srgb, #0565ab 16%, white);
+  color: #0565ab;
+  box-shadow: 0 0 0 8px color-mix(in srgb, #0565ab 10%, transparent);
   animation: session-expired-pulse 2.4s ease-in-out infinite;
 }
 
 .session-expired--admin .session-expired__icon {
-  background: color-mix(in srgb, #02d0d1 20%, #16181c);
+  background: color-mix(in srgb, #0565ab 20%, #16181c);
   color: #5eead4;
-  box-shadow: 0 0 0 8px color-mix(in srgb, #02d0d1 14%, transparent);
+  box-shadow: 0 0 0 8px color-mix(in srgb, #0565ab 14%, transparent);
 }
 
 @keyframes session-expired-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 8px color-mix(in srgb, #02d0d1 10%, transparent);
+    box-shadow: 0 0 0 8px color-mix(in srgb, #0565ab 10%, transparent);
   }
   50% {
-    box-shadow: 0 0 0 12px color-mix(in srgb, #02d0d1 4%, transparent);
+    box-shadow: 0 0 0 12px color-mix(in srgb, #0565ab 4%, transparent);
   }
 }
 
@@ -1301,7 +1310,7 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #02d0d1;
+  color: #0565ab;
 }
 
 .session-expired__title {
@@ -1354,8 +1363,8 @@
 }
 
 .session-expired__btn--primary {
-  background: #02d0d1;
-  color: #0d203d;
+  background: #0565ab;
+  color: #00132b;
 }
 
 .session-expired__btn--primary:hover {
@@ -1435,7 +1444,7 @@
 .admin-dash__avatar {
   display: grid;
   place-items: center;
-  background: #02d0d1;
+  background: #0565ab;
   color: #041512;
   font-weight: 800;
   font-size: 0.95rem;
@@ -1473,8 +1482,8 @@
   padding: 0 1rem;
   border: none;
   border-radius: 12px;
-  background: var(--snow-teal, #02d0d1);
-  color: #0a0a0a;
+  background: var(--snow-teal, #0565ab);
+  color: #ffffff;
   font-family: inherit;
   font-size: 0.88rem;
   font-weight: 700;
@@ -1487,8 +1496,8 @@
 }
 
 .admin-dash__cta:hover {
-  background: color-mix(in srgb, var(--snow-teal, #02d0d1) 88%, #000);
-  color: #0a0a0a;
+  background: color-mix(in srgb, var(--snow-teal, #0565ab) 88%, #000);
+  color: #ffffff;
 }
 
 .admin-dash__cta:disabled {
@@ -1540,7 +1549,7 @@
 .admin-dash__field input:focus,
 .admin-dash__field select:focus,
 .admin-dash__field textarea:focus {
-  border-color: #02d0d1;
+  border-color: #0565ab;
   box-shadow: 0 0 0 3px rgba(2, 208, 209, 0.16);
 }
 
@@ -1576,7 +1585,7 @@
 
 .admin-dash__btn--primary {
   border-color: transparent;
-  background: #02d0d1;
+  background: #0565ab;
   color: #0a0a0a;
 }
 
@@ -1738,8 +1747,8 @@
 }
 
 .admin-pager__page--active {
-  border-color: color-mix(in srgb, var(--snow-teal, #02d0d1) 55%, var(--snow-line));
-  background: color-mix(in srgb, var(--snow-teal, #02d0d1) 16%, transparent);
+  border-color: color-mix(in srgb, var(--snow-teal, #0565ab) 55%, var(--snow-line));
+  background: color-mix(in srgb, var(--snow-teal, #0565ab) 16%, transparent);
   color: var(--snow-teal, #0a8f90);
   cursor: default;
 }
@@ -1808,7 +1817,7 @@
 }
 
 .admin-dash__icon-action--publish {
-  background: #02d0d1;
+  background: #0565ab;
   color: #0a0a0a;
 }
 
@@ -1910,6 +1919,11 @@
   object-fit: cover;
   border-radius: 6px;
   box-shadow: 0 4px 12px rgb(0 0 0 / 16%);
+}
+
+.admin-mag__dropzone-thumb--wide {
+  width: 4.4rem;
+  height: 2.5rem;
 }
 
 .admin-mag__dropzone-copy {
@@ -2091,7 +2105,7 @@
 .admin-dash__panel-link {
   font-size: 0.78rem;
   font-weight: 650;
-  color: #02d0d1;
+  color: #0565ab;
   text-decoration: none;
 }
 
@@ -2128,7 +2142,7 @@
   height: 2.1rem;
   border-radius: 10px;
   background: rgba(0, 178, 162, 0.16);
-  color: #02d0d1;
+  color: #0565ab;
 }
 
 .admin-dash__shortcut strong {
@@ -2167,7 +2181,7 @@
   height: 1.75rem;
   border-radius: 999px;
   background: rgba(0, 178, 162, 0.14);
-  color: #02d0d1;
+  color: #0565ab;
   flex-shrink: 0;
 }
 
@@ -2272,6 +2286,94 @@
 
 .admin-modal__body {
   padding: 1rem 1.1rem 1.25rem;
+}
+
+.admin-progress {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.admin-progress__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.62);
+  pointer-events: all;
+}
+
+.admin-progress__panel {
+  position: relative;
+  z-index: 1;
+  width: min(26rem, 100%);
+  padding: 1.35rem 1.4rem 1.25rem;
+  border-radius: 18px;
+  border: 1px solid var(--snow-line);
+  background: var(--snow-elevated);
+  color: var(--snow-text);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+  text-align: center;
+}
+
+.admin-progress__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  margin: 0 auto 0.75rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--snow-teal) 18%, transparent);
+  color: var(--snow-teal);
+}
+
+.admin-progress__panel h2 {
+  margin: 0 0 0.3rem;
+  font-size: 1.08rem;
+  font-weight: 750;
+}
+
+.admin-progress__panel p {
+  margin: 0;
+}
+
+.admin-progress__panel #admin-progress-label {
+  color: var(--snow-muted);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.admin-progress__track {
+  position: relative;
+  margin: 1.05rem 0 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--snow-active);
+  border: 1px solid var(--snow-line);
+}
+
+.admin-progress__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--snow-teal);
+  transition: width 0.18s ease;
+}
+
+.admin-progress__pct {
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--snow-text);
+}
+
+.admin-progress__hint {
+  margin-top: 0.55rem !important;
+  font-size: 0.78rem;
+  color: var(--snow-muted);
 }
 
 .admin-user-cell {
@@ -2585,7 +2687,7 @@
 }
 
 .admin-dash__kpi-vivid--teal {
-  background: linear-gradient(145deg, #00c9b7 0%, #02d0d1 55%, #009688 100%) !important;
+  background: linear-gradient(145deg, #00c9b7 0%, #0565ab 55%, #009688 100%) !important;
   color: #fff !important;
 }
 
@@ -2677,7 +2779,7 @@
 }
 
 .admin-dash__feed-item:hover {
-  background: color-mix(in srgb, #02d0d1 12%, var(--snow-active));
+  background: color-mix(in srgb, #0565ab 12%, var(--snow-active));
 }
 
 .admin-dash__feed-main,
@@ -3374,7 +3476,7 @@ a.snow-dash__rail-item:hover {
 
 .admin-datepicker__trigger.is-open,
 .admin-datepicker__trigger:focus-visible {
-  border-color: #02d0d1;
+  border-color: #0565ab;
   box-shadow: 0 0 0 3px rgba(2, 208, 209, 0.16);
   outline: none;
 }
@@ -3489,7 +3591,7 @@ a.snow-dash__rail-item:hover {
 }
 
 .admin-datepicker__day.is-selected {
-  background: #02d0d1;
+  background: #0565ab;
   color: #041512;
   font-weight: 700;
 }
@@ -3510,7 +3612,7 @@ a.snow-dash__rail-item:hover {
 .admin-datepicker__today {
   border: 0;
   background: transparent;
-  color: #02d0d1;
+  color: #0565ab;
   font-size: 0.78rem;
   font-weight: 650;
   cursor: pointer;
@@ -3569,7 +3671,7 @@ a.snow-dash__rail-item:hover {
   padding: 0.25rem 0.55rem;
   border-radius: 999px;
   background: rgba(2, 208, 209, 0.14);
-  color: #02d0d1;
+  color: #0565ab;
   font-size: 0.72rem;
   font-weight: 700;
 }
@@ -3700,7 +3802,7 @@ a.snow-dash__rail-item:hover {
 }
 
 .admin-payment-otp .auth-otp__cell:focus {
-  border-color: #02d0d1;
+  border-color: #0565ab;
   box-shadow: 0 0 0 3px rgba(2, 208, 209, 0.16);
 }
 
@@ -3789,6 +3891,18 @@ a.snow-dash__rail-item:hover {
   gap: 1.15rem;
 }
 
+.admin-article-video {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.admin-article-video__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
 .admin-article__block {
   display: grid;
   gap: 0.85rem;
@@ -3861,7 +3975,7 @@ a.snow-dash__rail-item:hover {
 
 .admin-article__add-between:hover:not(:disabled) {
   color: var(--snow-text);
-  border-color: #02d0d1;
+  border-color: #0565ab;
   background: rgba(2, 208, 209, 0.08);
 }
 
@@ -3897,7 +4011,7 @@ a.snow-dash__rail-item:hover {
 }
 
 .admin-mag-picker__trigger:hover:not(:disabled) {
-  border-color: #02d0d1;
+  border-color: #0565ab;
 }
 
 .admin-mag-picker__trigger:disabled {
@@ -3906,7 +4020,7 @@ a.snow-dash__rail-item:hover {
 }
 
 .admin-mag-picker__trigger:focus-visible {
-  outline: 2px solid #02d0d1;
+  outline: 2px solid #0565ab;
   outline-offset: 2px;
 }
 
@@ -4045,12 +4159,12 @@ a.snow-dash__rail-item:hover {
 }
 
 .admin-mag-picker__option.is-selected {
-  background: color-mix(in srgb, #02d0d1 14%, transparent);
+  background: color-mix(in srgb, #0565ab 14%, transparent);
 }
 
 .admin-mag-picker__check {
   flex-shrink: 0;
-  color: #02d0d1;
+  color: #0565ab;
 }
 
 .admin-article-page {
@@ -4158,7 +4272,7 @@ a.snow-dash__rail-item:hover {
 }
 
 .admin-dash__switch-input:checked + .admin-dash__switch-track {
-  background: color-mix(in srgb, var(--snow-teal, #02d0d1) 82%, #0a7);
+  background: color-mix(in srgb, var(--snow-teal, #0565ab) 82%, #0a7);
 }
 
 .admin-dash__switch-input:checked + .admin-dash__switch-track::after {
@@ -4166,7 +4280,7 @@ a.snow-dash__rail-item:hover {
 }
 
 .admin-dash__switch-input:focus-visible + .admin-dash__switch-track {
-  outline: 2px solid color-mix(in srgb, var(--snow-teal, #02d0d1) 70%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--snow-teal, #0565ab) 70%, transparent);
   outline-offset: 2px;
 }
 
@@ -4545,7 +4659,7 @@ a.snow-dash__rail-item:hover {
 .admin-social__preview-stage {
   border-radius: 14px;
   background: #0c1118;
-  border-top: 3px solid #02d0d1;
+  border-top: 3px solid #0565ab;
   padding: 1.15rem 1rem;
   min-height: 5.5rem;
   display: grid;

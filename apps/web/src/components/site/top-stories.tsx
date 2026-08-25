@@ -12,25 +12,14 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { DEMO_FEATURED, DEMO_TOP_GRID, type TopStory } from "@/lib/legacy-demo";
 import { articleHref } from "@/lib/home-articles";
 import { CoverImage } from "@/components/site/cover-image";
+import { VideoPlay } from "@/components/site/video-play";
+import { isVideoRubrique } from "@/lib/rubriques";
 import "./top-stories.css";
 
-/** Couleurs vives compatibles texte blanc */
-const FEATURED_BG = [
-  "#e9262a",
-  "#e11d48",
-  "#ea580c",
-  "#d97706",
-  "#16a34a",
-  "#0d9488",
-  "#0891b2",
-  "#0284c7",
-  "#2563eb",
-  "#db2777",
-  "#c026d3",
-  "#7c3aed",
-] as const;
-
 const AUTO_MS = 6000;
+
+/** Accents charte — fonds du sticker « à la une » */
+const FEATURED_ACCENT = ["#ff0c00", "#0462a9", "#022144", "#e1045c"] as const;
 
 function hashId(id: string | number) {
   const s = String(id);
@@ -39,8 +28,8 @@ function hashId(id: string | number) {
   return Math.abs(h);
 }
 
-function bgForStory(story: TopStory) {
-  return FEATURED_BG[hashId(story.id) % FEATURED_BG.length];
+function accentForStory(story: TopStory) {
+  return FEATURED_ACCENT[hashId(story.id) % FEATURED_ACCENT.length];
 }
 
 function Meta({ author, dateLabel }: { author: string; dateLabel: string }) {
@@ -63,13 +52,16 @@ function CategoryBadge({
 }
 
 function GridCard({ story }: { story: TopStory }) {
+  const video = isVideoRubrique(story.category);
   return (
-    <article className="opt-top__card">
+    <article className={`opt-top__card opt-top__card--${story.categoryTone}`}>
       <Link href={articleHref(story)} className="opt-top__card-link">
-        <CoverImage src={story.cover} className="opt-top__card-cover" />
-        <div className="opt-top__card-shade" aria-hidden />
-        <div className="opt-top__card-overlay">
+        <div className="opt-top__card-media">
+          <CoverImage src={story.cover} className="opt-top__card-cover" />
+          {video ? <VideoPlay size={18} className="opt-video-play--sm" /> : null}
           <CategoryBadge label={story.category} tone={story.categoryTone} />
+        </div>
+        <div className="opt-top__card-body">
           <h3 className="opt-top__card-title">{story.titre}</h3>
           <Meta author={story.author} dateLabel={story.dateLabel} />
         </div>
@@ -79,10 +71,12 @@ function GridCard({ story }: { story: TopStory }) {
 }
 
 function FeaturedSlide({ story }: { story: TopStory }) {
+  const video = isVideoRubrique(story.category);
   return (
     <article className="opt-top__featured">
       <Link href={articleHref(story)} className="opt-top__featured-media">
         <CoverImage src={story.cover} />
+        {video ? <VideoPlay size={26} /> : null}
         <div className="opt-top__featured-badges">
           <CategoryBadge label={story.category} tone={story.categoryTone} />
           <span className="opt-top__badge opt-top__badge--dark">À la une</span>
@@ -90,7 +84,7 @@ function FeaturedSlide({ story }: { story: TopStory }) {
       </Link>
       <div
         className="opt-top__featured-body"
-        style={{ backgroundColor: bgForStory(story) }}
+        style={{ backgroundColor: accentForStory(story) }}
       >
         <h2 className="opt-top__featured-title">
           <Link href={articleHref(story)}>{story.titre}</Link>
@@ -276,7 +270,7 @@ export function TopStories({
         <FeaturedSlider stories={featured} />
 
         <div className="opt-top__grid">
-          {grid.map((story) => (
+          {grid.slice(0, 4).map((story) => (
             <GridCard key={story.id} story={story} />
           ))}
         </div>

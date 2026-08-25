@@ -145,23 +145,33 @@ function refreshSubscriberSession(): Promise<boolean> {
   return subscriberRefreshInFlight;
 }
 
-async function parseApiError(res: Response): Promise<string> {
-  let message = "Une erreur est survenue";
+async function parseApiErrorText(status: number, raw: string): Promise<string> {
   try {
-    const body = (await res.json()) as ApiErrorBody;
+    const body = JSON.parse(raw) as ApiErrorBody;
     if (Array.isArray(body.message)) {
-      message = body.message.join(", ");
-    } else if (typeof body.message === "string") {
-      message = body.message;
-    } else if (res.status === 401) {
-      message = "Session expirée — reconnectez-vous";
+      return body.message.join(", ");
+    }
+    if (typeof body.message === "string") {
+      return body.message;
     }
   } catch {
-    if (res.status === 401) {
-      message = "Session expirée — reconnectez-vous";
-    }
+    /* ignore */
   }
-  return message;
+  if (status === 401) {
+    return "Session expirée — reconnectez-vous";
+  }
+  return "Une erreur est survenue";
+}
+
+async function parseApiError(res: Response): Promise<string> {
+  try {
+    return await parseApiErrorText(res.status, await res.text());
+  } catch {
+    if (res.status === 401) {
+      return "Session expirée — reconnectez-vous";
+    }
+    return "Une erreur est survenue";
+  }
 }
 
 async function apiFetch<T>(path: string, init?: ApiFetchInit): Promise<T> {
@@ -214,29 +224,88 @@ async function apiFetchForm<T>(
   path: string,
   body: FormData,
   retried = false,
+  onProgress?: (percent: number) => void,
 ): Promise<T> {
-  const res = await fetch(`${API_URL}/api${path}`, {
-    method: "POST",
-    credentials: "include",
-    body,
-  });
+  if (!onProgress || typeof XMLHttpRequest === "undefined") {
+    const res = await fetch(`${API_URL}/api${path}`, {
+      method: "POST",
+      credentials: "include",
+      body,
+    });
 
-  if (res.status === 401 && !retried && !isAuthRefreshExempt(path)) {
-    const refreshed = isAdminApiPath(path)
-      ? await refreshAdminSession()
-      : await refreshSubscriberSession();
-    if (refreshed) {
-      return apiFetchForm<T>(path, body, true);
+    if (res.status === 401 && !retried && !isAuthRefreshExempt(path)) {
+      const refreshed = isAdminApiPath(path)
+        ? await refreshAdminSession()
+        : await refreshSubscriberSession();
+      if (refreshed) {
+        return apiFetchForm<T>(path, body, true, onProgress);
+      }
     }
+
+    if (!res.ok) {
+      throw new Error(await parseApiError(res));
+    }
+
+    maybeNotifyAdminActivity(path, "POST");
+
+    return res.json() as Promise<T>;
   }
 
-  if (!res.ok) {
-    throw new Error(await parseApiError(res));
-  }
+  return new Promise<T>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_URL}/api${path}`, true);
+    xhr.withCredentials = true;
 
-  maybeNotifyAdminActivity(path, "POST");
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable) return;
+      const percent = Math.min(
+        100,
+        Math.round((event.loaded / event.total) * 100),
+      );
+      onProgress(percent);
+    };
 
-  return res.json() as Promise<T>;
+    xhr.onload = () => {
+      void (async () => {
+        if (
+          xhr.status === 401 &&
+          !retried &&
+          !isAuthRefreshExempt(path)
+        ) {
+          const refreshed = isAdminApiPath(path)
+            ? await refreshAdminSession()
+            : await refreshSubscriberSession();
+          if (refreshed) {
+            try {
+              resolve(await apiFetchForm<T>(path, body, true, onProgress));
+            } catch (err) {
+              reject(err);
+            }
+            return;
+          }
+        }
+
+        if (xhr.status < 200 || xhr.status >= 300) {
+          reject(new Error(await parseApiErrorText(xhr.status, xhr.responseText)));
+          return;
+        }
+
+        maybeNotifyAdminActivity(path, "POST");
+        onProgress(100);
+        try {
+          resolve(JSON.parse(xhr.responseText) as T);
+        } catch {
+          reject(new Error("Réponse invalide"));
+        }
+      })();
+    };
+
+    xhr.onerror = () => {
+      reject(new Error("Échec réseau pendant l’envoi"));
+    };
+
+    xhr.send(body);
+  });
 }
 
 export const authApi = {
@@ -272,7 +341,7 @@ export const authApi = {
   },
 
   me() {
-    return apiFetch<Subscriber>("/auth/me");
+    return apiFetch<Subscriber | null>("/auth/me");
   },
 
   updateProfile(input: {
@@ -303,7 +372,7 @@ export const authApi = {
   },
 
   refresh() {
-    return apiFetch<Subscriber>("/auth/refresh", { method: "POST" });
+    return apiFetch<Subscriber | null>("/auth/refresh", { method: "POST" });
   },
 
   logout() {
@@ -345,6 +414,7 @@ export type LibraryMagazine = {
   issueNumber: string | null;
   coverUrl: string | null;
   publishedAt?: string | null;
+  accessType?: "FREE" | "PAID";
   readPath: string | null;
 };
 
@@ -1320,6 +1390,9 @@ export type PublicArticleCard = {
   publishedAt: string | null;
   dateLabel: string;
   viewCount: number;
+  videoHlsUrl?: string | null;
+  videoPosterUrl?: string | null;
+  videoStatus?: "NONE" | "PENDING" | "PROCESSING" | "READY" | "FAILED";
 };
 
 export type PublicCategoryFeed = {
@@ -1838,6 +1911,14 @@ export type AdminArticle = {
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  videoSourceKey?: string | null;
+  videoHlsKey?: string | null;
+  videoHlsUrl?: string | null;
+  videoPosterKey?: string | null;
+  videoPosterUrl?: string | null;
+  videoStatus?: "NONE" | "PENDING" | "PROCESSING" | "READY" | "FAILED";
+  videoError?: string | null;
+  videoDurationSec?: number | null;
 };
 
 export type AdminArticleBlockInput = {
@@ -1918,18 +1999,89 @@ export const adminArticlesApi = {
     });
   },
 
-  uploadCover(id: string, file: File) {
+  uploadCover(
+    id: string,
+    file: File,
+    opts?: { onProgress?: (percent: number) => void },
+  ) {
     const body = new FormData();
     body.append("file", file);
-    return apiFetchForm<AdminArticle>(`/admin/articles/${id}/cover`, body);
+    return apiFetchForm<AdminArticle>(
+      `/admin/articles/${id}/cover`,
+      body,
+      false,
+      opts?.onProgress,
+    );
   },
 
-  uploadBlockCover(articleId: string, blockId: string, file: File) {
+  uploadBlockCover(
+    articleId: string,
+    blockId: string,
+    file: File,
+    opts?: { onProgress?: (percent: number) => void },
+  ) {
     const body = new FormData();
     body.append("file", file);
     return apiFetchForm<AdminArticle>(
       `/admin/articles/${articleId}/blocks/${blockId}/cover`,
       body,
+      false,
+      opts?.onProgress,
     );
+  },
+
+  presignVideo(
+    id: string,
+    input: { filename: string; size: number; contentType?: string },
+  ) {
+    return apiFetch<{
+      key: string;
+      uploadUrl: string;
+      headers: Record<string, string>;
+      expiresIn: number;
+      maxSize: number;
+    }>(`/admin/articles/${id}/video/presign`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  },
+
+  completeVideo(id: string, input: { key: string; size: number }) {
+    return apiFetch<AdminArticle>(`/admin/articles/${id}/video/complete`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  },
+
+  reprocessVideo(id: string) {
+    return apiFetch<AdminArticle>(`/admin/articles/${id}/video/reprocess`, {
+      method: "POST",
+    });
+  },
+
+  async uploadVideoDirect(
+    id: string,
+    file: File,
+    opts?: {
+      onProgress?: (percent: number) => void;
+      signal?: AbortSignal;
+    },
+  ) {
+    if (file.size > 500_000_000) {
+      throw new Error("La vidéo dépasse 500 Mo");
+    }
+
+    const signed = await this.presignVideo(id, {
+      filename: file.name,
+      size: file.size,
+      contentType: file.type || "video/mp4",
+    });
+
+    await putFileToPresignedUrl(file, signed.uploadUrl, signed.headers, {
+      onProgress: opts?.onProgress,
+      signal: opts?.signal,
+    });
+
+    return this.completeVideo(id, { key: signed.key, size: file.size });
   },
 };

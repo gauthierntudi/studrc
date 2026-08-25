@@ -10,7 +10,6 @@ import {
 import { ChevronLeft, ChevronRight, FileWarning } from "lucide-react";
 import {
   createPreviewCtaPage,
-  DEFAULT_CTA_THEME,
   reinforceCtaPage,
 } from "./flip-preview-cta";
 
@@ -26,6 +25,9 @@ type Props = {
   coverUrl?: string | null;
   /** Thème magazine pour la page CTA d’aperçu. */
   theme?: { bgColor: string; accentColor: string } | null;
+  /** Magazine gratuit : CTA « Se connecter » au lieu d’acheter. */
+  isFree?: boolean;
+  loggedIn?: boolean;
   onProgress?: (pageIndex: number, pageCount: number) => void;
 };
 
@@ -322,7 +324,6 @@ function ThumbnailStrip({
   pageIndex,
   pdfRef,
   open,
-  theme,
   onSelect,
 }: {
   pageCount: number;
@@ -333,10 +334,6 @@ function ThumbnailStrip({
   theme?: { bgColor: string; accentColor: string } | null;
   onSelect: (index: number) => void;
 }) {
-  const ctaColors = {
-    bgColor: theme?.bgColor || DEFAULT_CTA_THEME.bgColor,
-    accentColor: theme?.accentColor || DEFAULT_CTA_THEME.accentColor,
-  };
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [thumbs, setThumbs] = useState<Record<number, string>>({});
   const pendingRef = useRef(new Set<number>());
@@ -421,14 +418,7 @@ function ThumbnailStrip({
               onClick={() => onSelect(i)}
             >
               {isCta ? (
-                <span
-                  className="opt-flip__thumb-cta"
-                  aria-hidden
-                  style={{
-                    background: ctaColors.bgColor,
-                    color: ctaColors.accentColor,
-                  }}
-                >
+                <span className="opt-flip__thumb-cta" aria-hidden>
                   CTA
                 </span>
               ) : src ? (
@@ -453,6 +443,8 @@ export function PdfFlipViewer({
   magazineId = null,
   coverUrl = null,
   theme = null,
+  isFree = false,
+  loggedIn = false,
   onProgress,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -615,7 +607,12 @@ export function PdfFlipViewer({
           items.push(el);
         }
         if (isPreview && magazineId) {
-          items.push(createPreviewCtaPage(magazineId, coverUrl, title, theme));
+          items.push(
+            createPreviewCtaPage(magazineId, coverUrl, title, theme, {
+              isFree,
+              loggedIn,
+            }),
+          );
         }
         pagesRef.current = items;
         setContentPageCount(limit);
@@ -720,6 +717,8 @@ export function PdfFlipViewer({
     magazineId,
     coverUrl,
     theme,
+    isFree,
+    loggedIn,
     title,
     destroyFlip,
     ensureWindow,

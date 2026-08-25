@@ -27,6 +27,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from './guards/optional-jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -88,9 +89,10 @@ export class AuthController {
     return this.auth.logout(res, req.cookies?.access_token, ip);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(OptionalJwtAuthGuard)
   @Get('me')
-  me(@CurrentUser() user: AuthUser) {
+  me(@CurrentUser() user?: AuthUser) {
+    if (!user?.id) return null;
     return this.auth.me(user.id);
   }
 

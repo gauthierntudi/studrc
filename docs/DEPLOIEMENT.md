@@ -70,7 +70,7 @@ Firewall Droplet (Cloud Firewall DO) :
 - **Lecture PDF (viewer)** : en prod, nginx sert `/cdn-media/*` en proxy stream vers `cdn.studrc.com` (évite CORS + timeout Next sur gros PDF). Repli : `/api/media-proxy`.
 - **Uploads PDF admin (presigned)** : le navigateur envoie le fichier en `PUT` direct vers R2. CORS bucket obligatoire (`GET`, `PUT`, `HEAD`) pour `APP_URL` / `https://studrc.com` / localhost. Configurer avec :
   ```bash
-  pnpm --filter @opt1mum/api configure:r2-cors
+  pnpm --filter @studrc/api configure:r2-cors
   ```
   Origins supplémentaires : `R2_CORS_ORIGINS=https://www.studrc.com`
 - **Custom domain** (ex. `cdn.studrc.com`) : à lier au bucket dans Cloudflare R2 → Settings → Custom Domains. Sans enregistrement DNS, le navigateur renvoie `ERR_NAME_NOT_RESOLVED` (ce n’est pas un problème CORS). En attendant : `AVATAR_USE_CDN=false` sert les photos via `/legacy/profil`.
@@ -113,8 +113,12 @@ Le viewer flip utilise les images si `pagesStatus=READY` (ou pages déjà upload
 Les pages WebP sont servies via **proxy API** (`GET /api/magazines/:id/pages/:n`, aperçu 1–15 public, au-delà cookie JWT + droits). Le navigateur ne voit plus les URLs R2. Le CDN `cdn…/pages/` doit rester bloqué (WAF).
 
 - Relancer un numéro : `POST /api/admin/magazines/:id/pages/reprocess`
-- Backfill bulk : `pnpm --filter @opt1mum/api enqueue:magazine-pages` (option `--limit=10`)
+- Backfill bulk : `pnpm --filter @studrc/api enqueue:magazine-pages` (option `--limit=10`)
 - Prérequis : `REDIS_URL` + service Compose `worker` up
+
+### Vidéo STU TALK / STU STORIES (HLS)
+
+Admin upload MP4 (presign R2) → file BullMQ `article-video` → FFmpeg HLS (1080/720/480/360 selon la source) + miniature → `videos/{id}/hls/master.m3u8` public via `R2_PUBLIC_URL`. Lecture front : **hls.js** (Safari : HLS natif). Concurrence : `ARTICLE_VIDEO_CONCURRENCY=1`. FFmpeg est dans l’image API/worker.
 
 ### Monitoring (superadmins)
 
@@ -209,7 +213,7 @@ REDIS_URL=rediss://default:pass@host:25061
 R2_ACCOUNT_ID=
 R2_ACCESS_KEY_ID=
 R2_SECRET_ACCESS_KEY=
-R2_BUCKET=magazine-prod
+R2_BUCKET=studrc
 R2_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
 R2_PUBLIC_URL=https://cdn.studrc.com
 
@@ -297,41 +301,27 @@ docker compose exec api npx prisma generate   # si besoin
 
 ### CI/CD (GitHub Actions → VPS)
 
-À chaque push sur `main`, le workflow `.github/workflows/deploy.yml` se connecte en SSH et exécute `deploy/remote-deploy.sh` (`git pull`, rebuild `api`/`web`/`worker`, migrations Prisma, recreate nginx).
+À chaque push sur `main` (ou via **Actions → Deploy production → Run workflow**), le runner SSH se connecte au VPS et exécute `deploy/remote-deploy.sh` : `git reset --hard origin/main`, rebuild `api`/`web`/`worker`, migrations Prisma, recreate nginx.
+
+Le script **ne fait pas** `git clean` : `.env`, `docker-compose.override.yml`, `deploy/certbot/` et `deploy/nginx/local/*.conf` restent sur le VPS.
 
 #### 1. Clé SSH pour GitHub Actions → VPS
 
-Sur ton Mac :
+La clé déjà utilisée pour ce serveur :
 
 ```bash
-ssh-keygen -t ed25519 -C "github-actions-opt1mum" -f ~/.ssh/opt1mum_deploy -N ""
-ssh-copy-id -i ~/.ssh/opt1mum_deploy.pub ubuntu@164.132.240.78
+# Publique déjà dans ~/.ssh/authorized_keys sur le VPS
+ssh-copy-id -i ~/.ssh/opt1mum_deploy.pub ubuntu@51.77.148.188
 ```
 
 #### 2. Accès Git non interactif sur le VPS (repo privé)
 
-Sur le VPS, créer une clé **deploy** GitHub (read-only) :
+`~/.ssh/config` du VPS pointe `github.com` vers la clé deploy (ex. `~/.ssh/mission_outil_deploy`). Origin SSH :
 
 ```bash
-ssh-keygen -t ed25519 -C "vps-opt1mum-git" -f ~/.ssh/github_opt1mum -N ""
-cat ~/.ssh/github_opt1mum.pub
-```
-
-GitHub → repo → **Settings** → **Deploy keys** → Add (lecture seule).
-
-Sur le VPS :
-
-```bash
-# ~/.ssh/config
-Host github.com
-  HostName github.com
-  User git
-  IdentityFile ~/.ssh/github_opt1mum
-  IdentitiesOnly yes
-
 cd /opt/magazine
-git remote set-url origin git@github.com:gauthierntudi/opt1mum-v2.git
-git pull
+git remote set-url origin git@github.com:gauthierntudi/studrc.git
+git fetch origin main
 chmod +x deploy/remote-deploy.sh
 ```
 
@@ -339,7 +329,7 @@ chmod +x deploy/remote-deploy.sh
 
 | Secret | Valeur |
 |--------|--------|
-| `VPS_HOST` | `164.132.240.78` |
+| `VPS_HOST` | `51.77.148.188` |
 | `VPS_USER` | `ubuntu` |
 | `VPS_SSH_KEY` | contenu de `~/.ssh/opt1mum_deploy` (clé **privée**) |
 | `VPS_PORT` | `22` (optionnel) |
@@ -354,8 +344,10 @@ Ne jamais committer `.env` ni la clé privée. Le `.env` et `docker-compose.over
 ## 7. Workers BullMQ
 
 - Service `worker` séparé : crash HTTP ≠ crash jobs
-- Queues prévues : `email`, `media`, `subscriptions`, `payments`
-- Concurrence initiale faible (1–2) pour PDF/images
+- Queues : `magazine-pages` / `magazine-pages-urgent` (PDF→WebP) et `article-video` (FFmpeg→HLS)
+- Concurrence initiale faible (`MAGAZINE_PAGES_*=1`, `ARTICLE_VIDEO_CONCURRENCY=1`)
+- Image worker : FFmpeg installé (même Dockerfile que l’API)
+- Flux vidéo : admin upload MP4 → R2 (`videos/{id}/source.mp4`) → job BullMQ → HLS 1080/720/480/360 + poster → `videos/{id}/hls/master.m3u8` servi via `R2_PUBLIC_URL`
 - Scaling horizontal : 2e Droplet `worker` only, même `REDIS_URL`
 
 ## 8. Backups & restore

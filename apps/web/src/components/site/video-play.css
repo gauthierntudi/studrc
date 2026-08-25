@@ -1,0 +1,39 @@
+.opt-video-play {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  color: #111;
+  pointer-events: none;
+}
+
+.opt-video-play::before {
+  content: "";
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #febb00;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+  transition: transform 0.2s ease;
+}
+
+.opt-video-play svg {
+  position: relative;
+  margin-left: 3px;
+}
+
+.opt-video-play--sm::before {
+  width: 36px;
+  height: 36px;
+}
+
+.opt-video-play--xs::before {
+  width: 22px;
+  height: 22px;
+}
+
+a:hover .opt-video-play::before {
+  transform: scale(1.08);
+}

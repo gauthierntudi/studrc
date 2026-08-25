@@ -1,24 +1,24 @@
 services:
   postgres:
     image: postgres:16-alpine
-    restart: unless-stopped
+    restart: "no"
     environment:
-      POSTGRES_USER: opt1mum
-      POSTGRES_PASSWORD: opt1mum
-      POSTGRES_DB: magazine
+      POSTGRES_USER: studrc
+      POSTGRES_PASSWORD: studrc
+      POSTGRES_DB: studrc
     ports:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U opt1mum -d magazine"]
+      test: ["CMD-SHELL", "pg_isready -U studrc -d studrc"]
       interval: 5s
       timeout: 5s
       retries: 10
 
   redis:
     image: redis:7-alpine
-    restart: unless-stopped
+    restart: "no"
     ports:
       - "6379:6379"
     volumes:

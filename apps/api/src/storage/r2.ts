@@ -1,6 +1,8 @@
 import {
+  DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutBucketCorsCommand,
   PutObjectCommand,
   S3Client,
@@ -90,6 +92,20 @@ export function contentTypeForExt(ext: string): string {
       return 'image/gif';
     case 'pdf':
       return 'application/pdf';
+    case 'mp4':
+      return 'video/mp4';
+    case 'mov':
+      return 'video/quicktime';
+    case 'webm':
+      return 'video/webm';
+    case 'm4v':
+      return 'video/x-m4v';
+    case 'm3u8':
+      return 'application/vnd.apple.mpegurl';
+    case 'ts':
+      return 'video/mp2t';
+    case 'm4s':
+      return 'video/iso.segment';
     default:
       return 'application/octet-stream';
   }
@@ -334,6 +350,60 @@ export async function r2ObjectExists(
   return meta != null;
 }
 
+export async function listR2Keys(
+  r2: R2Config,
+  prefix: string,
+): Promise<string[]> {
+  const keys: string[] = [];
+  let token: string | undefined;
+  do {
+    const res = await r2.client.send(
+      new ListObjectsV2Command({
+        Bucket: r2.bucket,
+        Prefix: prefix.replace(/^\//, ''),
+        ContinuationToken: token,
+      }),
+    );
+    for (const obj of res.Contents ?? []) {
+      if (obj.Key) keys.push(obj.Key);
+    }
+    token = res.IsTruncated ? res.NextContinuationToken : undefined;
+  } while (token);
+  return keys;
+}
+
+export async function deleteR2Keys(
+  r2: R2Config,
+  keys: string[],
+): Promise<void> {
+  const unique = [...new Set(keys.map((k) => k.replace(/^\//, '')))].filter(
+    Boolean,
+  );
+  for (let i = 0; i < unique.length; i += 1000) {
+    const chunk = unique.slice(i, i + 1000);
+    if (chunk.length === 0) continue;
+    await r2.client.send(
+      new DeleteObjectsCommand({
+        Bucket: r2.bucket,
+        Delete: {
+          Objects: chunk.map((Key) => ({ Key })),
+          Quiet: true,
+        },
+      }),
+    );
+  }
+}
+
+export async function deleteR2Prefix(
+  r2: R2Config,
+  prefix: string,
+): Promise<number> {
+  const keys = await listR2Keys(r2, prefix);
+  if (keys.length === 0) return 0;
+  await deleteR2Keys(r2, keys);
+  return keys.length;
+}
+
 export async function putR2BucketCors(
   r2: R2Config,
   origins: string[],
@@ -345,10 +415,27 @@ export async function putR2BucketCors(
       CORSConfiguration: {
         CORSRules: [
           {
+            AllowedOrigins: ['*'],
+            AllowedMethods: ['GET', 'HEAD'],
+            AllowedHeaders: ['Range', 'Content-Type', 'Origin', 'Accept'],
+            ExposeHeaders: [
+              'ETag',
+              'Content-Length',
+              'Content-Range',
+              'Accept-Ranges',
+            ],
+            MaxAgeSeconds: 86400,
+          },
+          {
             AllowedOrigins: uniqueOrigins,
             AllowedMethods: ['GET', 'PUT', 'HEAD'],
             AllowedHeaders: ['*'],
-            ExposeHeaders: ['ETag', 'Content-Length', 'Content-Range', 'Accept-Ranges'],
+            ExposeHeaders: [
+              'ETag',
+              'Content-Length',
+              'Content-Range',
+              'Accept-Ranges',
+            ],
             MaxAgeSeconds: 3600,
           },
         ],

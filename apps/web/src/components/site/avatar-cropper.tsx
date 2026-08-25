@@ -6,6 +6,25 @@ import { Check, X, ZoomIn } from "lucide-react";
 import { toast } from "react-toastify";
 import "./avatar-cropper.css";
 
+type ImageCropperProps = {
+  imageSrc: string;
+  open: boolean;
+  busy?: boolean;
+  aspect?: number;
+  cropShape?: "rect" | "round";
+  title?: string;
+  description?: string;
+  confirmLabel?: string;
+  busyLabel?: string;
+  filePrefix?: string;
+  maxWidth?: number;
+  maxHeight?: number;
+  maxBytes?: number;
+  wide?: boolean;
+  onCancel: () => void;
+  onConfirm: (file: File) => void | Promise<void>;
+};
+
 type Props = {
   imageSrc: string;
   open: boolean;
@@ -27,14 +46,22 @@ async function createImage(url: string): Promise<HTMLImageElement> {
 async function getCroppedBlob(
   imageSrc: string,
   pixelCrop: Area,
+  maxWidth: number,
+  maxHeight: number,
   mime: "image/jpeg" | "image/png" = "image/jpeg",
   quality = 0.92,
 ): Promise<Blob> {
   const image = await createImage(imageSrc);
+  const scale = Math.min(
+    1,
+    maxWidth / pixelCrop.width,
+    maxHeight / pixelCrop.height,
+  );
+  const width = Math.max(1, Math.round(pixelCrop.width * scale));
+  const height = Math.max(1, Math.round(pixelCrop.height * scale));
   const canvas = document.createElement("canvas");
-  const size = Math.min(pixelCrop.width, pixelCrop.height, 800);
-  canvas.width = size;
-  canvas.height = size;
+  canvas.width = width;
+  canvas.height = height;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas indisponible");
 
@@ -48,8 +75,8 @@ async function getCroppedBlob(
     pixelCrop.height,
     0,
     0,
-    size,
-    size,
+    width,
+    height,
   );
 
   return new Promise((resolve, reject) => {
@@ -67,13 +94,24 @@ async function getCroppedBlob(
   });
 }
 
-export function AvatarCropper({
+export function ImageCropper({
   imageSrc,
   open,
   busy = false,
+  aspect = 1,
+  cropShape = "rect",
+  title = "Recadrer l’image",
+  description = "Ajustez le cadrage avant de valider.",
+  confirmLabel = "Valider",
+  busyLabel = "Recadrage…",
+  filePrefix = "image",
+  maxWidth = 1920,
+  maxHeight = 1080,
+  maxBytes = 5_000_000,
+  wide = false,
   onCancel,
   onConfirm,
-}: Props) {
+}: ImageCropperProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(
@@ -109,23 +147,28 @@ export function AvatarCropper({
       let blob = await getCroppedBlob(
         imageSrc,
         croppedAreaPixels,
+        maxWidth,
+        maxHeight,
         "image/jpeg",
         quality,
       );
-      while (blob.size > 1_000_000 && quality > 0.45) {
+      while (blob.size > maxBytes && quality > 0.45) {
         quality -= 0.1;
         blob = await getCroppedBlob(
           imageSrc,
           croppedAreaPixels,
+          maxWidth,
+          maxHeight,
           "image/jpeg",
           quality,
         );
       }
-      if (blob.size > 1_000_000) {
-        toast.error("La photo recadrée dépasse encore 1 Mo");
+      if (blob.size > maxBytes) {
+        const maxMo = Math.round((maxBytes / 1_000_000) * 10) / 10;
+        toast.error(`L’image recadrée dépasse encore ${maxMo} Mo`);
         return;
       }
-      const file = new File([blob], `avatar-${Date.now()}.jpg`, {
+      const file = new File([blob], `${filePrefix}-${Date.now()}.jpg`, {
         type: "image/jpeg",
       });
       await onConfirm(file);
@@ -156,20 +199,22 @@ export function AvatarCropper({
         disabled={locked}
         onClick={onCancel}
       />
-      <div className="opt-crop__panel">
+      <div className={`opt-crop__panel${wide ? " opt-crop__panel--wide" : ""}`}>
         <header className="opt-crop__header">
-          <h2 id="opt-crop-title">Recadrer la photo</h2>
-          <p>Ajustez le cadrage — format carré pour votre profil.</p>
+          <h2 id="opt-crop-title">{title}</h2>
+          <p>{description}</p>
         </header>
 
-        <div className="opt-crop__stage">
+        <div
+          className={`opt-crop__stage${wide ? " opt-crop__stage--wide" : ""}`}
+        >
           <Cropper
             image={imageSrc}
             crop={crop}
             zoom={zoom}
-            aspect={1}
-            cropShape="round"
-            showGrid={false}
+            aspect={aspect}
+            cropShape={cropShape}
+            showGrid={cropShape === "rect"}
             onCropChange={setCrop}
             onZoomChange={setZoom}
             onCropComplete={onCropComplete}
@@ -212,10 +257,38 @@ export function AvatarCropper({
             }}
           >
             <Check size={16} strokeWidth={2} aria-hidden />
-            {locked ? "Envoi…" : "Valider"}
+            {locked ? busyLabel : confirmLabel}
           </button>
         </footer>
       </div>
     </div>
+  );
+}
+
+export function AvatarCropper({
+  imageSrc,
+  open,
+  busy = false,
+  onCancel,
+  onConfirm,
+}: Props) {
+  return (
+    <ImageCropper
+      imageSrc={imageSrc}
+      open={open}
+      busy={busy}
+      aspect={1}
+      cropShape="round"
+      title="Recadrer la photo"
+      description="Ajustez le cadrage — format carré pour votre profil."
+      confirmLabel="Valider"
+      busyLabel="Envoi…"
+      filePrefix="avatar"
+      maxWidth={800}
+      maxHeight={800}
+      maxBytes={1_000_000}
+      onCancel={onCancel}
+      onConfirm={onConfirm}
+    />
   );
 }

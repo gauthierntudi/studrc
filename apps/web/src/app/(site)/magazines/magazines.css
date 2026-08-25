@@ -1,16 +1,17 @@
 /* Bibliothèque magazines — rayon abonné (couverture d’abord) */
 
 .opt-mags {
-  --opt-navy: #0d203d;
-  --opt-red: #e9262a;
-  --opt-teal: #02d0d1;
-  --opt-muted: #6c757d;
-  --opt-border: rgba(13, 32, 61, 0.1);
+  --opt-navy: #00132b;
+  --opt-red: #d63026;
+  --opt-teal: #0565ab;
+  --opt-ink: var(--site-ink, var(--opt-navy));
+  --opt-muted: var(--site-muted, #6c757d);
+  --opt-border: var(--site-line, rgba(13, 32, 61, 0.1));
   --opt-radius: 14px;
-  --opt-shadow: 0 12px 40px rgba(13, 32, 61, 0.08);
+  --opt-shadow: var(--site-elev, 0 12px 40px rgba(13, 32, 61, 0.08));
 
-  background: #fff;
-  color: var(--opt-navy);
+  background: var(--site-bg, #fff);
+  color: var(--opt-ink);
   min-height: 55vh;
   padding: 2rem 0 3.25rem;
 }
@@ -98,8 +99,8 @@
   padding: 0 0.45rem;
   margin-left: 0.4rem;
   border-radius: 999px;
-  background: rgba(13, 32, 61, 0.14);
-  color: var(--opt-navy);
+  background: color-mix(in srgb, var(--opt-ink) 14%, transparent);
+  color: var(--opt-ink);
   font-family: var(--opt-font-sans);
   font-size: 0.78rem;
   font-weight: 750;
@@ -124,7 +125,7 @@
   padding: 0 0.85rem;
   border: 1px solid var(--opt-border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--site-card, #fff);
   color: var(--opt-muted);
 }
 
@@ -139,7 +140,7 @@
   border: 0;
   outline: none;
   background: transparent;
-  color: var(--opt-navy);
+  color: var(--opt-ink);
   font-family: var(--opt-font-sans);
   font-size: 0.9rem;
   font-weight: 500;
@@ -158,8 +159,8 @@
   height: 1.5rem;
   border: 0;
   border-radius: 999px;
-  background: rgba(13, 32, 61, 0.08);
-  color: var(--opt-navy);
+  background: color-mix(in srgb, var(--opt-ink) 10%, transparent);
+  color: var(--opt-ink);
   cursor: pointer;
 }
 
@@ -272,6 +273,7 @@
   letter-spacing: 0.03em;
   text-transform: uppercase;
   line-height: 1;
+  pointer-events: none;
 }
 
 .opt-mags__overlay {
@@ -317,7 +319,7 @@
 }
 
 .opt-mags__state {
-  background: #fff;
+  background: var(--site-card, #fff);
   border: 1px solid var(--opt-border);
   border-radius: var(--opt-radius);
   box-shadow: var(--opt-shadow);
@@ -349,7 +351,7 @@
 
 .opt-mags__state--info .opt-mags__state-icon {
   background: rgba(13, 32, 61, 0.08);
-  color: var(--opt-navy);
+  color: var(--opt-ink);
 }
 
 .opt-mags__state h2 {
@@ -431,8 +433,8 @@
   padding: 0 0.35rem;
   border: 1px solid var(--opt-border);
   border-radius: 8px;
-  background: #fff;
-  color: var(--opt-navy);
+  background: var(--site-card, #fff);
+  color: var(--opt-ink);
   cursor: pointer;
 }
 
@@ -469,20 +471,6 @@
     justify-content: center;
   }
 
-  .opt-mags__overlay {
-    opacity: 1;
-    background: linear-gradient(
-      180deg,
-      transparent 55%,
-      rgba(13, 32, 61, 0.55) 100%
-    );
-  }
-
-  .opt-mags__overlay-cta {
-    transform: none;
-    padding: 0.45rem 0.75rem;
-    font-size: 0.75rem;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

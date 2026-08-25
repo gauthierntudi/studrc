@@ -61,7 +61,7 @@ function contrastOn(hex: string): string {
   return L < 0.45 ? "#ffffff" : "#062a2b";
 }
 
-const DEFAULT_THEME = { bgColor: "#0d203d", accentColor: "#02d0d1" };
+const DEFAULT_THEME = { bgColor: "#00132b", accentColor: "#0565ab" };
 
 function RetourInner() {
   const router = useRouter();
@@ -308,7 +308,7 @@ export default function AchatRetourPage() {
   return (
     <Suspense
       fallback={
-        <div className="opt-kq opt-achat-retour" style={{ background: "#0d203d" }}>
+        <div className="opt-kq opt-achat-retour" style={{ background: "#00132b" }}>
           <div className="opt-kq__loading">
             <p>Chargement…</p>
           </div>

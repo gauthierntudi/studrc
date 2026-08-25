@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { authApi } from "@/lib/api";
 import { isTurnstileRequired } from "@/lib/captcha";
 import { useAuth } from "@/components/auth-provider";
+import { useSiteTheme } from "@/components/site/theme-provider";
 
 declare global {
   interface Window {
@@ -104,6 +105,7 @@ export function GoogleSignInButton({
 }: GoogleSignInButtonProps) {
   const router = useRouter();
   const { setUser } = useAuth();
+  const { theme } = useSiteTheme();
   const overlayRef = useRef<HTMLDivElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const turnstileRef = useRef(turnstileToken);
@@ -178,7 +180,7 @@ export function GoogleSignInButton({
         overlayRef.current.innerHTML = "";
         window.google.accounts.id.renderButton(overlayRef.current, {
           type: "standard",
-          theme: "outline",
+          theme: theme === "dark" ? "filled_black" : "outline",
           size: "large",
           text: "continue_with",
           shape: "rectangular",
@@ -195,7 +197,7 @@ export function GoogleSignInButton({
     return () => {
       cancelled = true;
     };
-  }, [clientId, next, onError, requireTurnstile, router, setUser, turnstileConfigured]);
+  }, [clientId, next, onError, requireTurnstile, router, setUser, theme, turnstileConfigured]);
 
   if (!clientId) {
     return null;

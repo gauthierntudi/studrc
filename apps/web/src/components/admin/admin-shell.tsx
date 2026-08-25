@@ -30,6 +30,7 @@ import { AdminModal } from "@/components/admin/admin-modal";
 import { AdminRailActivities } from "@/components/admin/admin-rail-activities";
 import type { AdminUser } from "@/lib/api";
 import { avatarLocalFallback, avatarSrc } from "@/lib/avatar";
+import { SUBSCRIPTIONS_ENABLED } from "@/lib/features";
 import { cn } from "@/lib/utils";
 
 type DashTheme = "dark" | "light";
@@ -134,7 +135,9 @@ export function AdminShell({
   const nav = [
     { href: "/admin", label: "Tableau de bord", icon: LayoutDashboard },
     { href: "/admin/magazines", label: "Magazines", icon: Package },
-    { href: "/admin/abonnements", label: "Abonnements", icon: CreditCard },
+    ...(SUBSCRIPTIONS_ENABLED
+      ? [{ href: "/admin/abonnements", label: "Abonnements", icon: CreditCard }]
+      : []),
     { href: "/admin/paiements", label: "Historique paiements", icon: History },
     { href: "/admin/abonnes", label: "Abonnés", icon: Users },
     { href: "/admin/newsletter", label: "Newsletter", icon: Mail },

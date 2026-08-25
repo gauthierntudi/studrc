@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 /**
  * Vérifie les tokens Cloudflare Turnstile (siteverify).
  * Activé seulement si CAPTCHA=true et TURNSTILE_SECRET_KEY est défini.
+ * Désactivé en local (`NODE_ENV=development`).
  */
 @Injectable()
 export class TurnstileService {
@@ -17,6 +18,7 @@ export class TurnstileService {
   }
 
   isEnabled(): boolean {
+    if (process.env.NODE_ENV === 'development') return false;
     if (!this.flagOn(this.config.get<string>('CAPTCHA'))) return false;
     return Boolean(this.config.get<string>('TURNSTILE_SECRET_KEY')?.trim());
   }

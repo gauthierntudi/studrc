@@ -5,16 +5,17 @@
   --opt-h-muted: #6b6b6b;
   --opt-h-line: #e6e6e6;
   --opt-h-soft: #f2f2f2;
-  --opt-h-red: #e9262a;
-  --opt-h-cta: #ffd6a8;
-  --opt-h-cta-hover: #ffc78a;
+  --opt-h-bg: #fff;
+  --opt-h-red: var(--studrc-red, #d63026);
+  --opt-h-cta: var(--studrc-gold, #fdbd01);
+  --opt-h-cta-hover: #e5ab00;
   --opt-h-font: var(--opt-font-sans);
   --opt-h-display: var(--opt-font-display);
 
   position: sticky;
   top: 0;
   z-index: 1000;
-  background: #fff;
+  background: var(--opt-h-bg);
   border-bottom: 1px solid var(--opt-h-line);
   font-family: var(--opt-h-font);
   color: var(--opt-h-ink);
@@ -184,7 +185,7 @@
   padding: 0 0.28rem;
   border: 2px solid #fff;
   border-radius: 999px;
-  background: #e9262a;
+  background: #d63026;
   color: #fff;
   font-size: 0.62rem;
   font-weight: 800;
@@ -239,7 +240,7 @@
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: var(--opt-h-ink, #0d203d);
+  color: var(--opt-h-ink, #00132b);
   font-family: inherit;
   font-size: 0.9rem;
   font-weight: 600;
@@ -257,7 +258,7 @@
   height: 1.2rem;
   padding: 0 0.35rem;
   border-radius: 999px;
-  background: #e9262a;
+  background: #d63026;
   color: #fff;
   font-size: 0.68rem;
   font-weight: 750;
@@ -270,7 +271,7 @@
 }
 
 .opt-header__dropdown-logout {
-  color: #e9262a !important;
+  color: #d63026 !important;
 }
 
 .opt-header__action:hover {
@@ -285,6 +286,7 @@
   padding: 0.55rem 1.15rem;
   border-radius: 999px;
   background: var(--opt-h-cta);
+  color: var(--studrc-navy, #00132b);
   font-weight: 700;
   font-size: 0.92rem;
   white-space: nowrap;
@@ -353,16 +355,16 @@
 }
 
 .opt-header__featured {
-  color: var(--opt-h-red) !important;
+  color: #febe03 !important;
 }
 
 /* Drawer menu */
 .opt-menu {
-  --opt-h-ink: #111111;
-  --opt-h-muted: #6b6b6b;
-  --opt-h-line: #e6e6e6;
-  --opt-h-soft: #f2f2f2;
-  --opt-h-red: #e9262a;
+  --opt-h-ink: var(--site-ink, #111111);
+  --opt-h-muted: var(--site-muted, #6b6b6b);
+  --opt-h-line: var(--site-line, #e6e6e6);
+  --opt-h-soft: var(--site-bg-soft, #f2f2f2);
+  --opt-h-red: var(--studrc-red, #d63026);
   --opt-h-display: var(--opt-font-display);
 
   position: fixed;
@@ -502,9 +504,11 @@
 .opt-menu__links a {
   display: block;
   padding: 0.75rem 0;
-  border-bottom: 1px solid var(--opt-h-line);
+  border-bottom: 1px solid color-mix(in srgb, var(--opt-h-ink) 7%, transparent);
   font-weight: 700;
   font-size: 1.02rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--opt-h-ink);
   text-decoration: none;
 }
@@ -528,14 +532,14 @@
   gap: 0.75rem;
   padding: 0.7rem 0.8rem;
   border-radius: 14px;
-  background: #fff;
+  background: var(--opt-h-soft);
   border: 1px solid var(--opt-h-line);
   color: var(--opt-h-ink);
   text-decoration: none;
 }
 
 .opt-menu__profile:hover {
-  border-color: color-mix(in srgb, #02d0d1 45%, var(--opt-h-line));
+  border-color: color-mix(in srgb, #0565ab 45%, var(--opt-h-line));
 }
 
 .opt-menu__profile-avatar {
@@ -564,6 +568,7 @@
   font-size: 0.92rem;
   font-weight: 750;
   line-height: 1.2;
+  color: var(--opt-h-ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -614,13 +619,13 @@
 }
 
 .opt-menu__btn--ghost {
-  background: #02d0d1;
-  color: #111111;
+  background: #febe00;
+  color: var(--studrc-navy, #00132b);
 }
 
 .opt-menu__btn--ghost:hover {
-  background: #00b8b9;
-  color: #111111;
+  background: #e5ab00;
+  color: var(--studrc-navy, #00132b);
 }
 
 .opt-menu__account-list {
@@ -668,7 +673,7 @@
 
 .opt-menu__row--danger {
   color: #fff;
-  background: #e9262a;
+  background: #d63026;
   margin-top: 0.35rem;
 }
 
@@ -691,7 +696,7 @@
   height: 1.35rem;
   padding: 0 0.35rem;
   border-radius: 999px;
-  background: #e9262a;
+  background: #d63026;
   color: #fff !important;
   font-size: 0.68rem;
   font-weight: 800;
@@ -742,10 +747,11 @@
 
 .opt-search-live__item:hover,
 .opt-search-live__item.is-active {
-  background: color-mix(in srgb, #e9262a 6%, #f6f6f6);
+  background: color-mix(in srgb, #d63026 6%, #f6f6f6);
 }
 
 .opt-search-live__cover {
+  position: relative;
   width: 52px;
   height: 40px;
   border-radius: 4px;
@@ -814,13 +820,13 @@
   font: inherit;
   font-size: 0.84rem;
   font-weight: 700;
-  color: #e9262a;
+  color: #d63026;
   cursor: pointer;
 }
 
 .opt-search-live__more:hover,
 .opt-search-live__more.is-active {
-  background: color-mix(in srgb, #e9262a 8%, #fff);
+  background: color-mix(in srgb, #d63026 8%, #fff);
 }
 
 @media (max-width: 991px) {

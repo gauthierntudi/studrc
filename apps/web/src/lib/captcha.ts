@@ -1,6 +1,6 @@
 /**
  * Captcha Turnstile activé si NEXT_PUBLIC_CAPTCHA=true|1|yes|on
- * et qu'une site key est définie.
+ * et qu'une site key est définie. Toujours désactivé en `next dev`.
  */
 function flagOn(value: string | undefined): boolean {
   const v = value?.trim().toLowerCase() ?? "";
@@ -8,6 +8,7 @@ function flagOn(value: string | undefined): boolean {
 }
 
 export function isCaptchaEnabled(): boolean {
+  if (process.env.NODE_ENV === "development") return false;
   return flagOn(process.env.NEXT_PUBLIC_CAPTCHA);
 }
 

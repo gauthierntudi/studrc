@@ -15,6 +15,7 @@ import { useAuth } from "@/components/auth-provider";
 import { AccountTabs } from "@/components/site/account-tabs";
 import "@/components/site/account-shell.css";
 import { libraryApi, type LibraryResponse } from "@/lib/api";
+import { SUBSCRIPTIONS_ENABLED } from "@/lib/features";
 import "./mon-abonnement.css";
 
 function formatDate(iso: string | null) {
@@ -79,6 +80,10 @@ export default function MonAbonnementPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!SUBSCRIPTIONS_ENABLED) {
+      router.replace("/compte");
+      return;
+    }
     if (!authLoading && !user) {
       router.replace(
         `/connexion?next=${encodeURIComponent("/mon-abonnement")}`,
@@ -87,7 +92,7 @@ export default function MonAbonnementPage() {
   }, [authLoading, user, router]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!SUBSCRIPTIONS_ENABLED || !user) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -112,6 +117,8 @@ export default function MonAbonnementPage() {
       cancelled = true;
     };
   }, [user]);
+
+  if (!SUBSCRIPTIONS_ENABLED) return null;
 
   if (authLoading || !user || loading) {
     return (

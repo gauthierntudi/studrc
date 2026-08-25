@@ -20,6 +20,10 @@ import { JwtAdminGuard } from '../auth/guards/jwt-admin.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import type { AdminAuthUser } from '../auth/strategies/jwt-admin.strategy';
 import { CreateArticleDto, UpdateArticleDto } from './dto/admin-article.dto';
+import {
+  CompleteArticleVideoDto,
+  PresignArticleVideoDto,
+} from './dto/admin-article-video.dto';
 import { ArticlesService } from './articles.service';
 
 type UploadedMemFile = {
@@ -113,5 +117,31 @@ export class AdminArticlesController {
     @UploadedFile() file: UploadedMemFile,
   ) {
     return this.articles.uploadBlockCover(id, blockId, file, actor.id);
+  }
+
+  @Post(':id/video/presign')
+  presignVideo(
+    @Param('id') id: string,
+    @Body() dto: PresignArticleVideoDto,
+    @CurrentAdmin() actor: AdminAuthUser,
+  ) {
+    return this.articles.presignVideo(id, dto, actor.id);
+  }
+
+  @Post(':id/video/complete')
+  completeVideo(
+    @Param('id') id: string,
+    @Body() dto: CompleteArticleVideoDto,
+    @CurrentAdmin() actor: AdminAuthUser,
+  ) {
+    return this.articles.completeVideo(id, dto, actor.id);
+  }
+
+  @Post(':id/video/reprocess')
+  reprocessVideo(
+    @Param('id') id: string,
+    @CurrentAdmin() actor: AdminAuthUser,
+  ) {
+    return this.articles.reprocessVideo(id, actor.id);
   }
 }

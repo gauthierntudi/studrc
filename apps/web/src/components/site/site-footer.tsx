@@ -4,12 +4,15 @@ import { FooterRecent } from "@/components/site/footer-recent";
 import { FooterSocial } from "@/components/site/footer-social";
 import { BrandLogo } from "@/components/site/brand-logo";
 import { BRAND } from "@/lib/brand";
+import { SUBSCRIPTIONS_ENABLED } from "@/lib/features";
 import { RUBRIQUES } from "@/lib/rubriques";
 import "./site-footer.css";
 
 const QUICK = [
   { href: "/", label: "Accueil" },
-  { href: "/abonnement", label: "Abonnement" },
+  ...(SUBSCRIPTIONS_ENABLED
+    ? [{ href: "/abonnement", label: "Abonnement" }]
+    : []),
   { href: "/kiosque", label: "STU MAG" },
   { href: "/actualites", label: "Actualités" },
 ];
@@ -29,9 +32,11 @@ export function SiteFooter() {
               <BrandLogo onDark height={64} />
             </Link>
             <p className="opt-ft__tagline">{BRAND.tagline}</p>
-            <Link href="/abonnement" className="opt-ft__cta">
-              S&apos;abonner
-            </Link>
+            {SUBSCRIPTIONS_ENABLED ? (
+              <Link href="/abonnement" className="opt-ft__cta">
+                S&apos;abonner
+              </Link>
+            ) : null}
             <FooterSocial />
           </div>
 
@@ -40,7 +45,7 @@ export function SiteFooter() {
             <ul className="opt-ft__links">
               {QUICK.map((item) => (
                 <li key={item.href}>
-                  <Link href={item.href}>{item.label}</Link>
+                  <Link href={item.href}>{item.label.toLowerCase()}</Link>
                 </li>
               ))}
             </ul>
@@ -51,7 +56,7 @@ export function SiteFooter() {
             <ul className="opt-ft__links">
               {RUBRIQUES.map((item) => (
                 <li key={item.href}>
-                  <Link href={item.href}>{item.label}</Link>
+                  <Link href={item.href}>{item.label.toLowerCase()}</Link>
                 </li>
               ))}
             </ul>
@@ -76,12 +81,6 @@ export function SiteFooter() {
               <li>
                 <Phone size={15} strokeWidth={1.75} aria-hidden />
                 <a href={`tel:${BRAND.phone.replace(/\s/g, "")}`}>{BRAND.phone}</a>
-              </li>
-              <li>
-                <Phone size={15} strokeWidth={1.75} aria-hidden />
-                <a href={`tel:${BRAND.phoneAlt.replace(/\s/g, "")}`}>
-                  {BRAND.phoneAlt}
-                </a>
               </li>
             </ul>
           </div>

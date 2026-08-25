@@ -13,6 +13,7 @@ import {
   type PaymentStatusName,
   type SubscriptionStatusName,
 } from "@/lib/api";
+import { SUBSCRIPTIONS_ENABLED } from "@/lib/features";
 import { cn } from "@/lib/utils";
 
 const TAKE = 10;
@@ -69,7 +70,7 @@ function initials(name: string): string {
 }
 
 const AVATAR_PALETTE = [
-  { bg: "#02d0d1", fg: "#041512" },
+  { bg: "#0565ab", fg: "#041512" },
   { bg: "#5b7cfa", fg: "#ffffff" },
   { bg: "#f97366", fg: "#ffffff" },
   { bg: "#10b981", fg: "#ffffff" },
@@ -481,21 +482,23 @@ function AdminSubscribersPageInner() {
             <option value="false">Non vérifié</option>
           </select>
         </label>
-        <label className="admin-dash__field">
-          <span>Abonnement</span>
-          <select
-            value={subscription}
-            onChange={(e) => {
-              setSkip(0);
-              setSubscription(e.target.value);
-            }}
-            aria-label="Abonnement en cours"
-          >
-            <option value="">Tous</option>
-            <option value="LIVE">En cours</option>
-            <option value="NONE">Sans abo en cours</option>
-          </select>
-        </label>
+        {SUBSCRIPTIONS_ENABLED ? (
+          <label className="admin-dash__field">
+            <span>Abonnement</span>
+            <select
+              value={subscription}
+              onChange={(e) => {
+                setSkip(0);
+                setSubscription(e.target.value);
+              }}
+              aria-label="Abonnement en cours"
+            >
+              <option value="">Tous</option>
+              <option value="LIVE">En cours</option>
+              <option value="NONE">Sans abo en cours</option>
+            </select>
+          </label>
+        ) : null}
         <button
           type="button"
           className="admin-dash__btn admin-dash__btn--primary"
@@ -515,7 +518,7 @@ function AdminSubscribersPageInner() {
               <th>Abonné</th>
               <th>Contact</th>
               <th>Compte</th>
-              <th>Abonnement</th>
+              {SUBSCRIPTIONS_ENABLED ? <th>Abonnement</th> : null}
               <th>Inscrit</th>
               <th>Actions</th>
             </tr>
@@ -523,7 +526,7 @@ function AdminSubscribersPageInner() {
           <tbody>
             {items.length === 0 ? (
               <tr>
-                <td colSpan={6} className="admin-dash__muted">
+                <td colSpan={SUBSCRIPTIONS_ENABLED ? 6 : 5} className="admin-dash__muted">
                   Aucun abonné.
                 </td>
               </tr>
@@ -572,22 +575,24 @@ function AdminSubscribersPageInner() {
                       {row.emailVerified ? "Email OK" : "Email non vérifié"}
                     </span>
                   </td>
-                  <td>
-                    {row.liveSubscription ? (
-                      <>
-                        <span className="admin-mag__badge admin-mag__badge--on">
-                          En cours
-                        </span>
-                        <br />
-                        <span className="admin-dash__muted">
-                          {row.liveSubscription.plan.name} →{" "}
-                          {formatWhen(row.liveSubscription.expiresAt)}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="admin-dash__muted">Aucun</span>
-                    )}
-                  </td>
+                  {SUBSCRIPTIONS_ENABLED ? (
+                    <td>
+                      {row.liveSubscription ? (
+                        <>
+                          <span className="admin-mag__badge admin-mag__badge--on">
+                            En cours
+                          </span>
+                          <br />
+                          <span className="admin-dash__muted">
+                            {row.liveSubscription.plan.name} →{" "}
+                            {formatWhen(row.liveSubscription.expiresAt)}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="admin-dash__muted">Aucun</span>
+                      )}
+                    </td>
+                  ) : null}
                   <td className="admin-dash__muted">
                     {formatWhen(row.createdAt)}
                   </td>
@@ -843,43 +848,47 @@ function AdminSubscribersPageInner() {
             ) : null}
 
             <div style={{ marginTop: "1.5rem" }}>
-              <h3 style={{ margin: "0 0 0.75rem", fontSize: "1rem" }}>
-                Abonnements
-              </h3>
-              {detail.subscriptions.length === 0 ? (
-                <p className="admin-dash__muted">Aucun abonnement.</p>
-              ) : (
-                <ul className="admin-dash__feed">
-                  {detail.subscriptions.map((sub) => (
-                    <li key={sub.id}>
-                      <Link
-                        href={`/admin/abonnements?id=${encodeURIComponent(sub.id)}`}
-                        className="admin-dash__feed-item"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <span className="admin-dash__feed-main">
-                          <strong>{sub.plan.name}</strong>
-                          <span>
-                            {formatMoney(sub.plan.priceCents, sub.plan.currency)}{" "}
-                            · {PAYMENT_LABEL[sub.paymentStatus]}
-                          </span>
-                        </span>
-                        <span className="admin-dash__feed-meta">
-                          <strong>
-                            {sub.isLive
-                              ? "En cours"
-                              : STATUS_LABEL[sub.status]}
-                          </strong>
-                          <span>
-                            {formatWhen(sub.startsAt)} →{" "}
-                            {formatWhen(sub.expiresAt)}
-                          </span>
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              {SUBSCRIPTIONS_ENABLED ? (
+                <>
+                  <h3 style={{ margin: "0 0 0.75rem", fontSize: "1rem" }}>
+                    Abonnements
+                  </h3>
+                  {detail.subscriptions.length === 0 ? (
+                    <p className="admin-dash__muted">Aucun abonnement.</p>
+                  ) : (
+                    <ul className="admin-dash__feed">
+                      {detail.subscriptions.map((sub) => (
+                        <li key={sub.id}>
+                          <Link
+                            href={`/admin/abonnements?id=${encodeURIComponent(sub.id)}`}
+                            className="admin-dash__feed-item"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <span className="admin-dash__feed-main">
+                              <strong>{sub.plan.name}</strong>
+                              <span>
+                                {formatMoney(sub.plan.priceCents, sub.plan.currency)}{" "}
+                                · {PAYMENT_LABEL[sub.paymentStatus]}
+                              </span>
+                            </span>
+                            <span className="admin-dash__feed-meta">
+                              <strong>
+                                {sub.isLive
+                                  ? "En cours"
+                                  : STATUS_LABEL[sub.status]}
+                              </strong>
+                              <span>
+                                {formatWhen(sub.startsAt)} →{" "}
+                                {formatWhen(sub.expiresAt)}
+                              </span>
+                            </span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
+              ) : null}
             </div>
           </div>
         ) : null}

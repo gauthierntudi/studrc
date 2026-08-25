@@ -1,14 +1,10 @@
 /**
- * BullMQ worker — magazine page rasterization (PDF → WebP on R2).
+ * BullMQ worker — magazine pages (PDF → WebP) + article video (FFmpeg → HLS).
  *
- * Deux files :
- * - urgent : lecture / aperçu (démarrage indépendant du backfill)
- * - bulk   : upload + backfill
- *
- * Reaper : au boot + périodiquement, ré-enqueue PENDING / PROCESSING orphelins
- * (crash worker, job Redis perdu) avec reprise des pages déjà uploadées.
- *
- * Heartbeat Redis : lu par Admin → Monitoring.
+ * Files :
+ * - magazine-pages-urgent : lecture / aperçu
+ * - magazine-pages        : upload + backfill
+ * - article-video         : STU TALK / STU STORIES
  */
 import { config as loadEnv } from 'dotenv';
 import { resolve } from 'path';
@@ -22,12 +18,18 @@ import {
 import { processMagazinePagesJob } from './magazines/pages/process-magazine-pages';
 import { startMagazinePagesRecoveryLoop } from './magazines/pages/recover-orphaned-pages';
 import {
+  ARTICLE_VIDEO_QUEUE,
+  type ArticleVideoJobData,
+} from './articles/video/article-video.queue';
+import { processArticleVideoJob } from './articles/video/process-article-video';
+import { startArticleVideoRecoveryLoop } from './articles/video/recover-orphaned-videos';
+import {
   WORKER_HEARTBEAT_KEY,
   WORKER_HEARTBEAT_TTL_SEC,
 } from './monitoring/monitoring.constants';
 
-loadEnv({ path: resolve(__dirname, '../../../.env') });
 loadEnv({ path: resolve(__dirname, '../.env') });
+loadEnv({ path: resolve(__dirname, '../../../.env'), override: true });
 
 function readConcurrency(envKey: string, fallback: number): number {
   const raw = process.env[envKey]?.trim();
@@ -44,6 +46,7 @@ async function bootstrap() {
     1,
   );
   const bulkConcurrency = readConcurrency('MAGAZINE_PAGES_CONCURRENCY', 1);
+  const videoConcurrency = readConcurrency('ARTICLE_VIDEO_CONCURRENCY', 2);
 
   const makeWorker = (queueName: string, concurrency: number) => {
     const worker = new Worker<MagazinePagesJobData>(
@@ -77,13 +80,40 @@ async function bootstrap() {
     urgentConcurrency,
   );
   const bulkWorker = makeWorker(MAGAZINE_PAGES_QUEUE, bulkConcurrency);
+
+  const videoWorker = new Worker<ArticleVideoJobData>(
+    ARTICLE_VIDEO_QUEUE,
+    async (job) => processArticleVideoJob(job),
+    {
+      connection,
+      concurrency: videoConcurrency,
+      lockDuration: 45 * 60_000,
+    },
+  );
+  videoWorker.on('completed', (job, result) => {
+    // eslint-disable-next-line no-console
+    console.log(
+      `[worker:${ARTICLE_VIDEO_QUEUE}] completed ${job.id}`,
+      result && typeof result === 'object' ? result : '',
+    );
+  });
+  videoWorker.on('failed', (job, err) => {
+    // eslint-disable-next-line no-console
+    console.error(
+      `[worker:${ARTICLE_VIDEO_QUEUE}] failed ${job?.id}:`,
+      err.message,
+    );
+  });
+
   const recovery = startMagazinePagesRecoveryLoop();
+  const videoRecovery = startArticleVideoRecoveryLoop();
 
   const writeHeartbeat = () => {
     const payload = JSON.stringify({
       at: new Date().toISOString(),
       urgent: urgentConcurrency,
       bulk: bulkConcurrency,
+      video: videoConcurrency,
       pid: process.pid,
     });
     void connection
@@ -98,7 +128,7 @@ async function bootstrap() {
 
   // eslint-disable-next-line no-console
   console.log(
-    `STUDRC worker started — urgent×${urgentConcurrency} + bulk×${bulkConcurrency}`,
+    `STUDRC worker started — pages urgent×${urgentConcurrency} + bulk×${bulkConcurrency} · video×${videoConcurrency}`,
   );
 
   const shutdown = async (signal: string) => {
@@ -106,8 +136,13 @@ async function bootstrap() {
     console.log(`[worker] ${signal}, shutting down…`);
     clearInterval(heartbeatTimer);
     recovery.stop();
+    videoRecovery.stop();
     await connection.del(WORKER_HEARTBEAT_KEY).catch(() => undefined);
-    await Promise.all([urgentWorker.close(), bulkWorker.close()]);
+    await Promise.all([
+      urgentWorker.close(),
+      bulkWorker.close(),
+      videoWorker.close(),
+    ]);
     connection.disconnect();
     process.exit(0);
   };

@@ -51,6 +51,7 @@ export function HomeNewsletter() {
   return (
     <section className="opt-nl" aria-label="Newsletter">
       <div className="opt-nl__inner">
+        <p className="opt-nl__kicker">Newsletter STUDRC</p>
         <h2 className="opt-nl__title">Restons en contact</h2>
         <p className="opt-nl__lead">
           Recevez l’actualité éducative, les données et les histoires STUDRC
@@ -89,18 +90,21 @@ export function HomeNewsletter() {
               </button>
             </div>
 
-            <label className="opt-nl__terms">
+            <div className="opt-nl__terms">
               <input
+                id="opt-nl-terms"
                 type="checkbox"
+                className="opt-nl__switch"
+                role="switch"
                 checked={accepted}
                 onChange={(e) => setAccepted(e.target.checked)}
                 disabled={busy}
               />
-              <span>
-                J&apos;accepte les{" "}
+              <p className="opt-nl__terms-text">
+                <label htmlFor="opt-nl-terms">J&apos;accepte les </label>
                 <Link href="/conditions-utilisation">termes et conditions</Link>
-              </span>
-            </label>
+              </p>
+            </div>
 
             {error ? (
               <p className="opt-nl__error" role="alert">

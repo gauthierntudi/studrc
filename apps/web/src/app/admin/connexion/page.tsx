@@ -157,7 +157,7 @@ export default function AdminLoginPage() {
           <div className="admin-auth__hero-copy">
             <h2>Pilotez STUDRC en toute confiance.</h2>
             <p>
-              Console staff STUDRC — magazines, abonnements et rédaction.
+              Console staff STUDRC — magazines et rédaction.
             </p>
           </div>
           <div className="admin-auth__hero-nav">

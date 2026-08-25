@@ -13,11 +13,16 @@ export const BRAND = {
   siteUrl: "https://studrc.com",
   email: "contact@studrc.com",
   infoEmail: "info@studrc.com",
-  phone: "+243 828 504 000",
-  phoneAlt: "+243 843 966 000",
+  phone: "+243 813 212 772",
   address: "8 Avenue Kalemie, Kinshasa-Gombe",
   logo: "/brand/studrc-logo.png",
   icon: "/brand/flaticon.png",
+  colors: {
+    blue: "#0565ab",
+    red: "#d63026",
+    gold: "#fdbd01",
+    navy: "#00132b",
+  },
 } as const;
 
 export const BRAND_META_DESCRIPTION = BRAND.description;

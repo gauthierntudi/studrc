@@ -43,4 +43,11 @@ async function bootstrap() {
   console.log(`API listening on http://localhost:${port}/api`);
 }
 
-bootstrap();
+bootstrap().catch((error) => {
+  // Ne pas exit : nest --watch relancerait tout de suite et saturerait la RAM.
+  // eslint-disable-next-line no-console
+  console.error('[api] démarrage échoué — process gardé vivant (pas de relance en boucle):');
+  // eslint-disable-next-line no-console
+  console.error(error);
+  return new Promise(() => undefined);
+});

@@ -98,7 +98,7 @@ export async function generateMetadata({
 
 function KiosqueFallback() {
   return (
-    <div className="opt-kq" style={{ background: "#0d203d", minHeight: "100vh" }}>
+    <div className="opt-kq" style={{ background: "#00132b", minHeight: "100vh" }}>
       <div className="opt-kq__loading" aria-busy="true">
         <div className="opt-kq__skel">
           <div className="opt-kq__skel-cover" />

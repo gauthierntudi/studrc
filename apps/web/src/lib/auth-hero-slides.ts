@@ -1,59 +1,34 @@
 /** Pool d’images / copy — login abonné + admin (fenêtre de 3, rotation à chaque cycle). */
 export const AUTH_HERO_POOL = [
   {
-    cover: "/legacy/img/slide01.jpg",
+    cover: "/legacy/img/s1.jpg",
     title: "Éclairer l’école congolaise",
     lead: "Information, données, histoires et voix de ceux qui transforment l’école chaque jour.",
   },
   {
-    cover: "/legacy/img/slide02.jpg",
+    cover: "/legacy/img/s2.jpg",
     title: "STU MAG, partout",
     lead: "Le magazine numérique bimestriel, à lire sur tous vos écrans.",
   },
   {
-    cover: "/legacy/img/slide03.jpg",
+    cover: "/legacy/img/s3.jpg",
     title: "L’actualité éducative en continu",
     lead: "Réformes, politiques, initiatives et événements — STU NEWS.",
   },
   {
-    cover: "/legacy/img/slide04.jpg",
+    cover: "/legacy/img/s4.jpg",
     title: "Des voix qui comptent",
-    lead: "Podcasts, interviews et débats d’experts — STU TALK.",
+    lead: "Interviews, débats et paroles d’experts en vidéo — STU TALK.",
   },
   {
-    cover: "/legacy/img/slide05.jpg",
+    cover: "/legacy/img/s5.jpg",
     title: "Comprendre pour décider",
     lead: "Données, statistiques et cartographies — STU DATA.",
   },
   {
-    cover: "/legacy/img/slide06.jpg",
+    cover: "/legacy/img/s6.jpg",
     title: "Des écoles qui inspirent",
     lead: "Visages, parcours et initiatives — STU STORIES.",
-  },
-  {
-    cover: "/legacy/img/slide07.jpg",
-    title: "L’observatoire de l’éducation",
-    lead: "Un regard lucide sur le système éducatif de la RDC.",
-  },
-  {
-    cover: "/legacy/img/slide08.jpg",
-    title: "Analyses approfondies",
-    lead: "STU MAG : le magazine bimestriel pour aller plus loin.",
-  },
-  {
-    cover: "/legacy/img/slide09.jpg",
-    title: "Rejoindre STUDRC",
-    lead: "Accédez aux numéros, aux articles et aux contenus exclusifs.",
-  },
-  {
-    cover: "/legacy/img/slide010.jpg",
-    title: "Au plus près du terrain",
-    lead: "Les acteurs qui transforment l’école, chaque jour.",
-  },
-  {
-    cover: "/legacy/img/slide011.jpg",
-    title: "Restez connectés",
-    lead: "Actualités, données et récits — où que vous soyez.",
   },
 ] as const;
 

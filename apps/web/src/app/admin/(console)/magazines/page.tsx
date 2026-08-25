@@ -21,8 +21,8 @@ import {
   type MagazinePagesStatus,
 } from "@/lib/api";
 const TAKE = 10;
-const DEFAULT_BG = "#0d203d";
-const DEFAULT_ACCENT = "#02d0d1";
+const DEFAULT_BG = "#00132b";
+const DEFAULT_ACCENT = "#0565ab";
 
 type MagForm = {
   title: string;

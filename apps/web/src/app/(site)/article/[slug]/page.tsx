@@ -7,8 +7,16 @@ import {
   getSiteUrl,
   plainDescription,
 } from "@/lib/site-url";
+import {
+  isStoriesRubrique,
+  isVideoRubrique,
+  RUBRIQUE_BY_SLUG,
+} from "@/lib/rubriques";
+import { VideoPlay } from "@/components/site/video-play";
+import { HlsPlayer } from "@/components/site/hls-player";
 import { ArticleMagazineFloat } from "./article-magazine-float";
 import "./article.css";
+import { preconnect, preload } from "react-dom";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -85,6 +93,27 @@ export default async function ArticlePage({ params }: Props) {
   }
 
   const cover = article.coverUrl;
+  const video = isVideoRubrique(article.category);
+  const hlsUrl =
+    article.videoStatus === "READY" && article.videoHlsUrl
+      ? article.videoHlsUrl
+      : null;
+  const poster = article.videoPosterUrl || cover;
+  if (hlsUrl) {
+    try {
+      const origin = new URL(hlsUrl).origin;
+      preconnect(origin, { crossOrigin: "anonymous" });
+      preload(hlsUrl, { as: "fetch", crossOrigin: "anonymous" });
+    } catch {
+      /* URL CDN invalide */
+    }
+  }
+  if (poster) {
+    preload(poster, { as: "image" });
+  }
+  const categoryLabel =
+    (article.category && RUBRIQUE_BY_SLUG[article.category]?.label) ||
+    article.category;
   const dateLabel = article.publishedAt
     ? new Intl.DateTimeFormat("fr-FR", {
         day: "numeric",
@@ -93,53 +122,102 @@ export default async function ArticlePage({ params }: Props) {
       }).format(new Date(article.publishedAt))
     : null;
 
+  const crumb = (
+    <nav className="opt-article__crumb" aria-label="Fil d’Ariane">
+      <Link href="/">Accueil</Link>
+      <span aria-hidden>/</span>
+      {article.category ? (
+        <>
+          <Link href={`/rubrique/${article.category}`}>{categoryLabel}</Link>
+          <span aria-hidden>/</span>
+        </>
+      ) : null}
+      <span>{article.title}</span>
+    </nav>
+  );
+
+  const head = (
+    <header className="opt-article__head">
+      {article.category ? (
+        <p
+          className={`opt-article__cat${
+            isStoriesRubrique(article.category) ? " opt-article__cat--gold" : ""
+          }`}
+        >
+          {categoryLabel}
+        </p>
+      ) : null}
+      <h1 className="opt-article__title">{article.title}</h1>
+      <p className="opt-article__meta">
+        {article.author?.name ? <span>Par {article.author.name}</span> : null}
+        {dateLabel ? <span>{dateLabel}</span> : null}
+      </p>
+      {article.excerpt ? (
+        <p className="opt-article__excerpt">{article.excerpt}</p>
+      ) : null}
+    </header>
+  );
+
+  const media = hlsUrl ? (
+    <figure className="opt-article__cover">
+      <div className="opt-article__cover-media">
+        <HlsPlayer
+          src={hlsUrl}
+          poster={poster}
+          title={article.title}
+          accent={isStoriesRubrique(article.category) ? "gold" : "red"}
+          durationSec={article.videoDurationSec}
+        />
+      </div>
+      {article.coverCaption?.trim() ? (
+        <figcaption className="opt-article__caption">
+          {article.coverCaption.trim()}
+        </figcaption>
+      ) : null}
+    </figure>
+  ) : cover ? (
+    <figure className="opt-article__cover">
+      <div className="opt-article__cover-media">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={cover} alt={article.coverCaption?.trim() || ""} />
+        {video ? <VideoPlay size={28} /> : null}
+      </div>
+      {video &&
+      (article.videoStatus === "PENDING" ||
+        article.videoStatus === "PROCESSING") ? (
+        <figcaption className="opt-article__caption">
+          Vidéo en préparation — le lecteur s’affichera dès que le
+          transcodage HLS est terminé.
+        </figcaption>
+      ) : video && article.videoStatus === "FAILED" ? (
+        <figcaption className="opt-article__caption">
+          Le transcodage de la vidéo a échoué. Réessayez depuis l’admin.
+        </figcaption>
+      ) : article.coverCaption?.trim() ? (
+        <figcaption className="opt-article__caption">
+          {article.coverCaption.trim()}
+        </figcaption>
+      ) : null}
+    </figure>
+  ) : null;
+
   return (
     <>
-      <article className="opt-article">
+      <article className={`opt-article${video ? " opt-article--video" : ""}`}>
         <div className="opt-article__inner">
-          <nav className="opt-article__crumb" aria-label="Fil d’Ariane">
-            <Link href="/">Accueil</Link>
-            <span aria-hidden>/</span>
-            {article.category ? (
-              <>
-                <Link href={`/rubrique/${article.category}`}>
-                  {article.category}
-                </Link>
-                <span aria-hidden>/</span>
-              </>
-            ) : null}
-            <span>{article.title}</span>
-          </nav>
-
-          <header className="opt-article__head">
-            {article.category ? (
-              <p className="opt-article__cat">{article.category}</p>
-            ) : null}
-            <h1 className="opt-article__title">{article.title}</h1>
-            <p className="opt-article__meta">
-              {article.author?.name ? (
-                <span>Par {article.author.name}</span>
-              ) : null}
-              {dateLabel ? <span>{dateLabel}</span> : null}
-            </p>
-            {article.excerpt ? (
-              <p className="opt-article__excerpt">{article.excerpt}</p>
-            ) : null}
-          </header>
-
-          {cover ? (
-            <figure className="opt-article__cover">
-              <div className="opt-article__cover-media">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={cover} alt={article.coverCaption?.trim() || ""} />
-              </div>
-              {article.coverCaption?.trim() ? (
-                <figcaption className="opt-article__caption">
-                  {article.coverCaption.trim()}
-                </figcaption>
-              ) : null}
-            </figure>
-          ) : null}
+          {video ? (
+            <>
+              {media}
+              {crumb}
+              {head}
+            </>
+          ) : (
+            <>
+              {crumb}
+              {head}
+              {media}
+            </>
+          )}
 
           <div className="opt-article__body">
             {article.blocks.length > 0
@@ -193,10 +271,19 @@ export default async function ArticlePage({ params }: Props) {
                     href={`/article/${encodeURIComponent(item.slug)}`}
                     className="opt-article__more-card"
                   >
-                    <span className="opt-article__more-thumb">
+                    <span
+                      className={`opt-article__more-thumb${
+                        isVideoRubrique(item.category, item.categoryLabel)
+                          ? " opt-article__more-thumb--video"
+                          : ""
+                      }`}
+                    >
                       {item.coverUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={item.coverUrl} alt="" />
+                      ) : null}
+                      {isVideoRubrique(item.category, item.categoryLabel) ? (
+                        <VideoPlay size={14} className="opt-video-play--xs" />
                       ) : null}
                     </span>
                     <span className="opt-article__more-meta">

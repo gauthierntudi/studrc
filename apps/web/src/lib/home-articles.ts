@@ -94,6 +94,8 @@ export function toRubriqueStory(a: PublicArticleCard): RubriqueStory {
     author: a.authorName,
     dateLabel: a.dateLabel,
     tagTone: tagTone(a.categoryTone),
+    videoHlsUrl: a.videoHlsUrl ?? null,
+    videoPosterUrl: a.videoPosterUrl ?? null,
   };
 }
 
@@ -121,6 +123,26 @@ function pickOne<T>(api: T[], demo: T): T {
   return api[0] ?? demo;
 }
 
+function pickLatestPerRubrique(
+  groups: TopStory[][],
+  demo: TopStory[],
+  featuredIds: Set<string>,
+): TopStory[] {
+  const used = new Set(featuredIds);
+  const out: TopStory[] = [];
+  for (let i = 0; i < groups.length; i++) {
+    const group = groups[i] ?? [];
+    const article =
+      group.find((item) => !used.has(String(item.id))) ?? group[0] ?? demo[i];
+    if (!article) continue;
+    const id = String(article.id);
+    if (used.has(id) && out.some((row) => String(row.id) === id)) continue;
+    used.add(id);
+    out.push(article);
+  }
+  return out.slice(0, 4);
+}
+
 export type HomeArticlesView = {
   featured: TopStory[];
   topGrid: TopStory[];
@@ -144,7 +166,6 @@ export function buildHomeArticlesView(
   feed: PublicHomeArticles | null,
 ): HomeArticlesView {
   const featured = (feed?.featured ?? []).map(toTopStory);
-  const topGrid = (feed?.topGrid ?? []).map(toTopStory);
   const stuData = (feed?.stuData ?? []).map(toDossierCard);
   const filInfo = (feed?.filInfo ?? []).map((a) => ({
     id: a.id,
@@ -158,9 +179,20 @@ export function buildHomeArticlesView(
   const stuMag = (feed?.stuMag ?? []).map(toSplitStory);
   const miss = (feed?.aNePasManquer ?? []).map(toRubriqueStory);
 
+  const featuredIds = new Set(featured.map((a) => String(a.id)));
+
   return {
     featured: pick(featured, DEMO_FEATURED, 1),
-    topGrid: pick(topGrid, DEMO_TOP_GRID, 1),
+    topGrid: pickLatestPerRubrique(
+      [
+        (feed?.stuTalk ?? []).map(toTopStory),
+        (feed?.stuStories ?? []).map(toTopStory),
+        (feed?.stuData ?? []).map(toTopStory),
+        (feed?.stuNews ?? []).map(toTopStory),
+      ],
+      DEMO_TOP_GRID,
+      featuredIds,
+    ),
     stuData: pick(stuData, DEMO_DOSSIERS, 1),
     filInfo: pick(
       filInfo,
@@ -179,12 +211,15 @@ export function buildHomeArticlesView(
       1,
     ),
     plusVusFeatured: pickOne(plusVus, DEMO_PLUS_VUS_FEATURED),
-    plusVusList: pick(plusVus.slice(1), DEMO_PLUS_VUS_LIST, 1),
+    plusVusList: pick(plusVus.slice(1), DEMO_PLUS_VUS_LIST, 1).slice(0, 2),
     stuTalkFeatured: pickOne(stuTalk, DEMO_ZOOM_FEATURED),
     stuTalkGrid: pick(stuTalk.slice(1), DEMO_ZOOM_GRID, 1),
     stuMagFeatured: pickOne(stuMag, DEMO_GAME_FEATURED),
     stuMagGrid: pick(stuMag.slice(1), DEMO_GAME_GRID, 1),
     aNePasManquerFeatured: pickOne(miss, DEMO_A_NE_PAS_MANQUER_FEATURED),
-    aNePasManquerList: pick(miss.slice(1), DEMO_A_NE_PAS_MANQUER_LIST, 1),
+    aNePasManquerList: pick(miss.slice(1), DEMO_A_NE_PAS_MANQUER_LIST, 1).slice(
+      0,
+      2,
+    ),
   };
 }

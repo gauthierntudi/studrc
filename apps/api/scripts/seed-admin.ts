@@ -3,8 +3,8 @@ import { config } from 'dotenv';
 import { PrismaClient, AdminRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
-config({ path: resolve(process.cwd(), '../../.env') });
 config({ path: resolve(process.cwd(), '.env') });
+config({ path: resolve(process.cwd(), '../../.env'), override: true });
 
 const prisma = new PrismaClient();
 
@@ -15,13 +15,26 @@ async function main() {
   const password = process.env.ADMIN_PASSWORD ?? 'ChangeMeAdmin123!';
   const name = process.env.ADMIN_NAME ?? 'Administrateur';
 
+  const passwordHash = await bcrypt.hash(password, 10);
   const existing = await prisma.adminUser.findUnique({ where: { email } });
+
   if (existing) {
-    console.log(`Admin déjà présent: ${email}`);
+    await prisma.adminUser.update({
+      where: { email },
+      data: {
+        passwordHash,
+        name,
+        isActive: true,
+        role:
+          existing.role === AdminRole.SUPERADMIN
+            ? existing.role
+            : AdminRole.SUPERADMIN,
+      },
+    });
+    console.log(`Admin mis à jour: ${email}`);
     return;
   }
 
-  const passwordHash = await bcrypt.hash(password, 10);
   await prisma.adminUser.create({
     data: {
       email,

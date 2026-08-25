@@ -12,11 +12,6 @@ import { MagazinePromoFloat } from "@/components/site/magazine-promo-float";
 import { articlesPublicApi, magazinesPublicApi } from "@/lib/api";
 import { buildHomeArticlesView } from "@/lib/home-articles";
 
-function capitalizeDate(label: string) {
-  if (!label) return label;
-  return label.charAt(0).toUpperCase() + label.slice(1);
-}
-
 /** Accueil — articles + magazines dynamiques (API) avec repli démo */
 export default function HomePage() {
   return (
@@ -27,37 +22,48 @@ export default function HomePage() {
 }
 
 async function HomeContent() {
-  const [feedResult, magResult, latestResult] = await Promise.allSettled([
+  const [feedResult, latestResult, magsResult] = await Promise.allSettled([
     articlesPublicApi.home(),
-    magazinesPublicApi.list(12),
     magazinesPublicApi.latest(),
+    magazinesPublicApi.list(4),
   ]);
 
   const feed = feedResult.status === "fulfilled" ? feedResult.value : null;
 
-  const magazines =
-    magResult.status === "fulfilled"
-      ? (magResult.value.items ?? []).map((m) => ({
-          id: m.id,
-          titre: m.title,
-          cover: m.coverUrl || "/legacy/covers/1591457791.jpg",
-          dateLabel: capitalizeDate(m.dateLabel),
-        }))
-      : [];
-
   const latestMagazine =
     latestResult.status === "fulfilled" ? latestResult.value : null;
+
+  const magazines =
+    magsResult.status === "fulfilled"
+      ? (magsResult.value.items ?? []).slice(0, 4).map((m) => ({
+          id: m.id,
+          title: m.title,
+          cover: m.coverUrl || "/legacy/covers/1591457791.jpg",
+          issueNumber: m.issueNumber,
+          dateLabel: m.dateLabel,
+        }))
+      : [];
 
   const articles = buildHomeArticlesView(feed);
 
   return (
     <>
       <TopStories featured={articles.featured} grid={articles.topGrid} />
-      <HomeKiosque magazines={magazines} />
-      <HomeDossiers
-        decryptages={articles.stuData}
-        filInfo={articles.filInfo}
+      <HomeKiosque
+        items={[
+          articles.stuStoriesFeatured,
+          ...articles.stuStoriesGrid,
+        ].map((s) => ({
+          id: s.id,
+          slug: s.slug,
+          titre: s.titre,
+          cover: s.cover,
+          dateLabel: s.dateLabel,
+          videoHlsUrl: s.videoHlsUrl,
+          videoPosterUrl: s.videoPosterUrl,
+        }))}
       />
+      <HomeDossiers decryptages={articles.stuData} />
       <HomeRubrique
         primary={{
           title: "STU NEWS",
@@ -67,17 +73,10 @@ async function HomeContent() {
           featured: articles.stuNewsFeatured,
           grid: articles.stuNewsGrid,
         }}
-        split={{
-          title: "STU STORIES",
-          href: "/rubrique/stu-stories",
-          accentClass: "opt-rsplit__title--gold",
-          featured: articles.stuStoriesFeatured,
-          grid: articles.stuStoriesGrid,
-        }}
         sidebar={{
-          title: "Les plus vus",
-          titleClass: "opt-rub__title--blue",
-          dotClass: "opt-rub__dot--blue",
+          title: "Juste pour toi",
+          titleClass: "opt-rub__title--navy",
+          dotClass: "opt-rub__dot--navy",
           featured: articles.plusVusFeatured,
           list: articles.plusVusList,
         }}
@@ -89,6 +88,8 @@ async function HomeContent() {
           href: "/rubrique/stu-talk",
           titleClass: "opt-rub__title--teal",
           dotClass: "opt-rub__dot--teal",
+          moreLabel: "Toutes les vidéos",
+          video: true,
           featured: articles.stuTalkFeatured,
           grid: articles.stuTalkGrid,
         }}
@@ -96,8 +97,8 @@ async function HomeContent() {
           title: "STU MAG",
           href: "/kiosque",
           accentClass: "opt-rsplit__title--dark",
-          featured: articles.stuMagFeatured,
-          grid: articles.stuMagGrid,
+          moreLabel: "Tous les numéros",
+          magazines,
         }}
         sidebar={{
           title: "À ne pas manquer",

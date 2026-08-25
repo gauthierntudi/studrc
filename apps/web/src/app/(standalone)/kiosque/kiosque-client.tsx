@@ -25,13 +25,14 @@ import {
   type PublicMagazineCard,
   type PublicMagazineDetail,
 } from "@/lib/api";
+import { SUBSCRIPTIONS_ENABLED } from "@/lib/features";
 
 import "swiper/css";
 import "swiper/css/free-mode";
 import "./kiosque.css";
 
 const FALLBACK_COVER = "/legacy/covers/1591457791.jpg";
-const DEFAULT_THEME = { bgColor: "#0d203d", accentColor: "#02d0d1" };
+const DEFAULT_THEME = { bgColor: "#00132b", accentColor: "#0565ab" };
 const PAGE_SIZE = 12;
 /** Carrousel mobile : charger tout (cap API publique). */
 const MOBILE_LIST_TAKE = 48;
@@ -407,6 +408,7 @@ export function KiosqueClient() {
             ["--kq-bg" as string]: theme.bgColor,
             ["--kq-accent" as string]: theme.accentColor,
             ["--kq-on-accent" as string]: contrastOn(theme.accentColor),
+            ["--kq-ink" as string]: contrastOn(theme.bgColor),
           } as CSSProperties
         }
       >
@@ -435,7 +437,9 @@ export function KiosqueClient() {
               ) : priceLabel ? (
                 <span className="opt-kq__chip">{priceLabel}</span>
               ) : null}
-              {access.canRead && access.accessVia === "subscription" ? (
+              {SUBSCRIPTIONS_ENABLED &&
+              access.canRead &&
+              access.accessVia === "subscription" ? (
                 <span className="opt-kq__chip">Inclus dans votre abonnement</span>
               ) : null}
               {access.canRead && access.accessVia === "purchase" ? (
@@ -479,7 +483,7 @@ export function KiosqueClient() {
                 </Link>
               ) : null}
 
-              {showSubscribe ? (
+              {SUBSCRIPTIONS_ENABLED && showSubscribe ? (
                 <Link href="/abonnement" className="opt-kq__btn opt-kq__btn--ghost">
                   <Sparkles size={16} strokeWidth={2.25} aria-hidden />
                   S&apos;abonner
@@ -490,7 +494,7 @@ export function KiosqueClient() {
             <p className="opt-kq__note">
               L&apos;aperçu ouvre les 15 premières pages sans compte ni
               abonnement.
-              {showBuy
+              {SUBSCRIPTIONS_ENABLED && showBuy
                 ? " L’abonnement débloque la lecture complète de ce numéro."
                 : null}
             </p>

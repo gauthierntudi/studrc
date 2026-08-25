@@ -7,6 +7,7 @@ import {
   type PublicArticleCard,
 } from "@/lib/api";
 import { CoverImage } from "@/components/site/cover-image";
+import { VideoPlay } from "@/components/site/video-play";
 
 const BATCH = 8;
 
@@ -22,6 +23,7 @@ type Props = {
   showHeading: boolean;
   /** Si true, charge via `/articles/feed` (toutes actualités). */
   globalFeed?: boolean;
+  video?: boolean;
 };
 
 export function RubriqueFeed({
@@ -33,6 +35,7 @@ export function RubriqueFeed({
   packCount,
   showHeading,
   globalFeed = false,
+  video = false,
 }: Props) {
   const [items, setItems] = useState(initialItems);
   const [loading, setLoading] = useState(false);
@@ -101,14 +104,14 @@ export function RubriqueFeed({
     >
       {showHeading ? (
         <h2 id="opt-rubrique-more" className="opt-rubrique__more-title">
-          Nos autres articles
+          {video ? "Nos autres vidéos" : "Nos autres articles"}
         </h2>
       ) : null}
 
       <div className="opt-rubrique__more-layout">
         <div className="opt-rubrique__feed">
           {items.map((item) => (
-            <FeedRow key={item.id} article={item} />
+            <FeedRow key={item.id} article={item} video={video} />
           ))}
 
           {!done ? (
@@ -171,7 +174,7 @@ export function RubriqueFeed({
         {mostRead.length > 0 ? (
           <aside className="opt-rubrique__popular" aria-label="Les plus lus">
             <h3 className="opt-rubrique__popular-title">
-              Les plus lus — {categoryLabel}
+              {video ? "Les plus vues" : "Les plus lus"} — {categoryLabel}
             </h3>
             <ol className="opt-rubrique__popular-list">
               {mostRead.map((item, i) => (
@@ -197,7 +200,13 @@ export function RubriqueFeed({
   );
 }
 
-function FeedRow({ article }: { article: PublicArticleCard }) {
+function FeedRow({
+  article,
+  video,
+}: {
+  article: PublicArticleCard;
+  video?: boolean;
+}) {
   return (
     <article className="opt-rubrique__feed-row">
       <Link
@@ -210,6 +219,9 @@ function FeedRow({ article }: { article: PublicArticleCard }) {
           ) : (
             <span className="opt-rubrique__ph" aria-hidden />
           )}
+          {video ? (
+            <VideoPlay size={18} className="opt-video-play--sm" />
+          ) : null}
         </span>
         <span className="opt-rubrique__feed-body">
           <span className="opt-rubrique__feed-title">{article.title}</span>

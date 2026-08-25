@@ -4,9 +4,34 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { ToastContainer } from "react-toastify";
 import { AuthProvider } from "@/components/auth-provider";
+import { ThemeProvider, useSiteTheme } from "@/components/site/theme-provider";
 import "react-toastify/dist/ReactToastify.css";
+import type { SiteTheme } from "@/lib/site-theme";
 
-export function Providers({ children }: { children: React.ReactNode }) {
+function ThemedToasts() {
+  const { theme } = useSiteTheme();
+  return (
+    <ToastContainer
+      position="top-right"
+      autoClose={5000}
+      hideProgressBar={false}
+      newestOnTop
+      closeOnClick
+      pauseOnFocusLoss
+      draggable
+      pauseOnHover
+      theme={theme}
+    />
+  );
+}
+
+export function Providers({
+  children,
+  initialTheme,
+}: {
+  children: React.ReactNode;
+  initialTheme?: SiteTheme;
+}) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -21,20 +46,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        {children}
-        <ToastContainer
-          position="top-right"
-          autoClose={5000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="dark"
-        />
-      </AuthProvider>
+      <ThemeProvider initialTheme={initialTheme}>
+        <AuthProvider>
+          {children}
+          <ThemedToasts />
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

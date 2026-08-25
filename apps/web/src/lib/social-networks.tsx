@@ -38,7 +38,7 @@ export const SOCIAL_NETWORK_META: Record<
   whatsapp: {
     label: "WhatsApp",
     tone: "#25d366",
-    placeholder: "https://wa.me/243828504000",
+    placeholder: "https://wa.me/243813212772",
   },
   telegram: {
     label: "Telegram",
@@ -48,11 +48,11 @@ export const SOCIAL_NETWORK_META: Record<
   threads: {
     label: "Threads",
     tone: "#111111",
-    placeholder: "https://threads.net/@opt1mum",
+    placeholder: "https://threads.net/@studrc",
   },
   other: {
     label: "Autre",
-    tone: "#02d0d1",
+    tone: "#0565ab",
     placeholder: "https://…",
   },
 };

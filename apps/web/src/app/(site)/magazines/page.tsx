@@ -22,6 +22,7 @@ import {
 import { useAuth } from "@/components/auth-provider";
 import { AccountTabs } from "@/components/site/account-tabs";
 import { libraryApi, type LibraryResponse } from "@/lib/api";
+import { SUBSCRIPTIONS_ENABLED } from "@/lib/features";
 import { cn } from "@/lib/utils";
 import { MagazineCover } from "./magazine-cover";
 import "./magazines.css";
@@ -166,13 +167,16 @@ export default function MagazinesPage() {
   }
 
   const status = library?.status ?? "none";
+  const hasLibrary = magazines.length > 0;
+  const showEmptyLibrary =
+    !hasLibrary && (status === "active" || !SUBSCRIPTIONS_ENABLED);
 
   return (
     <section className="opt-mags" aria-label="Magazines">
       <div className="opt-mags__container">
         <AccountTabs />
 
-        {status === "active" ? (
+        {hasLibrary || showEmptyLibrary ? (
           <>
             <header className="opt-mags__hero">
               <div className="opt-mags__hero-text">
@@ -188,12 +192,14 @@ export default function MagazinesPage() {
                   ) : null}
                 </h1>
                 <p>
-                  {library?.planName
+                  {status === "active" && library?.planName
                     ? `${library.planName} — `
                     : user.name
                       ? `${user.name} — `
                       : null}
-                  Tous les numéros inclus dans votre abonnement.
+                  {status === "active"
+                    ? "Tous les numéros de votre bibliothèque."
+                    : "Numéros gratuits et achats disponibles dans votre bibliothèque."}
                 </p>
               </div>
 
@@ -226,7 +232,9 @@ export default function MagazinesPage() {
                 <>
                   <ul className="opt-mags__grid">
                     {pageItems.map((mag, index) => {
-                      const href = mag.readPath ?? "/abonnement";
+                      const href =
+                        mag.readPath ??
+                        `/kiosque?magazine=${encodeURIComponent(mag.id)}`;
                       const canRead = Boolean(mag.readPath);
                       const isLatest = !query && skip + index === 0;
 
@@ -364,7 +372,7 @@ export default function MagazinesPage() {
                   </button>
                 </div>
               )
-            ) : (
+            ) : showEmptyLibrary ? (
               <div className="opt-mags__state opt-mags__state--info">
                 <div className="opt-mags__state-icon" aria-hidden>
                   <BookOpen {...ICON} />
@@ -382,11 +390,11 @@ export default function MagazinesPage() {
                   Aller au kiosque
                 </Link>
               </div>
-            )}
+            ) : null}
           </>
         ) : null}
 
-        {status === "expired" ? (
+        {SUBSCRIPTIONS_ENABLED && status === "expired" ? (
           <div className="opt-mags__state opt-mags__state--danger">
             <div className="opt-mags__state-icon" aria-hidden>
               <CalendarX2 {...ICON} />
@@ -406,7 +414,7 @@ export default function MagazinesPage() {
           </div>
         ) : null}
 
-        {status === "pending" ? (
+        {SUBSCRIPTIONS_ENABLED && status === "pending" ? (
           <div className="opt-mags__state opt-mags__state--warning">
             <div className="opt-mags__state-icon" aria-hidden>
               <CreditCard {...ICON} />
@@ -426,7 +434,7 @@ export default function MagazinesPage() {
           </div>
         ) : null}
 
-        {status === "none" ? (
+        {SUBSCRIPTIONS_ENABLED && status === "none" ? (
           <div className="opt-mags__state opt-mags__state--info">
             <div className="opt-mags__state-icon" aria-hidden>
               <Star {...ICON} />

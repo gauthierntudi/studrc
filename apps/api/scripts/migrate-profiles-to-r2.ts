@@ -1,10 +1,10 @@
 /**
- * Upload local MAGAZINE/profil/* → R2 magazine-prod/profil/*
+ * Upload local profil/* → R2 studrc/profil/*
  * and rewrite Subscriber.avatarKey filename → profil/filename.
  *
  * Usage:
- *   pnpm --filter @opt1mum/api migrate:profiles-r2
- *   pnpm --filter @opt1mum/api migrate:profiles-r2 -- --dry-run
+ *   pnpm --filter @studrc/api migrate:profiles-r2
+ *   pnpm --filter @studrc/api migrate:profiles-r2 -- --dry-run
  */
 import { readdir, readFile, stat } from 'fs/promises';
 import { extname, join, resolve } from 'path';

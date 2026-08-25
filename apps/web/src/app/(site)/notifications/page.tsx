@@ -255,20 +255,6 @@ export default function NotificationsPage() {
     }
   }
 
-  async function markAllRead() {
-    try {
-      const res = await libraryApi.markNotificationsSeen(filters.days);
-      emitUnread(res.unreadCount);
-      setItems((prev) => prev.map((item) => ({ ...item, unread: false })));
-      if (filters.unreadOnly) {
-        setItems([]);
-        setTotal(0);
-      }
-    } catch {
-      /* ignore */
-    }
-  }
-
   if (authLoading || !user) {
     return (
       <section className="opt-account opt-account--loading" aria-busy="true">
@@ -304,18 +290,6 @@ export default function NotificationsPage() {
           <p>
             Nouveautés éditoriales et alertes de compte sur{" "}
             {filters.days} jour{filters.days > 1 ? "s" : ""}.
-            {unreadCount > 0 ? (
-              <>
-                {" "}
-                <button
-                  type="button"
-                  className="opt-notif__mark-all"
-                  onClick={() => void markAllRead()}
-                >
-                  Tout marquer comme lu
-                </button>
-              </>
-            ) : null}
           </p>
         </header>
 
@@ -376,17 +350,23 @@ export default function NotificationsPage() {
             </select>
 
             <label className="opt-notif__unread-toggle">
-              <input
-                type="checkbox"
-                checked={filters.unreadOnly}
-                onChange={(e) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    unreadOnly: e.target.checked,
-                  }))
-                }
-              />
-              Non lues
+              <span className="opt-notif__unread-toggle-text">Non lues</span>
+              <span className="opt-notif__unread-switch">
+                <input
+                  type="checkbox"
+                  role="switch"
+                  className="opt-notif__unread-input"
+                  aria-label="Afficher uniquement les notifications non lues"
+                  checked={filters.unreadOnly}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      unreadOnly: e.target.checked,
+                    }))
+                  }
+                />
+                <span className="opt-notif__unread-track" aria-hidden />
+              </span>
             </label>
 
             {hasActiveFilters ? (

@@ -6,6 +6,7 @@ import { Suspense, useEffect, useState } from "react";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { paymentsApi, type PublicPayment } from "@/lib/api";
+import { SUBSCRIPTIONS_ENABLED } from "@/lib/features";
 import "../abonnement.css";
 
 function formatMoney(cents: number, currency: string): string {
@@ -31,6 +32,10 @@ function RetourInner() {
   );
 
   useEffect(() => {
+    if (!SUBSCRIPTIONS_ENABLED) {
+      router.replace("/");
+      return;
+    }
     if (authLoading) return;
     if (!user) {
       router.replace(
@@ -87,6 +92,8 @@ function RetourInner() {
     return () => window.clearInterval(id);
   }, [phase, paymentId]);
 
+  if (!SUBSCRIPTIONS_ENABLED) return null;
+
   return (
     <div className="opt-abo">
       <div className="opt-abo__bg" aria-hidden />
@@ -103,7 +110,7 @@ function RetourInner() {
             <>
               <CheckCircle2
                 size={48}
-                color="#02d0d1"
+                color="#0565ab"
                 strokeWidth={1.75}
                 aria-hidden
               />
@@ -141,7 +148,7 @@ function RetourInner() {
 
           {phase === "fail" ? (
             <>
-              <XCircle size={48} color="#e9262a" strokeWidth={1.75} aria-hidden />
+              <XCircle size={48} color="#d63026" strokeWidth={1.75} aria-hidden />
               <h1 style={{ fontFamily: "var(--abo-display)", marginTop: "0.75rem" }}>
                 Paiement non confirmé
               </h1>

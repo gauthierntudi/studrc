@@ -2,7 +2,7 @@
   --opt-search-ink: #111;
   --opt-search-muted: #8a8a8a;
   --opt-search-line: #e8e8e8;
-  --opt-search-accent: #e9262a;
+  --opt-search-accent: #d63026;
   padding: 2.25rem 0 3.5rem;
 }
 
@@ -123,11 +123,16 @@
 }
 
 .opt-search__cover {
+  position: relative;
   display: block;
   width: 220px;
   aspect-ratio: 16 / 10;
   overflow: hidden;
   background: #ececec;
+}
+
+.opt-search__cover--video {
+  aspect-ratio: 16 / 9;
 }
 
 .opt-search__cover img {

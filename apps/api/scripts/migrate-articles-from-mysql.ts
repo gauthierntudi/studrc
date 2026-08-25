@@ -307,7 +307,7 @@ async function loadFromMysql(url: string): Promise<LegacyArticle[]> {
   } catch {
     throw new Error(
       'Le package mysql2 est requis pour LEGACY_MYSQL_URL.\n' +
-        '  pnpm --filter @opt1mum/api add mysql2\n' +
+        '  pnpm --filter @studrc/api add mysql2\n' +
         'Ou utilisez LEGACY_SQL_DUMP=/chemin/vers/dump.sql',
     );
   }

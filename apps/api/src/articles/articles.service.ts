@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ActivityActorType, Prisma } from '@prisma/client';
+import { ActivityActorType, Prisma, VideoStatus } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { extname } from 'path';
 import { ActivityService } from '../activity/activity.service';
@@ -13,6 +13,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import {
   contentTypeForExt,
   createR2ClientFromEnv,
+  headR2Object,
+  presignR2PutObject,
   putR2Object,
 } from '../storage/r2';
 import {
@@ -21,9 +23,17 @@ import {
   UpdateArticleDto,
 } from './dto/admin-article.dto';
 import {
+  ARTICLE_VIDEO_MAX_BYTES,
+  CompleteArticleVideoDto,
+  PresignArticleVideoDto,
+} from './dto/admin-article-video.dto';
+import { enqueueArticleVideo } from './video/article-video.queue';
+import { videoSourcePrefix } from './video/process-article-video';
+import {
   CATEGORY_META,
   categoryDisplay,
   categoryQuerySlugs,
+  isVideoCategory,
   resolveCategorySlug,
 } from './categories';
 
@@ -71,6 +81,12 @@ const ARTICLE_SELECT = {
   isFeatured: true,
   authorId: true,
   magazineId: true,
+  videoSourceKey: true,
+  videoHlsKey: true,
+  videoPosterKey: true,
+  videoStatus: true,
+  videoError: true,
+  videoDurationSec: true,
   publishedAt: true,
   createdAt: true,
   updatedAt: true,
@@ -103,6 +119,9 @@ const PUBLIC_CARD_SELECT = {
   viewCount: true,
   publishedAt: true,
   createdAt: true,
+  videoHlsKey: true,
+  videoPosterKey: true,
+  videoStatus: true,
   author: { select: { name: true } },
 } satisfies Prisma.ArticleSelect;
 
@@ -214,7 +233,7 @@ export class ArticlesService {
       this.prisma.article.findMany({
         where: published,
         orderBy: [{ viewCount: 'desc' }, { publishedAt: 'desc' }],
-        take: 5,
+        take: 3,
         select: this.publicCardSelect,
       }),
       this.prisma.article.findMany({
@@ -229,15 +248,21 @@ export class ArticlesService {
           },
         },
         orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
-        take: 5,
+        take: 3,
         select: this.publicCardSelect,
       }),
     ]);
 
     const featuredIds = new Set(featured.map((a) => a.id));
-    const topGrid = recent
-      .filter((a) => !featuredIds.has(a.id))
-      .slice(0, 4);
+    const used = new Set(featuredIds);
+    const topGrid: typeof recent = [];
+    for (const list of [stuTalk, stuStories, stuData, stuNews]) {
+      const article = list.find((a) => !used.has(a.id)) ?? list[0];
+      if (!article) continue;
+      if (topGrid.some((row) => row.id === article.id)) continue;
+      used.add(article.id);
+      topGrid.push(article);
+    }
     const filInfo = recent.slice(0, 5);
 
     return {
@@ -551,6 +576,12 @@ export class ArticlesService {
         year: 'numeric',
       }).format(when),
       viewCount: article.viewCount,
+      videoHlsUrl:
+        article.videoStatus === 'READY'
+          ? this.resolveMediaUrl(article.videoHlsKey)
+          : null,
+      videoPosterUrl: this.resolveMediaUrl(article.videoPosterKey),
+      videoStatus: article.videoStatus,
     };
   }
 
@@ -821,6 +852,181 @@ export class ArticlesService {
     return this.toAdmin(updated);
   }
 
+  private videoExt(
+    filename: string,
+    contentType: string | undefined,
+  ): 'mp4' | 'mov' | 'webm' | 'm4v' {
+    const name = filename.toLowerCase();
+    const mime = (contentType ?? '').toLowerCase();
+    if (name.endsWith('.mov') || mime.includes('quicktime')) return 'mov';
+    if (name.endsWith('.webm') || mime.includes('webm')) return 'webm';
+    if (name.endsWith('.m4v') || mime.includes('x-m4v')) return 'm4v';
+    if (
+      name.endsWith('.mp4') ||
+      mime.includes('mp4') ||
+      mime === 'application/octet-stream' ||
+      mime === 'binary/octet-stream' ||
+      !mime
+    ) {
+      return 'mp4';
+    }
+    throw new BadRequestException(
+      'Formats vidéo : MP4, MOV, WEBM (max 500 Mo)',
+    );
+  }
+
+  async presignVideo(
+    id: string,
+    dto: PresignArticleVideoDto,
+    _actorId: string,
+  ) {
+    const article = await this.prisma.article.findUnique({
+      where: { id },
+      select: { id: true, category: true },
+    });
+    if (!article) throw new NotFoundException('Article introuvable');
+    if (!isVideoCategory(article.category)) {
+      throw new BadRequestException(
+        'La vidéo est réservée aux rubriques STU TALK et STU STORIES',
+      );
+    }
+    if (dto.size > ARTICLE_VIDEO_MAX_BYTES) {
+      throw new BadRequestException('La vidéo dépasse 500 Mo');
+    }
+
+    const r2 = createR2ClientFromEnv();
+    if (!r2) {
+      throw new BadRequestException(
+        'Stockage R2 non configuré (R2_ACCESS_KEY_ID / R2_BUCKET)',
+      );
+    }
+
+    const ext = this.videoExt(dto.filename, dto.contentType);
+    const contentType = contentTypeForExt(ext);
+    const key = `${videoSourcePrefix(id)}source.${ext}`;
+    const expiresIn = 1800;
+    const signed = presignR2PutObject(r2, {
+      key,
+      contentType,
+      expiresInSeconds: expiresIn,
+    });
+
+    return {
+      key: signed.key,
+      uploadUrl: signed.uploadUrl,
+      headers: signed.headers,
+      expiresIn,
+      maxSize: ARTICLE_VIDEO_MAX_BYTES,
+    };
+  }
+
+  async completeVideo(
+    id: string,
+    dto: CompleteArticleVideoDto,
+    actorId: string,
+  ) {
+    const article = await this.prisma.article.findUnique({
+      where: { id },
+      select: { id: true, category: true },
+    });
+    if (!article) throw new NotFoundException('Article introuvable');
+    if (!isVideoCategory(article.category)) {
+      throw new BadRequestException(
+        'La vidéo est réservée aux rubriques STU TALK et STU STORIES',
+      );
+    }
+
+    const key = dto.key.replace(/^\//, '');
+    const prefix = videoSourcePrefix(id);
+    if (!key.startsWith(prefix) || key.includes('..')) {
+      throw new BadRequestException('Clé R2 invalide pour cet article');
+    }
+    if (dto.size > ARTICLE_VIDEO_MAX_BYTES) {
+      throw new BadRequestException('La vidéo dépasse 500 Mo');
+    }
+
+    const r2 = createR2ClientFromEnv();
+    if (!r2) {
+      throw new BadRequestException(
+        'Stockage R2 non configuré (R2_ACCESS_KEY_ID / R2_BUCKET)',
+      );
+    }
+
+    const meta = await headR2Object(r2, key);
+    if (!meta) {
+      throw new BadRequestException(
+        'Fichier introuvable sur R2 — upload incomplet ?',
+      );
+    }
+    const remoteSize = meta.contentLength ?? 0;
+    if (remoteSize <= 0) {
+      throw new BadRequestException('Fichier R2 vide');
+    }
+    if (Math.abs(remoteSize - dto.size) > 1024) {
+      throw new BadRequestException(
+        `Taille R2 incohérente (${remoteSize} ≠ ${dto.size})`,
+      );
+    }
+
+    const updated = await this.prisma.article.update({
+      where: { id },
+      data: {
+        videoSourceKey: key,
+        videoStatus: VideoStatus.PENDING,
+        videoError: null,
+        videoHlsKey: null,
+      },
+      select: ARTICLE_SELECT,
+    });
+
+    void this.activity.log({
+      actorType: ActivityActorType.ADMIN,
+      adminId: actorId,
+      action: 'article_video_uploaded',
+      entity: 'article',
+      entityId: id,
+      meta: { videoSourceKey: key, size: remoteSize },
+    });
+
+    void enqueueArticleVideo(id).catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error(`[article-video] enqueue failed for ${id}`, err);
+    });
+
+    return this.toAdmin(updated);
+  }
+
+  async reprocessVideo(id: string, actorId: string) {
+    const article = await this.prisma.article.findUnique({
+      where: { id },
+      select: { id: true, videoSourceKey: true },
+    });
+    if (!article) throw new NotFoundException('Article introuvable');
+    if (!article.videoSourceKey) {
+      throw new BadRequestException('Aucune vidéo source à retravailler');
+    }
+
+    await this.prisma.article.update({
+      where: { id },
+      data: {
+        videoStatus: VideoStatus.PENDING,
+        videoError: null,
+      },
+    });
+
+    await enqueueArticleVideo(id, { force: true });
+
+    void this.activity.log({
+      actorType: ActivityActorType.ADMIN,
+      adminId: actorId,
+      action: 'article_video_reprocess',
+      entity: 'article',
+      entityId: id,
+    });
+
+    return this.getById(id);
+  }
+
   async uploadBlockCover(
     articleId: string,
     blockId: string,
@@ -1025,6 +1231,10 @@ export class ArticlesService {
     const {
       coverKey,
       coverCaption,
+      videoSourceKey,
+      videoHlsKey,
+      videoPosterKey,
+      videoStatus,
       _count,
       author,
       blocks,
@@ -1066,6 +1276,13 @@ export class ArticlesService {
       coverKey,
       coverCaption,
       coverUrl: this.resolveMediaUrl(coverKey),
+      videoSourceKey: opts?.publicMagazineOnly ? null : videoSourceKey,
+      videoHlsKey,
+      videoHlsUrl:
+        videoStatus === 'READY' ? this.resolveMediaUrl(videoHlsKey) : null,
+      videoPosterKey,
+      videoPosterUrl: this.resolveMediaUrl(videoPosterKey),
+      videoStatus,
       magazine: magazineVisible
         ? {
             id: magazine.id,

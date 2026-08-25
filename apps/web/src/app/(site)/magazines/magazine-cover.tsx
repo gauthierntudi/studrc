@@ -1,6 +1,7 @@
 "use client";
 
 import { BookOpen } from "lucide-react";
+import { SUBSCRIPTIONS_ENABLED } from "@/lib/features";
 
 type Props = {
   title: string;
@@ -12,9 +13,9 @@ type Props = {
 };
 
 const BADGE_PALETTE = [
-  { background: "#e9262a", color: "#ffffff" },
-  { background: "#02d0d1", color: "#0a3d3e" },
-  { background: "#0d203d", color: "#ffffff" },
+  { background: "#d63026", color: "#ffffff" },
+  { background: "#0565ab", color: "#0a3d3e" },
+  { background: "#00132b", color: "#ffffff" },
   { background: "#f59e0b", color: "#1a1200" },
   { background: "#8b5cf6", color: "#ffffff" },
   { background: "#10b981", color: "#042f1e" },
@@ -72,7 +73,7 @@ export function MagazineCover({
       <span className="opt-mags__overlay" aria-hidden>
         <span className="opt-mags__overlay-cta">
           <BookOpen size={15} strokeWidth={2.25} aria-hidden />
-          {canRead ? "Lire" : "S’abonner"}
+          {canRead ? "Lire" : SUBSCRIPTIONS_ENABLED ? "S’abonner" : "Voir"}
         </span>
       </span>
     </div>

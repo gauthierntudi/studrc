@@ -1,4 +1,6 @@
-const DEFAULT_CTA_THEME = { bgColor: "#0d203d", accentColor: "#02d0d1" };
+import { SUBSCRIPTIONS_ENABLED } from "@/lib/features";
+
+const DEFAULT_CTA_THEME = { bgColor: "#00132b", accentColor: "#0565ab" };
 
 export function contrastOn(hex: string): string {
   const raw = hex.trim().replace(/^#/, "");
@@ -23,9 +25,13 @@ export function contrastOn(hex: string): string {
 export function reinforceCtaPage(host: HTMLElement) {
   if (host.dataset.cta !== "1") return;
   const bg = host.dataset.bg;
+  const ink = host.dataset.ink;
   if (bg) host.style.setProperty("background", bg);
   const inner = host.querySelector<HTMLElement>(".opt-flip__cta");
-  if (inner && bg) inner.style.setProperty("background", bg);
+  if (inner) {
+    if (bg) inner.style.setProperty("background", bg);
+    if (ink) inner.style.setProperty("color", ink);
+  }
 }
 
 export function createPreviewCtaPage(
@@ -33,25 +39,39 @@ export function createPreviewCtaPage(
   coverUrl: string | null,
   magazineTitle: string,
   theme: { bgColor: string; accentColor: string } | null,
+  opts?: { isFree?: boolean; loggedIn?: boolean },
 ): HTMLElement {
-  const colors = {
-    bgColor: theme?.bgColor || DEFAULT_CTA_THEME.bgColor,
-    accentColor: theme?.accentColor || DEFAULT_CTA_THEME.accentColor,
-  };
-  const onAccent = contrastOn(colors.accentColor);
-  const onBg = contrastOn(colors.bgColor);
+  const isFree = Boolean(opts?.isFree);
+  const loggedIn = Boolean(opts?.loggedIn);
+  const bg = theme?.bgColor || DEFAULT_CTA_THEME.bgColor;
+  const accent = theme?.accentColor || DEFAULT_CTA_THEME.accentColor;
+  const onAccent = contrastOn(accent);
+  const onBg = contrastOn(bg);
   const muted =
     onBg === "#ffffff" ? "rgba(248,250,252,0.82)" : "rgba(6,42,43,0.72)";
   const ghostBorder =
     onBg === "#ffffff" ? "rgba(255,255,255,0.28)" : "rgba(6,42,43,0.22)";
 
+  const lectureHref = `/lecture/${encodeURIComponent(magazineId)}`;
+  const loginHref = `/connexion?next=${encodeURIComponent(`/lecture/${magazineId}`)}`;
+
   const el = document.createElement("div");
   el.className = "opt-flip__page opt-flip__page--cta";
   el.dataset.cta = "1";
   el.dataset.hq = "1";
-  el.dataset.bg = colors.bgColor;
-  el.setAttribute("aria-label", "Fin de l’aperçu — s’abonner ou acheter");
-  el.style.setProperty("background", colors.bgColor);
+  el.dataset.bg = bg;
+  el.dataset.ink = onBg;
+  el.style.setProperty("--cta-bg", bg);
+  el.style.setProperty("--cta-ink", onBg);
+  el.style.setProperty("--cta-accent", accent);
+  el.style.setProperty("--cta-on-accent", onAccent);
+  el.setAttribute(
+    "aria-label",
+    isFree
+      ? "Fin de l’aperçu — se connecter"
+      : "Fin de l’aperçu — s’abonner ou acheter",
+  );
+  el.style.setProperty("background", bg);
 
   const inner = document.createElement("div");
   inner.className = "opt-flip__cta";
@@ -67,7 +87,7 @@ export function createPreviewCtaPage(
     "padding:8% 7%",
     "text-align:center",
     `color:${onBg}`,
-    `background:${colors.bgColor}`,
+    `background:${bg}`,
   ].join(";");
 
   if (coverUrl) {
@@ -79,7 +99,7 @@ export function createPreviewCtaPage(
       "aspect-ratio:3/4",
       "border-radius:4px",
       "overflow:hidden",
-      "background:rgba(255,255,255,0.06)",
+      "background:color-mix(in srgb, var(--cta-ink) 8%, transparent)",
     ].join(";");
 
     const cover = document.createElement("img");
@@ -94,7 +114,7 @@ export function createPreviewCtaPage(
 
   const eyebrow = document.createElement("p");
   eyebrow.className = "opt-flip__cta-eyebrow";
-  eyebrow.style.cssText = `margin:0;font-size:0.72rem;font-weight:750;letter-spacing:0.1em;text-transform:uppercase;color:${colors.accentColor}`;
+  eyebrow.style.cssText = `margin:0;font-size:0.72rem;font-weight:750;letter-spacing:0.1em;text-transform:uppercase;color:var(--cta-accent, ${accent})`;
   eyebrow.textContent = "Fin de l’aperçu";
 
   const title = document.createElement("h2");
@@ -105,27 +125,42 @@ export function createPreviewCtaPage(
   const text = document.createElement("p");
   text.className = "opt-flip__cta-text";
   text.style.cssText = `margin:0;max-width:18rem;font-size:0.88rem;line-height:1.5;color:${muted}`;
-  text.textContent =
-    "Les pages suivantes sont réservées aux abonnés et aux acheteurs de ce numéro.";
+  text.textContent = isFree
+    ? loggedIn
+      ? "Ce numéro est gratuit. Ouvrez la lecture complète pour voir les pages suivantes."
+      : "Les pages suivantes sont accessibles après connexion."
+    : SUBSCRIPTIONS_ENABLED
+      ? "Les pages suivantes sont réservées aux abonnés et aux acheteurs de ce numéro."
+      : "Les pages suivantes sont réservées aux acheteurs de ce numéro.";
 
   const actions = document.createElement("div");
   actions.className = "opt-flip__cta-actions";
   actions.style.cssText =
     "display:flex;flex-wrap:wrap;justify-content:center;gap:0.55rem;margin-top:0.2rem";
 
-  const buy = document.createElement("a");
-  buy.className = "opt-flip__cta-btn opt-flip__cta-btn--primary";
-  buy.href = `/achat?magazine=${encodeURIComponent(magazineId)}`;
-  buy.style.cssText = `display:inline-flex;align-items:center;justify-content:center;min-height:2.5rem;padding:0.55rem 1.1rem;border-radius:999px;background:${colors.accentColor};color:${onAccent};font-size:0.88rem;font-weight:750;text-decoration:none`;
-  buy.textContent = "Acheter ce numéro";
+  const primary = document.createElement("a");
+  primary.className = "opt-flip__cta-btn opt-flip__cta-btn--primary";
+  primary.href = isFree
+    ? loggedIn
+      ? lectureHref
+      : loginHref
+    : `/achat?magazine=${encodeURIComponent(magazineId)}`;
+  primary.style.cssText = `display:inline-flex;align-items:center;justify-content:center;min-height:2.5rem;padding:0.55rem 1.1rem;border-radius:999px;background:var(--cta-accent, ${accent});color:var(--cta-on-accent, ${onAccent});font-size:0.88rem;font-weight:750;text-decoration:none`;
+  primary.textContent = isFree
+    ? loggedIn
+      ? "Lire ce numéro"
+      : "Se connecter"
+    : "Acheter ce numéro";
 
-  const subscribe = document.createElement("a");
-  subscribe.className = "opt-flip__cta-btn opt-flip__cta-btn--ghost";
-  subscribe.href = "/abonnement";
-  subscribe.style.cssText = `display:inline-flex;align-items:center;justify-content:center;min-height:2.5rem;padding:0.55rem 1.1rem;border-radius:999px;background:transparent;color:${onBg};border:1px solid ${ghostBorder};font-size:0.88rem;font-weight:750;text-decoration:none`;
-  subscribe.textContent = "S’abonner";
-
-  actions.append(buy, subscribe);
+  actions.append(primary);
+  if (!isFree && SUBSCRIPTIONS_ENABLED) {
+    const subscribe = document.createElement("a");
+    subscribe.className = "opt-flip__cta-btn opt-flip__cta-btn--ghost";
+    subscribe.href = "/abonnement";
+    subscribe.style.cssText = `display:inline-flex;align-items:center;justify-content:center;min-height:2.5rem;padding:0.55rem 1.1rem;border-radius:999px;background:transparent;color:${onBg};border:1px solid ${ghostBorder};font-size:0.88rem;font-weight:750;text-decoration:none`;
+    subscribe.textContent = "S’abonner";
+    actions.append(subscribe);
+  }
   inner.append(eyebrow, title, text, actions);
   el.append(inner);
   return el;

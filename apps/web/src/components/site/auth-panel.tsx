@@ -7,6 +7,8 @@ import {
   heroWindow,
   nextHeroOffset,
 } from "@/lib/auth-hero-slides";
+import { SUBSCRIPTIONS_ENABLED } from "@/lib/features";
+import { ThemeToggle } from "./theme-toggle";
 import "./auth-panel.css";
 
 type AuthPanelProps = {
@@ -114,6 +116,7 @@ export function AuthPanel({
               <img src="/brand/studrc-logo.png" alt="STUDRC" />
             </Link>
             <div className="opt-auth__panel-top-actions">
+              <ThemeToggle />
               {badgeHref ? (
                 <Link href={badgeHref} className="opt-auth__badge">
                   {badge}
@@ -121,9 +124,11 @@ export function AuthPanel({
               ) : (
                 <span className="opt-auth__badge">{badge}</span>
               )}
-              <Link href="/abonnement" className="opt-auth__cta-sub">
-                S&apos;abonner
-              </Link>
+              {SUBSCRIPTIONS_ENABLED ? (
+                <Link href="/abonnement" className="opt-auth__cta-sub">
+                  S&apos;abonner
+                </Link>
+              ) : null}
             </div>
           </div>
 

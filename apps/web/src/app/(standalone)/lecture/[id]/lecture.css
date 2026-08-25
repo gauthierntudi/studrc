@@ -1,19 +1,62 @@
 .opt-lecture {
-  --opt-navy: #0d203d;
-  --opt-red: #e9262a;
-  --opt-teal: #02d0d1;
-  --opt-muted: #94a3b8;
+  --opt-navy: #00132b;
+  --opt-red: #d63026;
+  --opt-teal: #0565ab;
+  --opt-muted: var(--site-muted, #6b6b6b);
+
+  --lecture-bg: var(--site-bg-soft, #f4f5f7);
+  --lecture-stage: var(--site-bg-soft, #f4f5f7);
+  --lecture-ink: var(--site-ink, #111111);
+  --lecture-line: var(--site-line, #e6e6e6);
+  --lecture-card: var(--site-card, #ffffff);
+  --lecture-bar-bg: var(--site-card, #ffffff);
+  --lecture-bar-ink: var(--site-ink, #111111);
+  --lecture-bar-muted: var(--site-muted, #6b6b6b);
+  --lecture-chip-bg: color-mix(in srgb, var(--lecture-bar-ink) 12%, transparent);
+  --lecture-tool-bg: var(--site-bg-soft, #f4f5f7);
+  --lecture-tool-ink: var(--site-ink, #111111);
+  --lecture-tool-border: var(--site-line, #e6e6e6);
+  --lecture-ctrl-bg: color-mix(in srgb, var(--site-card, #fff) 94%, transparent);
+  --lecture-ctrl-ink: var(--site-ink, #111111);
+  --lecture-ctrl-border: var(--site-line, #e6e6e6);
+  --lecture-thumbs-bg: color-mix(in srgb, var(--site-card, #fff) 94%, transparent);
+  --lecture-ghost-border: var(--site-line, #e6e6e6);
+  --lecture-spinner-track: color-mix(in srgb, var(--lecture-ink) 14%, transparent);
+  --lecture-shadow: 0 8px 24px rgba(13, 32, 61, 0.1);
 
   display: flex;
   flex-direction: column;
   height: 100vh;
   max-height: 100dvh;
   overflow: hidden;
-  background: #0a1424;
-  color: #fff;
+  background: var(--lecture-bg);
+  color: var(--lecture-ink);
   /* Annule legacy responsive.css : section { padding: 30px 0 } */
   margin: 0 !important;
   padding: 0 !important;
+}
+
+html[data-theme="dark"] .opt-lecture {
+  --opt-muted: var(--site-muted, #9aa3b2);
+  --lecture-bg: var(--site-bg, #00132b);
+  --lecture-stage: var(--site-bg, #00132b);
+  --lecture-ink: var(--site-ink, #f2f4f7);
+  --lecture-line: var(--site-line, #1a3a5c);
+  --lecture-card: var(--site-card, #06203f);
+  --lecture-bar-bg: var(--site-bg, #00132b);
+  --lecture-bar-ink: var(--site-ink, #f2f4f7);
+  --lecture-bar-muted: var(--site-muted, #9aa3b2);
+  --lecture-chip-bg: color-mix(in srgb, #fff 14%, transparent);
+  --lecture-tool-bg: var(--site-card, #06203f);
+  --lecture-tool-ink: var(--site-ink, #f2f4f7);
+  --lecture-tool-border: var(--site-line, #1a3a5c);
+  --lecture-ctrl-bg: rgba(8, 16, 30, 0.88);
+  --lecture-ctrl-ink: #fff;
+  --lecture-ctrl-border: rgba(255, 255, 255, 0.1);
+  --lecture-thumbs-bg: rgba(8, 16, 30, 0.82);
+  --lecture-ghost-border: rgba(255, 255, 255, 0.18);
+  --lecture-spinner-track: rgba(255, 255, 255, 0.12);
+  --lecture-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
 }
 
 /* Lecture plein écran — annule tout décalage body / legacy */
@@ -24,6 +67,8 @@ body:has(.opt-lecture) {
   overflow: hidden !important;
   height: 100% !important;
   max-height: 100dvh !important;
+  background: var(--site-bg, #fff);
+  color: var(--site-ink, #111);
 }
 
 .opt-lecture--loading,
@@ -40,7 +85,7 @@ body:has(.opt-lecture) {
 .opt-lecture__spinner {
   width: 48px;
   height: 48px;
-  border: 3px solid rgba(255, 255, 255, 0.12);
+  border: 3px solid var(--lecture-spinner-track);
   border-top-color: var(--opt-teal);
   border-radius: 50%;
   animation: opt-lecture-spin 0.85s linear infinite;
@@ -63,11 +108,11 @@ body:has(.opt-lecture) {
   width: 100%;
   margin: 0;
   padding: 0.65rem 1.1rem;
-  background: var(--opt-teal);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 2px 8px rgba(2, 208, 209, 0.12);
+  background: var(--lecture-bar-bg);
+  border-bottom: 1px solid var(--lecture-line);
+  box-shadow: var(--lecture-shadow);
   z-index: 30;
-  color: #062a2b;
+  color: var(--lecture-bar-ink);
 }
 
 .opt-lecture.is-fullscreen .opt-lecture__bar {
@@ -96,22 +141,22 @@ body:has(.opt-lecture) {
   justify-content: center;
   width: 2.35rem;
   height: 2.35rem;
-  border: 1px solid rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--lecture-tool-border);
   border-radius: 10px;
-  background: #0a0a0a;
-  color: #fff;
+  background: var(--lecture-tool-bg);
+  color: var(--lecture-tool-ink);
   cursor: pointer;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--lecture-shadow);
 }
 
 .opt-lecture__fs-exit:hover {
-  background: #1a1a1a;
+  filter: brightness(1.06);
 }
 
 .opt-lecture__fs-exit.is-active {
   box-shadow:
-    0 6px 18px rgba(0, 0, 0, 0.2),
-    0 0 0 2px rgba(255, 255, 255, 0.35);
+    var(--lecture-shadow),
+    0 0 0 2px color-mix(in srgb, var(--opt-teal) 45%, transparent);
 }
 
 .opt-lecture__back {
@@ -126,9 +171,9 @@ body:has(.opt-lecture) {
   height: 2.2rem;
   padding: 0;
   border-radius: 999px;
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  background: #0a0a0a;
-  color: #fff;
+  border: 1px solid var(--lecture-tool-border);
+  background: var(--lecture-tool-bg);
+  color: var(--lecture-tool-ink);
   text-decoration: none;
   transition:
     border-color 0.15s ease,
@@ -137,9 +182,8 @@ body:has(.opt-lecture) {
 }
 
 .opt-lecture__back:hover {
-  border-color: rgba(0, 0, 0, 0.35);
-  background: #1a1a1a;
-  color: #fff;
+  border-color: color-mix(in srgb, var(--lecture-tool-ink) 28%, transparent);
+  filter: brightness(1.04);
 }
 
 .opt-lecture__titleblock {
@@ -163,6 +207,10 @@ body:has(.opt-lecture) {
   object-fit: contain;
 }
 
+html[data-theme="dark"] .opt-lecture__brand img {
+  filter: brightness(0) invert(1);
+}
+
 .opt-lecture__tools {
   grid-column: 3;
   grid-row: 1;
@@ -179,7 +227,7 @@ body:has(.opt-lecture) {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(6, 42, 43, 0.72);
+  color: var(--lecture-bar-muted);
 }
 
 .opt-lecture__title-row {
@@ -196,7 +244,7 @@ body:has(.opt-lecture) {
   font-size: 0.98rem;
   font-weight: 750;
   line-height: 1.2;
-  color: #062a2b;
+  color: var(--lecture-bar-ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -206,8 +254,8 @@ body:has(.opt-lecture) {
   flex-shrink: 0;
   padding: 0.18rem 0.5rem;
   border-radius: 999px;
-  background: rgba(6, 42, 43, 0.14);
-  color: #062a2b;
+  background: var(--lecture-chip-bg);
+  color: var(--lecture-bar-ink);
   font-family: var(--opt-font-sans);
   font-size: 0.7rem;
   font-weight: 750;
@@ -227,7 +275,7 @@ body:has(.opt-lecture) {
 
 .opt-lecture__meta strong {
   min-width: 0;
-  color: #fff;
+  color: var(--lecture-ink);
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
@@ -238,8 +286,8 @@ body:has(.opt-lecture) {
   flex-shrink: 0;
   padding: 0.15rem 0.45rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: var(--lecture-chip-bg);
+  color: var(--lecture-ink);
   font-size: 0.72rem;
   font-weight: 700;
 }
@@ -249,14 +297,19 @@ body:has(.opt-lecture) {
   align-items: center;
   padding: 0.35rem 0.65rem;
   border-radius: 999px;
-  background: #0a0a0a;
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  color: #fff;
+  background: var(--lecture-tool-bg);
+  border: 1px solid var(--lecture-tool-border);
+  color: var(--lecture-tool-ink);
   font-family: var(--opt-font-sans);
   font-size: 0.75rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.opt-lecture__theme {
+  display: inline-flex;
+  align-items: center;
 }
 
 .opt-lecture__tool {
@@ -265,10 +318,10 @@ body:has(.opt-lecture) {
   justify-content: center;
   width: 2.2rem;
   height: 2.2rem;
-  border: 1px solid rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--lecture-tool-border);
   border-radius: 10px;
-  background: #0a0a0a;
-  color: #fff;
+  background: var(--lecture-tool-bg);
+  color: var(--lecture-tool-ink);
   text-decoration: none;
   cursor: pointer;
   transition:
@@ -278,16 +331,15 @@ body:has(.opt-lecture) {
 }
 
 .opt-lecture__tool:hover {
-  border-color: rgba(0, 0, 0, 0.35);
-  color: #fff;
-  background: #1a1a1a;
+  border-color: color-mix(in srgb, var(--lecture-tool-ink) 28%, transparent);
+  filter: brightness(1.04);
 }
 
 .opt-lecture__tool.is-active {
-  border-color: rgba(0, 0, 0, 0.45);
-  background: #000;
-  color: #fff;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
+  border-color: var(--opt-teal);
+  background: color-mix(in srgb, var(--opt-teal) 16%, var(--lecture-tool-bg));
+  color: var(--lecture-tool-ink);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--opt-teal) 35%, transparent);
 }
 
 @media (max-width: 720px) {
@@ -341,7 +393,7 @@ body:has(.opt-lecture) {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #f1f1f1;
+  background: var(--lecture-stage);
 }
 
 .opt-lecture__frame {
@@ -350,7 +402,7 @@ body:has(.opt-lecture) {
   height: 100%;
   min-height: calc(100vh - 3.4rem);
   border: 0;
-  background: #f1f1f1;
+  background: var(--lecture-stage);
 }
 
 .opt-lecture.is-fullscreen .opt-lecture__frame {
@@ -423,7 +475,7 @@ body:has(.opt-lecture) {
   margin: 0;
   padding: 0.4rem 0.75rem;
   border-radius: 999px;
-  background: rgba(8, 16, 30, 0.88);
+  background: var(--lecture-ctrl-bg);
   color: var(--opt-muted);
   font-family: var(--opt-font-sans);
   font-size: 0.75rem;
@@ -440,16 +492,16 @@ body:has(.opt-lecture) {
   align-items: center;
   justify-content: center;
   gap: 0.85rem;
-  background: #f1f1f1;
+  background: var(--lecture-stage);
   font-family: var(--opt-font-sans);
-  color: #64748b;
+  color: var(--opt-muted);
 }
 
 .opt-flip__bar {
   width: min(280px, 70vw);
   height: 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--lecture-spinner-track);
   overflow: hidden;
 }
 
@@ -547,7 +599,8 @@ body:has(.opt-lecture) {
 .opt-flip__page--cta {
   padding: 0 !important;
   overflow: hidden !important;
-  background: #0d203d;
+  background: var(--cta-bg, #00132b);
+  color: var(--cta-ink, #fff);
 }
 
 .opt-flip__page--cta.stf__item,
@@ -568,6 +621,20 @@ body:has(.opt-lecture) {
   gap: 0.75rem;
   padding: 8% 7%;
   text-align: center;
+  color: var(--cta-ink, #fff);
+  background: var(--cta-bg, #00132b);
+}
+
+.opt-flip__cta-eyebrow {
+  color: var(--cta-accent, var(--opt-teal));
+}
+
+.opt-flip__cta-title {
+  color: var(--cta-ink, #fff);
+}
+
+.opt-flip__cta-text {
+  color: color-mix(in srgb, var(--cta-ink, #fff) 78%, transparent);
 }
 
 .opt-flip__page--cta .opt-flip__cta-cover {
@@ -576,7 +643,7 @@ body:has(.opt-lecture) {
   aspect-ratio: 3 / 4;
   border-radius: 4px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, var(--cta-ink, #fff) 8%, transparent);
 }
 
 .opt-flip__page--cta .opt-flip__cta-cover img {
@@ -614,14 +681,14 @@ body:has(.opt-lecture) {
 }
 
 .opt-flip__cta-btn--primary {
-  background: #02d0d1;
-  color: #062a2b;
+  background: var(--cta-accent, var(--opt-teal));
+  color: var(--cta-on-accent, #fff);
 }
 
 .opt-flip__cta-btn--ghost {
   background: transparent;
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: var(--cta-ink, #fff);
+  border: 1px solid color-mix(in srgb, var(--cta-ink, #fff) 28%, transparent);
 }
 
 .opt-flip__thumb.is-cta .opt-flip__thumb-cta {
@@ -629,8 +696,8 @@ body:has(.opt-lecture) {
   place-items: center;
   width: 100%;
   aspect-ratio: 3 / 4;
-  background: #0d203d;
-  color: #02d0d1;
+  background: var(--cta-bg, #00132b);
+  color: var(--cta-accent, var(--opt-teal));
   font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -645,8 +712,8 @@ body:has(.opt-lecture) {
   flex: 0 0 auto;
   padding: 0.35rem 0.55rem;
   border-radius: 999px;
-  background: rgba(8, 16, 30, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--lecture-ctrl-bg);
+  border: 1px solid var(--lecture-ctrl-border);
 }
 
 .opt-flip__nav {
@@ -657,13 +724,13 @@ body:has(.opt-lecture) {
   height: 2.15rem;
   border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: color-mix(in srgb, var(--lecture-ctrl-ink) 10%, transparent);
+  color: var(--lecture-ctrl-ink);
   cursor: pointer;
 }
 
 .opt-flip__nav:hover:not(:disabled) {
-  background: rgba(2, 208, 209, 0.25);
+  background: color-mix(in srgb, var(--opt-teal) 22%, transparent);
   color: var(--opt-teal);
 }
 
@@ -678,7 +745,7 @@ body:has(.opt-lecture) {
   font-family: var(--opt-font-sans);
   font-size: 0.82rem;
   font-weight: 650;
-  color: #fff;
+  color: var(--lecture-ctrl-ink);
 }
 
 .opt-flip__thumbs {
@@ -691,12 +758,10 @@ body:has(.opt-lecture) {
   max-height: calc(100% - 1.5rem);
   margin: 0;
   padding: 0.45rem 0.2rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--lecture-ctrl-border);
   border-radius: 16px;
-  background: rgba(8, 16, 30, 0.82);
-  box-shadow:
-    0 12px 32px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  background: var(--lecture-thumbs-bg);
+  box-shadow: var(--lecture-shadow);
   backdrop-filter: blur(12px);
   pointer-events: auto;
 }
@@ -731,7 +796,7 @@ body:has(.opt-lecture) {
   padding: 0;
   border: 2px solid transparent;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, var(--lecture-ctrl-ink) 8%, transparent);
   overflow: hidden;
   cursor: pointer;
   scroll-snap-align: center;
@@ -763,9 +828,9 @@ body:has(.opt-lecture) {
 .opt-flip__thumb-skel {
   background: linear-gradient(
     110deg,
-    rgba(255, 255, 255, 0.08) 20%,
-    rgba(255, 255, 255, 0.16) 40%,
-    rgba(255, 255, 255, 0.08) 60%
+    color-mix(in srgb, var(--lecture-ink) 8%, transparent) 20%,
+    color-mix(in srgb, var(--lecture-ink) 16%, transparent) 40%,
+    color-mix(in srgb, var(--lecture-ink) 8%, transparent) 60%
   );
   background-size: 200% 100%;
   animation: opt-thumb-shimmer 1.1s linear infinite;
@@ -783,8 +848,8 @@ body:has(.opt-lecture) {
   bottom: 0.25rem;
   padding: 0.1rem 0.35rem;
   border-radius: 999px;
-  background: rgba(8, 16, 30, 0.82);
-  color: #fff;
+  background: var(--lecture-ctrl-bg);
+  color: var(--lecture-ctrl-ink);
   font-family: var(--opt-font-sans);
   font-size: 0.62rem;
   font-weight: 700;
@@ -899,7 +964,7 @@ body:has(.opt-lecture) {
   padding: 0 1.15rem;
   border-radius: 10px;
   background: var(--opt-teal);
-  color: #042a2b;
+  color: #fff;
   font-family: var(--opt-font-sans);
   font-size: 0.9rem;
   font-weight: 750;
@@ -908,8 +973,8 @@ body:has(.opt-lecture) {
 
 .opt-lecture__btn--ghost {
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: #fff;
+  border: 1px solid var(--lecture-ghost-border);
+  color: var(--lecture-ink);
 }
 
 .opt-lecture__btn:hover {

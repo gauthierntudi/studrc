@@ -18,7 +18,7 @@
 
 .opt-email-banner__inner > svg {
   flex: 0 0 auto;
-  color: #e9262a;
+  color: #d63026;
 }
 
 .opt-email-banner__text {
@@ -44,7 +44,7 @@
   padding: 0.4rem 0.95rem;
   border: 0;
   border-radius: 999px;
-  background: #e9262a;
+  background: #d63026;
   color: #fff;
   font-family: inherit;
   font-size: 0.82rem;

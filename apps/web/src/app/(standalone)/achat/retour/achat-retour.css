@@ -83,7 +83,7 @@
 
 .opt-achat-retour__icon.is-fail {
   color: #fff;
-  background: color-mix(in srgb, #e9262a 85%, #000);
+  background: color-mix(in srgb, #d63026 85%, #000);
 }
 
 .opt-achat-retour__spin {

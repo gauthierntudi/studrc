@@ -61,6 +61,7 @@ Même codebase NestJS, entrypoint `worker` :
 - Envoi emails via **Resend** (activation, facture, reset password)
 - Renouvellement / expiration abonnements
 - Optimisation images / préparation PDF après upload
+- Transcodage vidéo STU TALK / STU STORIES (FFmpeg → HLS multi-qualité sur R2)
 - Traitement webhooks paiement asynchrones si besoin
 
 ## Stockage R2
@@ -71,6 +72,7 @@ Même codebase NestJS, entrypoint `worker` :
 | `magazines/preview/` | Extraits / previews |
 | `covers/` | Couvertures magazines |
 | `articles/` | Images articles |
+| `videos/{articleId}/` | Source MP4 + poster + HLS (`hls/master.m3u8`) |
 | `profiles/` | Avatars abonnés |
 | `slides/` | Bannières home |
 

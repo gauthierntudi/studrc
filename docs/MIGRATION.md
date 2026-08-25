@@ -166,7 +166,7 @@ Achat à l’unité d’un magazine (hors abo).
 2. **Users** : `abonne`, `users`, `images_abonne`
 3. **Contenu** : `magazine`, `actualites`, `slide`
 4. **Transactions** : `abonnement`, `paiement`
-   - Script abonnements : `pnpm --filter @opt1mum/api migrate:subscriptions`
+   - Script abonnements : `pnpm --filter @studrc/api migrate:subscriptions`
    - Migre `formuleabonnement` → `Plan`, `abonnement` → `Subscription` (+ paiements `LEGACY` optionnels)
    - Prérequis : `pnpm migrate:mysql` (abonnés avec `legacyId`)
 5. **Social** : `commentaire`, `followers`, `contact`
@@ -191,7 +191,7 @@ v2/apps/api/scripts/migrate-articles-to-r2.ts        # covers articles/ → R2 a
 
 Sources :
 
-1. `LEGACY_MYSQL_URL` (live MySQL) — nécessite `pnpm --filter @opt1mum/api add mysql2`
+1. `LEGACY_MYSQL_URL` (live MySQL) — nécessite `pnpm --filter @studrc/api add mysql2`
 2. Sinon `LEGACY_SQL_DUMP` ou le dump du dépôt `database/schema.sql`
 
 Variables :

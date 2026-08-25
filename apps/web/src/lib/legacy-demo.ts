@@ -69,15 +69,6 @@ export const DEMO_FEATURED: TopStory[] = [
 
 export const DEMO_TOP_GRID: TopStory[] = [
   {
-    id: 2,
-    titre: "Budget éducation : ce que disent vraiment les chiffres 2026",
-    cover: "/legacy/articles/1591543622.jpg",
-    category: "STU DATA",
-    categoryTone: "blue",
-    author: "STUDRC",
-    dateLabel: "24 juil. 2026",
-  },
-  {
     id: 3,
     titre: "Débat : gratuité scolaire, bilan et angles morts",
     cover: "/legacy/articles/1591543645.jpg",
@@ -87,15 +78,6 @@ export const DEMO_TOP_GRID: TopStory[] = [
     dateLabel: "23 juil. 2026",
   },
   {
-    id: 4,
-    titre: "Kinshasa : les cantines scolaires qui tiennent encore",
-    cover: "/legacy/articles/1591545854.jpg",
-    category: "STU NEWS",
-    categoryTone: "red",
-    author: "STUDRC",
-    dateLabel: "22 juil. 2026",
-  },
-  {
     id: 5,
     titre: "Portrait : la directrice qui a rouvert trois écoles à Goma",
     cover: "/legacy/articles/1591545644.png",
@@ -103,6 +85,24 @@ export const DEMO_TOP_GRID: TopStory[] = [
     categoryTone: "gold",
     author: "STUDRC",
     dateLabel: "21 juil. 2026",
+  },
+  {
+    id: 2,
+    titre: "Budget éducation : ce que disent vraiment les chiffres 2026",
+    cover: "/legacy/articles/1591543622.jpg",
+    category: "STU DATA",
+    categoryTone: "blue",
+    author: "STUDRC",
+    dateLabel: "24 juil. 2026",
+  },
+  {
+    id: 4,
+    titre: "Kinshasa : les cantines scolaires qui tiennent encore",
+    cover: "/legacy/articles/1591545854.jpg",
+    category: "STU NEWS",
+    categoryTone: "red",
+    author: "STUDRC",
+    dateLabel: "22 juil. 2026",
   },
 ];
 
@@ -115,8 +115,8 @@ export const DEMO_MAGAZINES: DemoMagazine[] = [
     numero: "42",
     cover: "/legacy/covers/1591457791.jpg",
     price: "5",
-    bgColor: "#0d203d",
-    themeColor: "#02d0d1",
+    bgColor: "#00132b",
+    themeColor: "#0565ab",
     dateLabel: "juil. 2024",
     sommaire: [
       {
@@ -159,7 +159,7 @@ export const DEMO_MAGAZINES: DemoMagazine[] = [
     cover: "/legacy/covers/1592973638.jpg",
     price: "5",
     bgColor: "#037d95",
-    themeColor: "#fcbf04",
+    themeColor: "#fdbd01",
     dateLabel: "mai 2024",
     sommaire: [],
   },
@@ -169,8 +169,8 @@ export const DEMO_MAGAZINES: DemoMagazine[] = [
     numero: "39",
     cover: "/legacy/covers/1592975124.jpg",
     price: "5",
-    bgColor: "#050a23",
-    themeColor: "#02d0d1",
+    bgColor: "#00132b",
+    themeColor: "#0565ab",
     dateLabel: "avr. 2024",
     sommaire: [],
   },
@@ -180,8 +180,8 @@ export const DEMO_MAGAZINES: DemoMagazine[] = [
     numero: "38",
     cover: "/legacy/covers/1592975318.jpg",
     price: "5",
-    bgColor: "#0d203d",
-    themeColor: "#fcbf04",
+    bgColor: "#00132b",
+    themeColor: "#fdbd01",
     dateLabel: "mars 2024",
     sommaire: [],
   },
@@ -192,7 +192,7 @@ export const DEMO_MAGAZINES: DemoMagazine[] = [
     cover: "/legacy/covers/1592975407.jpg",
     price: "5",
     bgColor: "#021762",
-    themeColor: "#02d0d1",
+    themeColor: "#0565ab",
     dateLabel: "févr. 2024",
     sommaire: [],
   },
@@ -278,6 +278,8 @@ export type RubriqueStory = {
   author: string;
   dateLabel: string;
   tagTone?: "red" | "blue" | "teal" | "dark" | "gold" | "orange" | "yellow";
+  videoHlsUrl?: string | null;
+  videoPosterUrl?: string | null;
 };
 
 export const DEMO_STARTUP_FEATURED: RubriqueStory = {
@@ -285,10 +287,10 @@ export const DEMO_STARTUP_FEATURED: RubriqueStory = {
   titre:
     "Start-up : comment scaler un produit fintech au Congo sans perdre le cap",
   cover: "/legacy/articles/1591543622.jpg",
-  category: "Start-up",
+  category: "STU NEWS",
   author: "STUDRC",
   dateLabel: "18 juil. 2026",
-  tagTone: "teal",
+  tagTone: "red",
 };
 
 export const DEMO_STARTUP_GRID: RubriqueStory[] = [
@@ -299,7 +301,7 @@ export const DEMO_STARTUP_GRID: RubriqueStory[] = [
     category: "STU NEWS",
     author: "STUDRC",
     dateLabel: "16 juil. 2026",
-    tagTone: "teal",
+    tagTone: "red",
   },
   {
     id: 43,
@@ -308,7 +310,7 @@ export const DEMO_STARTUP_GRID: RubriqueStory[] = [
     category: "STU NEWS",
     author: "STUDRC",
     dateLabel: "14 juil. 2026",
-    tagTone: "teal",
+    tagTone: "red",
   },
   {
     id: 44,
@@ -317,7 +319,7 @@ export const DEMO_STARTUP_GRID: RubriqueStory[] = [
     category: "STU NEWS",
     author: "STUDRC",
     dateLabel: "12 juil. 2026",
-    tagTone: "teal",
+    tagTone: "red",
   },
   {
     id: 45,
@@ -326,7 +328,7 @@ export const DEMO_STARTUP_GRID: RubriqueStory[] = [
     category: "STU NEWS",
     author: "STUDRC",
     dateLabel: "10 juil. 2026",
-    tagTone: "teal",
+    tagTone: "red",
   },
 ];
 
@@ -339,7 +341,7 @@ export const DEMO_PLUS_VUS_FEATURED: RubriqueStory = {
   category: "STU TALK",
   author: "STUDRC",
   dateLabel: "18 juil. 2026",
-  tagTone: "blue",
+  tagTone: "teal",
 };
 
 export const DEMO_PLUS_VUS_LIST: RubriqueStory[] = [
@@ -373,10 +375,10 @@ export const DEMO_INSPIRATIONNEL_FEATURED: RubriqueSplitStory = {
   excerpt:
     "De la salle de réunion aux terrains d’innovation, un leadership qui inspire une génération d’entrepreneurs congolais…",
   cover: "/legacy/articles/1591545644.png",
-  category: "Inspirationnel",
+  category: "STU STORIES",
   author: "STUDRC",
   dateLabel: "21 juil. 2026",
-  tagTone: "red",
+  tagTone: "gold",
 };
 
 export const DEMO_INSPIRATIONNEL_GRID: RubriqueSplitStory[] = [
@@ -388,7 +390,7 @@ export const DEMO_INSPIRATIONNEL_GRID: RubriqueSplitStory[] = [
     category: "STU STORIES",
     author: "STUDRC",
     dateLabel: "21 juil. 2026",
-    tagTone: "red",
+    tagTone: "gold",
   },
   {
     id: 63,
@@ -397,7 +399,7 @@ export const DEMO_INSPIRATIONNEL_GRID: RubriqueSplitStory[] = [
     category: "STU STORIES",
     author: "STUDRC",
     dateLabel: "20 juil. 2026",
-    tagTone: "red",
+    tagTone: "gold",
   },
   {
     id: 64,
@@ -407,7 +409,7 @@ export const DEMO_INSPIRATIONNEL_GRID: RubriqueSplitStory[] = [
     category: "STU STORIES",
     author: "STUDRC",
     dateLabel: "18 juil. 2026",
-    tagTone: "red",
+    tagTone: "gold",
   },
 ];
 
@@ -416,10 +418,10 @@ export const DEMO_ZOOM_FEATURED: RubriqueStory = {
   id: 71,
   titre: "Zoom : l’écosystème entrepreneurial sous tension à Kinshasa",
   cover: "/legacy/articles/1591545854.jpg",
-  category: "Zoom",
+  category: "STU TALK",
   author: "STUDRC",
   dateLabel: "19 juil. 2026",
-  tagTone: "dark",
+  tagTone: "teal",
 };
 
 export const DEMO_ZOOM_GRID: RubriqueStory[] = [
@@ -430,7 +432,7 @@ export const DEMO_ZOOM_GRID: RubriqueStory[] = [
     category: "STU TALK",
     author: "STUDRC",
     dateLabel: "17 juil. 2026",
-    tagTone: "dark",
+    tagTone: "teal",
   },
   {
     id: 73,
@@ -439,7 +441,7 @@ export const DEMO_ZOOM_GRID: RubriqueStory[] = [
     category: "STU TALK",
     author: "STUDRC",
     dateLabel: "15 juil. 2026",
-    tagTone: "dark",
+    tagTone: "teal",
   },
   {
     id: 74,
@@ -448,7 +450,7 @@ export const DEMO_ZOOM_GRID: RubriqueStory[] = [
     category: "STU TALK",
     author: "STUDRC",
     dateLabel: "13 juil. 2026",
-    tagTone: "dark",
+    tagTone: "teal",
   },
   {
     id: 75,
@@ -457,7 +459,7 @@ export const DEMO_ZOOM_GRID: RubriqueStory[] = [
     category: "STU TALK",
     author: "STUDRC",
     dateLabel: "11 juil. 2026",
-    tagTone: "dark",
+    tagTone: "teal",
   },
 ];
 
@@ -471,7 +473,7 @@ export const DEMO_GAME_FEATURED: RubriqueSplitStory = {
   category: "Game changers",
   author: "STUDRC",
   dateLabel: "20 juil. 2026",
-  tagTone: "gold",
+  tagTone: "dark",
 };
 
 export const DEMO_GAME_GRID: RubriqueSplitStory[] = [
@@ -482,7 +484,7 @@ export const DEMO_GAME_GRID: RubriqueSplitStory[] = [
     category: "STU MAG",
     author: "STUDRC",
     dateLabel: "18 juil. 2026",
-    tagTone: "gold",
+    tagTone: "dark",
   },
   {
     id: 83,
@@ -491,7 +493,7 @@ export const DEMO_GAME_GRID: RubriqueSplitStory[] = [
     category: "STU MAG",
     author: "STUDRC",
     dateLabel: "16 juil. 2026",
-    tagTone: "gold",
+    tagTone: "dark",
   },
   {
     id: 84,
@@ -500,7 +502,7 @@ export const DEMO_GAME_GRID: RubriqueSplitStory[] = [
     category: "STU MAG",
     author: "STUDRC",
     dateLabel: "14 juil. 2026",
-    tagTone: "gold",
+    tagTone: "dark",
   },
 ];
 
@@ -512,7 +514,7 @@ export const DEMO_A_NE_PAS_MANQUER_FEATURED: RubriqueStory = {
   category: "STU TALK",
   author: "STUDRC",
   dateLabel: "22 juil. 2026",
-  tagTone: "blue",
+  tagTone: "teal",
 };
 
 export const DEMO_A_NE_PAS_MANQUER_LIST: RubriqueStory[] = [

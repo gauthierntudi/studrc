@@ -20,6 +20,8 @@ import { libraryApi } from "@/lib/api";
 import { EmailVerifyBanner } from "./email-verify-banner";
 import { HeaderLiveSearch } from "./header-live-search";
 import { BrandLogo } from "./brand-logo";
+import { ThemeToggle } from "./theme-toggle";
+import { SUBSCRIPTIONS_ENABLED } from "@/lib/features";
 import { RUBRIQUES } from "@/lib/rubriques";
 import "./site-header.css";
 
@@ -209,6 +211,10 @@ export function SiteHeader({ showNav = true }: { showNav?: boolean } = {}) {
           </Link>
 
           <div className="opt-header__side opt-header__side--right">
+            <ThemeToggle />
+
+            <span className="opt-header__vsep" aria-hidden />
+
             <Link href="/kiosque" className="opt-header__action">
               <BookOpen {...ICON} aria-hidden />
               <span>STU MAG</span>
@@ -316,9 +322,11 @@ export function SiteHeader({ showNav = true }: { showNav?: boolean } = {}) {
               </Link>
             )}
 
-            <Link href="/abonnement" className="opt-header__cta">
-              S&apos;abonner
-            </Link>
+            {SUBSCRIPTIONS_ENABLED ? (
+              <Link href="/abonnement" className="opt-header__cta">
+                S&apos;abonner
+              </Link>
+            ) : null}
           </div>
         </div>
 
@@ -385,20 +393,17 @@ export function SiteHeader({ showNav = true }: { showNav?: boolean } = {}) {
               </Link>
             </li>
             {RUBRIQUES.map((item) => (
-              <li key={item.href}>
+              <li key={item.slug}>
                 <Link href={item.href} onClick={() => setMenuOpen(false)}>
                   {item.label}
                 </Link>
               </li>
             ))}
-            <li>
-              <Link href="/kiosque" onClick={() => setMenuOpen(false)}>
-                STU MAG
-              </Link>
-            </li>
           </ul>
 
           <div className="opt-menu__actions">
+            <ThemeToggle variant="menu" />
+
             {loggedIn && user ? (
               <Link
                 href="/compte"
@@ -424,13 +429,15 @@ export function SiteHeader({ showNav = true }: { showNav?: boolean } = {}) {
               </Link>
             ) : null}
 
-            <Link
-              href="/abonnement"
-              className="opt-menu__btn opt-menu__btn--cta"
-              onClick={() => setMenuOpen(false)}
-            >
-              S&apos;abonner
-            </Link>
+            {SUBSCRIPTIONS_ENABLED ? (
+              <Link
+                href="/abonnement"
+                className="opt-menu__btn opt-menu__btn--cta"
+                onClick={() => setMenuOpen(false)}
+              >
+                S&apos;abonner
+              </Link>
+            ) : null}
 
             {loggedIn ? (
               <div className="opt-menu__account-list" role="navigation" aria-label="Mon compte">

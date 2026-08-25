@@ -1,28 +1,28 @@
 .opt-rubrique {
-  --opt-navy: #0d203d;
+  --opt-navy: #00132b;
   --opt-ink: #111;
   --opt-muted: #8a8a8a;
   --opt-line: #e6e6e6;
-  --opt-tone: var(--opt-cat-teal, #02d0d1);
+  --opt-tone: var(--opt-cat-teal, #0565ab);
   background: #fff;
   color: var(--opt-ink);
   padding: 1.5rem 0 3.5rem;
 }
 
 .opt-rubrique--red {
-  --opt-tone: var(--opt-cat-red, #e9262a);
+  --opt-tone: var(--opt-cat-red, #d63026);
 }
 .opt-rubrique--blue {
-  --opt-tone: var(--opt-cat-blue, #1e5bb8);
+  --opt-tone: var(--opt-cat-blue, #0565ab);
 }
 .opt-rubrique--teal {
-  --opt-tone: var(--opt-cat-teal, #02d0d1);
+  --opt-tone: var(--opt-cat-teal, #0565ab);
 }
 .opt-rubrique--dark {
   --opt-tone: var(--opt-cat-dark, #111);
 }
 .opt-rubrique--gold {
-  --opt-tone: var(--opt-cat-gold, #fcbf04);
+  --opt-tone: var(--opt-cat-gold, #fdbd01);
 }
 .opt-rubrique--orange {
   --opt-tone: var(--opt-cat-orange, #ea580c);
@@ -70,7 +70,7 @@
   width: 100%;
   height: 100%;
   min-height: 100%;
-  background: linear-gradient(145deg, #0d203d, #1a3a5c);
+  background: linear-gradient(145deg, #00132b, #1a3a5c);
 }
 
 /* —— Hero carousel (cartes cover) —— */
@@ -139,12 +139,16 @@
   pointer-events: none;
 }
 
+.opt-rubrique--video .opt-rubrique__feed-media {
+  aspect-ratio: 16 / 9;
+}
+
 .opt-rubrique__hero-body {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 2;
+  z-index: 3;
   display: grid;
   gap: 0.55rem;
   padding: 1rem 0.95rem 1.05rem;
@@ -168,9 +172,29 @@
   text-overflow: ellipsis;
 }
 
-.opt-rubrique--gold .opt-rubrique__hero-badge,
+.opt-rubrique--red .opt-rubrique__hero-badge {
+  background: #0462a9;
+  color: #fff;
+}
+
+.opt-rubrique--blue .opt-rubrique__hero-badge {
+  background: #febb00;
+  color: #00132b;
+}
+
+.opt-rubrique--gold .opt-rubrique__hero-badge {
+  background: #ff0c00;
+  color: #fff;
+}
+
 .opt-rubrique--teal .opt-rubrique__hero-badge {
-  color: #041512;
+  background: #022144;
+  color: #fff;
+}
+
+.opt-rubrique--dark .opt-rubrique__hero-badge {
+  background: #e1045c;
+  color: #fff;
 }
 
 .opt-rubrique__hero-title {

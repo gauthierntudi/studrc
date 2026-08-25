@@ -2,7 +2,7 @@
  * Configure CORS R2 pour autoriser les PUT navigateur (presigned uploads).
  *
  * Usage:
- *   pnpm --filter @opt1mum/api exec tsx scripts/configure-r2-cors.ts
+ *   pnpm --filter @studrc/api exec tsx scripts/configure-r2-cors.ts
  */
 import { config as loadEnv } from 'dotenv';
 import { resolve } from 'path';

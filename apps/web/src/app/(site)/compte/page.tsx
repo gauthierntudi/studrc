@@ -10,12 +10,7 @@ import {
   Camera,
   Eye,
   EyeOff,
-  Flag,
-  Hash,
   KeyRound,
-  Mail,
-  MapPin,
-  Phone,
   Save,
   User,
   X,
@@ -74,6 +69,7 @@ export default function AccountPage() {
     formState: { errors, isSubmitting, isDirty },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
+    mode: "onBlur",
     defaultValues: {
       name: "",
       email: "",
@@ -138,6 +134,8 @@ export default function AccountPage() {
   }, [pwdOpen, pwdForm]);
 
   const country = watch("country");
+  const countryCode = watch("countryCode");
+  const dialCode = (countryCode ?? "").replace(/^\+/, "");
 
   const sortedCountries = useMemo(
     () => [...COUNTRIES].sort((a, b) => a.name.localeCompare(b.name, "fr")),
@@ -310,10 +308,20 @@ export default function AccountPage() {
         <article className={`opt-compte__card${profileLocked ? " is-locked" : ""}`}>
           <div className="opt-compte__card-body">
             <div className="opt-compte__profile">
-              <div
-                className={`opt-compte__avatar-wrap${uploading ? " is-uploading" : ""}`}
+              <label
+                className={`opt-compte__avatar-wrap${uploading ? " is-uploading" : ""}${profileLocked ? " is-disabled" : ""}`}
               >
-                <div
+                <input
+                  ref={fileRef}
+                  type="file"
+                  id="file"
+                  className="opt-compte__file-input"
+                  accept="image/png,image/jpeg,image/jpg"
+                  disabled={uploading || profileLocked}
+                  aria-label="Changer la photo de profil"
+                  onChange={(e) => onAvatarPick(e.target.files?.[0])}
+                />
+                <span
                   className={`opt-compte__avatar-inner${uploading ? " is-uploading" : ""}`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -322,14 +330,14 @@ export default function AccountPage() {
                       previewUrl ||
                       avatarSrc(user.avatarUrl)
                     }
-                    alt="Photo de profil"
+                    alt=""
                     onError={(e) => {
                       if (previewUrl) return;
                       e.currentTarget.onerror = null;
                       e.currentTarget.src = avatarLocalFallback(user.avatarUrl);
                     }}
                   />
-                  <div
+                  <span
                     className={`opt-compte__avatar-overlay${uploading ? " is-active" : ""}`}
                     aria-hidden={!uploading}
                   >
@@ -337,40 +345,20 @@ export default function AccountPage() {
                     <span className="opt-compte__avatar-overlay-text">
                       Envoi…
                     </span>
-                  </div>
-                </div>
-              </div>
+                  </span>
+                </span>
+                {profileLocked || uploading ? null : (
+                  <span className="opt-compte__avatar-edit" aria-hidden>
+                    <Camera size={13} strokeWidth={2.25} />
+                  </span>
+                )}
+              </label>
               <div className="opt-compte__profile-text">
                 <h2>{user.name || "Mon compte"}</h2>
                 <p>
                   PNG, JPG ou JPEG. Recadrez en cercle avant l&apos;envoi (1 Mo
                   max après compression).
                 </p>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  id="file"
-                  className="opt-compte__file-input"
-                  accept="image/png,image/jpeg,image/jpg"
-                  disabled={uploading || profileLocked}
-                  onChange={(e) => onAvatarPick(e.target.files?.[0])}
-                />
-                <label
-                  htmlFor="file"
-                  className={`opt-compte__upload-btn${uploading ? " is-loading" : ""}${profileLocked ? " is-disabled" : ""}`}
-                  aria-disabled={uploading || profileLocked}
-                >
-                  <span className="opt-compte__btn-spinner" aria-hidden />
-                  <Camera
-                    size={15}
-                    strokeWidth={2}
-                    className="opt-compte__btn-camera"
-                    aria-hidden
-                  />
-                  <span>
-                    {uploading ? "Envoi en cours…" : "Changer la photo"}
-                  </span>
-                </label>
               </div>
             </div>
           </div>
@@ -382,104 +370,132 @@ export default function AccountPage() {
               <User {...ICON} aria-hidden />
               Informations personnelles
             </h2>
+            <p className="opt-compte__section-lead">
+              Nom, coordonnées et adresse utilisés pour votre compte.
+            </p>
 
             <form className="opt-compte__form" onSubmit={onSubmit} noValidate>
               <fieldset disabled={profileLocked} className="opt-compte__fieldset">
-              <div className="opt-compte__row">
+              <div className="opt-compte__grid">
                 <div className="opt-compte__field">
                   <label htmlFor="nomAb">
-                    <User {...ICON} aria-hidden /> Nom complet
+                    Nom complet
+                    <span className="opt-compte__req" aria-hidden>
+                      *
+                    </span>
                   </label>
                   <input
                     id="nomAb"
                     type="text"
                     autoComplete="name"
-                    placeholder="Votre nom complet"
+                    placeholder="Prénom et nom"
+                    aria-invalid={errors.name ? true : undefined}
+                    aria-describedby={errors.name ? "nomAb-err" : undefined}
                     {...register("name")}
                   />
                   {errors.name ? (
-                    <p className="opt-compte__error">{errors.name.message}</p>
+                    <p id="nomAb-err" className="opt-compte__error" role="alert">
+                      {errors.name.message}
+                    </p>
                   ) : null}
                 </div>
-                <div className="opt-compte__field">
-                  <label htmlFor="telAb">
-                    <Phone {...ICON} aria-hidden /> Téléphone
-                  </label>
-                  <input
-                    id="telAb"
-                    type="tel"
-                    autoComplete="tel"
-                    placeholder="Votre numéro de téléphone"
-                    {...register("phone")}
-                  />
-                </div>
-              </div>
 
-              <div className="opt-compte__row">
                 <div className="opt-compte__field">
                   <label htmlFor="mailAb">
-                    <Mail {...ICON} aria-hidden /> Adresse e-mail
+                    Adresse e-mail
+                    <span className="opt-compte__req" aria-hidden>
+                      *
+                    </span>
                   </label>
                   <input
                     id="mailAb"
                     type="email"
                     autoComplete="email"
-                    placeholder="Votre adresse e-mail"
+                    inputMode="email"
+                    spellCheck={false}
+                    placeholder="vous@exemple.com"
+                    aria-invalid={errors.email ? true : undefined}
+                    aria-describedby={errors.email ? "mailAb-err" : undefined}
                     {...register("email")}
                   />
                   {errors.email ? (
-                    <p className="opt-compte__error">{errors.email.message}</p>
+                    <p id="mailAb-err" className="opt-compte__error" role="alert">
+                      {errors.email.message}
+                    </p>
                   ) : null}
                 </div>
-                <div className="opt-compte__field opt-compte__field--split">
-                  <div className="opt-compte__field">
-                    <label htmlFor="pays">
-                      <Flag {...ICON} aria-hidden /> Pays
-                    </label>
-                    <select
-                      id="pays"
-                      value={country ?? ""}
-                      onChange={(e) => onCountryChange(e.target.value)}
-                    >
-                      <option value="">Sélectionner votre pays</option>
-                      {sortedCountries.map((c) => (
-                        <option key={c.name} value={c.name}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="opt-compte__field opt-compte__field--code">
-                    <label htmlFor="codePays">
-                      <Hash {...ICON} aria-hidden /> Indicatif
-                    </label>
+
+                <div className="opt-compte__field">
+                  <label htmlFor="pays">Pays</label>
+                  <select
+                    id="pays"
+                    autoComplete="country-name"
+                    value={country ?? ""}
+                    onChange={(e) => onCountryChange(e.target.value)}
+                  >
+                    <option value="">Sélectionner un pays</option>
+                    {sortedCountries.map((c) => (
+                      <option key={c.name} value={c.name}>
+                        {c.name} (+{c.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="opt-compte__field">
+                  <label htmlFor="telAb">Téléphone</label>
+                  <div className="opt-compte__phone">
+                    <span className="opt-compte__phone-prefix" aria-hidden>
+                      {dialCode ? `+${dialCode}` : "+"}
+                    </span>
                     <input
-                      id="codePays"
-                      type="text"
-                      readOnly
-                      placeholder="+…"
-                      {...register("countryCode")}
+                      id="telAb"
+                      type="tel"
+                      autoComplete="tel-national"
+                      inputMode="tel"
+                      placeholder="Numéro sans indicatif"
+                      {...register("phone")}
                     />
                   </div>
+                  <input type="hidden" {...register("countryCode")} />
                 </div>
-              </div>
 
-              <div className="opt-compte__field">
-                <label htmlFor="adresse_physique">
-                  <MapPin {...ICON} aria-hidden /> Adresse physique
-                </label>
-                <textarea
-                  id="adresse_physique"
-                  rows={3}
-                  placeholder="Rue, ville, code postal…"
-                  {...register("address")}
-                />
-                <p className="opt-compte__hint">
-                  Utilisée pour la facturation et la livraison si applicable.
-                </p>
+                <div className="opt-compte__field opt-compte__field--full">
+                  <label htmlFor="adresse_physique">Adresse</label>
+                  <textarea
+                    id="adresse_physique"
+                    rows={3}
+                    autoComplete="street-address"
+                    placeholder="Rue, ville, code postal…"
+                    {...register("address")}
+                  />
+                  <p className="opt-compte__hint">
+                    Facturation et livraison, si applicable.
+                  </p>
+                </div>
               </div>
 
               <div className="opt-compte__actions">
+                {isDirty ? (
+                  <button
+                    type="button"
+                    className="opt-compte__btn-ghost"
+                    disabled={isSubmitting || profileLocked}
+                    onClick={() => {
+                      if (!user) return;
+                      reset({
+                        name: user.name ?? "",
+                        email: user.email ?? "",
+                        phone: user.phone ?? "",
+                        country: user.country ?? "",
+                        countryCode: user.countryCode ?? "",
+                        address: user.address ?? "",
+                      });
+                    }}
+                  >
+                    Annuler
+                  </button>
+                ) : null}
                 <button
                   type="submit"
                   className="opt-compte__btn-save"
@@ -496,7 +512,7 @@ export default function AccountPage() {
                   className="opt-compte__link-pwd"
                   onClick={() => setPwdOpen(true)}
                 >
-                  modifier mon mot de passe
+                  Modifier le mot de passe
                 </button>
               </div>
             </form>

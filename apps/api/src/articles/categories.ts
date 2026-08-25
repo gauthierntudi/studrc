@@ -67,3 +67,10 @@ export function categoryDisplay(raw: string | null | undefined): {
   if (meta) return { label: meta.label, tone: meta.tone };
   return { label: key || 'Actualité', tone: 'teal' };
 }
+
+export const VIDEO_CATEGORY_SLUGS = ['stu-talk', 'stu-stories'] as const;
+
+export function isVideoCategory(raw: string | null | undefined): boolean {
+  const slug = resolveCategorySlug(raw ?? '');
+  return slug === 'stu-talk' || slug === 'stu-stories';
+}

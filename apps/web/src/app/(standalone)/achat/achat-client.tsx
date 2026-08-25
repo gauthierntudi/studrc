@@ -19,6 +19,7 @@ import {
   paymentsApi,
   type PublicMagazineDetail,
 } from "@/lib/api";
+import { SUBSCRIPTIONS_ENABLED } from "@/lib/features";
 import { cn } from "@/lib/utils";
 import "../abonnement/abonnement.css";
 
@@ -338,8 +339,13 @@ function AchatInner() {
                     Ce numéro n’est pas proposé à l’achat unitaire.
                   </p>
                   <div className="opt-abo__cta-row">
-                    <Link href="/abonnement" className="opt-abo__cta">
-                      Voir l’abonnement
+                    <Link
+                      href={SUBSCRIPTIONS_ENABLED ? "/abonnement" : "/kiosque"}
+                      className="opt-abo__cta"
+                    >
+                      {SUBSCRIPTIONS_ENABLED
+                        ? "Voir l’abonnement"
+                        : "Aller au kiosque"}
                     </Link>
                   </div>
                 </>
@@ -521,8 +527,14 @@ function AchatInner() {
                     <Link href="/conditions-utilisation">
                       conditions d’utilisation
                     </Link>
-                    . Préférez un accès illimité ?{" "}
-                    <Link href="/abonnement">Voir l’abonnement</Link>.
+                    .
+                    {SUBSCRIPTIONS_ENABLED ? (
+                      <>
+                        {" "}
+                        Préférez un accès illimité ?{" "}
+                        <Link href="/abonnement">Voir l’abonnement</Link>.
+                      </>
+                    ) : null}
                   </p>
 
                   <p className="opt-abo__secure">

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalDoc } from "@/components/site/legal-doc";
 import { BRAND } from "@/lib/brand";
+import { SUBSCRIPTIONS_ENABLED } from "@/lib/features";
 
 export const metadata: Metadata = {
   title: "Politique de confidentialité",
@@ -11,25 +12,25 @@ export const metadata: Metadata = {
 
 export default function ConfidentialitePage() {
   return (
-    <LegalDoc title="Politique de confidentialité" updatedAt="8 août 2026">
+    <LegalDoc
+      title="Politique de confidentialité"
+      updatedAt="25 août 2026"
+      current="privacy"
+    >
       <p>
-        La présente politique décrit la manière dont{" "}
-        <strong>STUDRC</strong> («&nbsp;nous&nbsp;»)
-        traite les données personnelles dans le cadre du site{" "}
-        <Link href="/">{BRAND.domain}</Link>, de l’application web associée, des
-        abonnements et de l’achat de magazines numériques.
-      </p>
-      <p>
-        Elle a un caractère informatif et générique. Pour toute question
-        précise, contactez-nous aux coordonnées indiquées ci-dessous.
+        Cette politique explique comment <strong>{BRAND.name}</strong> traite
+        vos données personnelles lorsque vous utilisez le site{" "}
+        <Link href="/">{BRAND.domain}</Link>, le kiosque, les articles, les
+        magazines numériques et votre espace compte.
       </p>
 
-      <h2>1. Responsable du traitement</h2>
+      <h2 id="responsable">1. Responsable du traitement</h2>
       <p>
-        Le responsable du traitement est STUDRC, plateforme média et
-        observatoire du système éducatif de la RDC.
+        Le responsable du traitement est {BRAND.legalName}, média et
+        observatoire du système éducatif de la République démocratique du Congo.
       </p>
       <ul>
+        <li>Adresse : {BRAND.address}</li>
         <li>
           Site : <Link href="/">{BRAND.siteUrl}</Link>
         </li>
@@ -39,210 +40,202 @@ export default function ConfidentialitePage() {
         </li>
         <li>
           Téléphone :{" "}
-          <a href="tel:+243843966000">+243 843 966 000</a>
+          <a href={`tel:${BRAND.phone.replace(/\s/g, "")}`}>{BRAND.phone}</a>
         </li>
       </ul>
 
-      <h2>2. Données que nous collectons</h2>
+      <h2 id="donnees">2. Données que nous collectons</h2>
       <p>Selon votre usage du service, nous pouvons traiter :</p>
       <ul>
         <li>
-          <strong>Compte abonné</strong> : nom, adresse e-mail, mot de passe
-          (stocké sous forme hachée), téléphone, pays, adresse, photo de profil,
-          code abonné.
+          <strong>Compte</strong> : nom, adresse e-mail, mot de passe (haché),
+          téléphone, pays, adresse, photo de profil, code abonné.
         </li>
         <li>
           <strong>Connexion Google</strong> : identifiant Google, e-mail, nom et
-          photo de profil fournis par Google lorsque vous choisissez cette
-          option.
+          photo fournis par Google si vous choisissez cette option.
         </li>
         <li>
           <strong>Paiements</strong> : références de transaction, montants,
           devise, statut, canal (carte via Stripe ou Mobile Money via FlexPaie).
-          Les données de carte bancaire sont traitées par Stripe ; nous ne
-          stockons pas le numéro complet de votre carte.
+          Les données de carte sont traitées par Stripe ; nous ne stockons pas
+          le numéro complet de votre carte.
         </li>
         <li>
-          <strong>Abonnements et achats</strong> : formules souscrites, magazines
-          achetés, historique de paiements et d’accès aux contenus.
+          <strong>Achats{SUBSCRIPTIONS_ENABLED ? " et abonnements" : ""}</strong>{" "}
+          : magazines achetés, historique de paiements et d’accès aux
+          contenus
+          {SUBSCRIPTIONS_ENABLED
+            ? ", formules souscrites."
+            : "."}
         </li>
         <li>
-          <strong>Newsletter</strong> : adresse e-mail et consentement associés
-          à l’inscription.
+          <strong>Newsletter</strong> : adresse e-mail et consentement liés à
+          l’inscription.
         </li>
         <li>
           <strong>Usage du site</strong> : pages consultées, articles lus
-          (compteurs de vues), journaux techniques (adresse IP, date/heure) liés
-          à la sécurité et au support.
+          (compteurs de vues), journaux techniques (adresse IP, date et heure)
+          pour la sécurité et le support.
         </li>
         <li>
-          <strong>Cookies / session</strong> : cookies HTTP-only nécessaires à
+          <strong>Protection anti-abus</strong> : jeton Cloudflare Turnstile
+          lors de l’inscription, de la connexion ou d’un formulaire protégé,
+          lorsque le captcha est activé.
+        </li>
+        <li>
+          <strong>Session</strong> : cookies HTTP-only nécessaires à
           l’authentification (jetons d’accès et de rafraîchissement).
         </li>
         <li>
-          <strong>Messages</strong> : contenus transmis via le formulaire de
-          contact ou les échanges support.
+          <strong>Messages</strong> : contenus envoyés via le contact ou le
+          support.
         </li>
       </ul>
 
-      <h2>3. Finalités</h2>
+      <h2 id="finalites">3. Finalités</h2>
       <ul>
-        <li>Créer et gérer votre compte abonné.</li>
+        <li>Créer et gérer votre compte.</li>
         <li>
-          Fournir l’accès au kiosque, aux magazines numériques et aux articles.
+          Donner accès aux articles, au kiosque et aux magazines (gratuits ou
+          achetés).
         </li>
         <li>
-          Traiter les abonnements, achats unitaires et confirmations de
+          Traiter les achats
+          {SUBSCRIPTIONS_ENABLED ? ", abonnements" : ""} et confirmations de
           paiement.
         </li>
-        <li>Envoyer des e-mails transactionnels (compte, paiement, accès).</li>
+        <li>Envoyer les e-mails de compte, de paiement et d’accès.</li>
+        <li>Envoyer la newsletter si vous y avez consenti.</li>
         <li>
-          Envoyer la newsletter lorsque vous y avez consenti.
+          Sécuriser le service, limiter la fraude et traiter les incidents.
         </li>
-        <li>
-          Assurer la sécurité du service, prévenir la fraude et résoudre les
-          incidents.
-        </li>
-        <li>Améliorer le contenu éditorial et l’expérience de lecture.</li>
-        <li>Répondre à vos demandes et obligations légales.</li>
+        <li>Améliorer le contenu éditorial et la lecture.</li>
+        <li>Répondre à vos demandes et aux obligations légales.</li>
       </ul>
 
-      <h2>4. Bases du traitement</h2>
+      <h2 id="bases">4. Bases du traitement</h2>
       <p>Selon le cas, le traitement repose sur :</p>
       <ul>
         <li>
-          l’exécution du contrat (compte, abonnement, achat, accès aux
-          contenus)&nbsp;;
+          l’exécution du contrat (compte, achat, accès aux contenus
+          {SUBSCRIPTIONS_ENABLED ? ", abonnement" : ""})&nbsp;;
         </li>
-        <li>votre consentement (newsletter, certains cookies non essentiels)&nbsp;;</li>
+        <li>votre consentement (newsletter, captcha le cas échéant)&nbsp;;</li>
         <li>
-          notre intérêt légitime (sécurité, statistiques d’audience agrégées,
-          amélioration du service)&nbsp;;
+          notre intérêt légitime (sécurité, statistiques agrégées, amélioration
+          du service)&nbsp;;
         </li>
         <li>le respect d’obligations légales applicables.</li>
       </ul>
 
-      <h2>5. Destinataires et sous-traitants</h2>
+      <h2 id="destinataires">5. Destinataires et sous-traitants</h2>
       <p>
-        Les données sont accessibles aux équipes habilitées de STUDRC. Elles
-        peuvent être traitées pour notre compte par des prestataires
-        techniques, notamment&nbsp;:
+        Les données sont accessibles aux équipes habilitées de {BRAND.name}.
+        Elles peuvent être traitées pour notre compte par :
       </p>
       <ul>
         <li>
-          <strong>Stripe</strong> — paiements par carte ;
+          <strong>Stripe</strong> — paiements par carte&nbsp;;
         </li>
         <li>
-          <strong>FlexPaie / FlexPay</strong> — paiements Mobile Money ;
+          <strong>FlexPaie / FlexPay</strong> — paiements Mobile Money&nbsp;;
         </li>
         <li>
-          <strong>Resend</strong> — envoi d’e-mails ;
+          <strong>Resend</strong> — envoi d’e-mails&nbsp;;
         </li>
         <li>
-          <strong>Cloudflare</strong> (stockage R2 / CDN) — médias et fichiers ;
+          <strong>Cloudflare</strong> — stockage R2 / CDN des médias, et
+          Turnstile lorsque le captcha est actif&nbsp;;
         </li>
         <li>
-          <strong>Google</strong> — authentification si vous utilisez «&nbsp;Continuer
-          avec Google&nbsp;» ;
+          <strong>Google</strong> — authentification si vous utilisez Continuer
+          avec Google&nbsp;;
         </li>
-        <li>
-          hébergeur de l’infrastructure (serveur et base de données).
-        </li>
+        <li>l’hébergeur de l’infrastructure (serveur et base de données).</li>
       </ul>
       <p>
         Ces prestataires n’agissent que dans le cadre nécessaire à leurs
-        services et selon leurs propres politiques de confidentialité.
+        services, selon leurs propres politiques.
       </p>
 
-      <h2>6. Transferts et hébergement</h2>
+      <h2 id="transferts">6. Transferts et hébergement</h2>
       <p>
-        Les données sont hébergées sur des infrastructures situées principalement
-        en Europe / auprès de prestataires internationaux (paiements, e-mail,
-        stockage). Lorsque des transferts hors de votre pays de résidence
-        interviennent, nous nous appuyons sur les garanties prévues par ces
-        prestataires et sur les mesures de sécurité appropriées.
+        Les données sont hébergées principalement en Europe et auprès de
+        prestataires internationaux (paiements, e-mail, stockage, captcha).
+        Lorsque des transferts hors de votre pays de résidence ont lieu, nous
+        nous appuyons sur les garanties de ces prestataires et sur des mesures
+        de sécurité adaptées.
       </p>
 
-      <h2>7. Durées de conservation</h2>
+      <h2 id="durees">7. Durées de conservation</h2>
       <ul>
         <li>
-          Compte abonné : pendant la durée d’utilisation du compte, puis
-          archivage ou suppression selon nos besoins opérationnels et obligations
-          légales.
+          Compte : pendant l’utilisation, puis archivage ou suppression selon
+          les besoins opérationnels et les obligations légales.
         </li>
         <li>
-          Données de paiement et facturation : conservation pour la durée
-          nécessaire à la comptabilité, à la lutte contre la fraude et aux
-          obligations légales.
+          Paiements : durée nécessaire à la comptabilité, à la lutte contre la
+          fraude et aux obligations légales.
         </li>
         <li>
-          Newsletter : jusqu’à désinscription ou suppression de votre
-          consentement.
+          Newsletter : jusqu’à désinscription ou retrait du consentement.
         </li>
         <li>
-          Journaux techniques : durée limitée, nécessaire à la sécurité et au
+          Journaux techniques : durée limitée, pour la sécurité et le
           diagnostic.
         </li>
       </ul>
 
-      <h2>8. Sécurité</h2>
+      <h2 id="securite">8. Sécurité</h2>
       <p>
-        Nous mettons en œuvre des mesures raisonnables pour protéger vos
-        données : chiffrement HTTPS, mots de passe hachés, cookies de session
-        sécurisés, accès restreints à l’administration, et séparation des
-        environnements. Aucun système n’étant infaillible, nous vous invitons à
-        utiliser un mot de passe unique et robuste.
+        Nous appliquons des mesures raisonnables : HTTPS, mots de passe hachés,
+        cookies de session sécurisés, accès administration restreint. Aucun
+        système n’est infaillible : utilisez un mot de passe unique et robuste.
       </p>
 
-      <h2>9. Vos droits</h2>
+      <h2 id="droits">9. Vos droits</h2>
       <p>Selon la législation applicable, vous pouvez demander :</p>
       <ul>
-        <li>l’accès à vos données ;</li>
-        <li>leur rectification ;</li>
-        <li>leur effacement, dans les limites prévues ;</li>
-        <li>la limitation ou l’opposition à certains traitements ;</li>
+        <li>l’accès à vos données&nbsp;;</li>
+        <li>leur rectification&nbsp;;</li>
+        <li>leur effacement, dans les limites prévues&nbsp;;</li>
+        <li>la limitation ou l’opposition à certains traitements&nbsp;;</li>
         <li>
           la portabilité des données que vous nous avez fournies, lorsque cela
-          s’applique ;
+          s’applique&nbsp;;
         </li>
         <li>
-          le retrait de votre consentement (ex. newsletter) à tout moment.
+          le retrait de votre consentement (newsletter) à tout moment.
         </li>
       </ul>
       <p>
-        Vous pouvez mettre à jour une partie de vos informations depuis votre{" "}
-        <Link href="/compte">espace compte</Link>. Pour toute autre demande :
-        <a href={`mailto:${BRAND.infoEmail}`}> {BRAND.infoEmail}</a>.
+        Une partie des informations se met à jour depuis votre{" "}
+        <Link href="/compte">espace compte</Link>. Pour le reste :{" "}
+        <a href={`mailto:${BRAND.infoEmail}`}>{BRAND.infoEmail}</a>.
       </p>
 
-      <h2>10. Cookies</h2>
+      <h2 id="cookies">10. Cookies</h2>
       <p>
-        Le site utilise des cookies strictement nécessaires à la connexion et au
-        maintien de votre session. Des outils tiers (ex. Google Sign-In, Stripe)
-        peuvent déposer leurs propres cookies selon leur configuration. Vous
-        pouvez configurer votre navigateur pour refuser certains cookies ; cela
-        peut limiter l’accès aux espaces authentifiés.
+        Le site utilise des cookies strictement nécessaires à la connexion et à
+        la session. Cloudflare Turnstile, Google Sign-In et Stripe peuvent
+        déposer leurs propres cookies selon leur configuration. Refuser certains
+        cookies dans le navigateur peut limiter l’accès aux espaces connectés.
       </p>
 
-      <h2>11. Mineurs</h2>
+      <h2 id="mineurs">11. Mineurs</h2>
       <p>
-        Le service s’adresse principalement à un public adulte. Si vous estimez
-        qu’un mineur nous a transmis des données sans autorisation, contactez-nous
-        afin que nous puissions les supprimer lorsque cela est possible.
+        Le service s’adresse principalement à un public adulte. Si un mineur
+        nous a transmis des données sans autorisation, écrivez-nous pour que
+        nous les supprimions lorsque c’est possible.
       </p>
 
-      <h2>12. Modifications</h2>
+      <h2 id="modifications">12. Modifications</h2>
       <p>
-        Nous pouvons mettre à jour cette politique pour refléter l’évolution du
-        service ou de la réglementation. La date de mise à jour figure en tête
-        de page. En cas de changement substantiel, une information pourra être
-        publiée sur le site.
-      </p>
-
-      <p className="opt-legal__note">
-        Document générique d’information. Il ne constitue pas un conseil
-        juridique. Pour un audit juridique formalisé (RDC / international),
-        faites valider ce texte par un conseil.
+        Nous pouvons mettre à jour cette politique. La date figurant en tête de
+        page fait foi. Un changement substantiel pourra être annoncé sur le
+        site. Voir aussi les{" "}
+        <Link href="/conditions-utilisation">conditions d’utilisation</Link>.
       </p>
     </LegalDoc>
   );

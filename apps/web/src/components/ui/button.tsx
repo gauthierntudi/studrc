@@ -2,7 +2,7 @@ import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-/** Boutons style legacy : KelsonBd, radius 0, cyan #02d0d1 */
+/** Boutons style legacy : KelsonBd, radius 0, cyan #0565ab */
 const buttonVariants = cva("btn btn-sm", {
   variants: {
     variant: {
@@ -25,8 +25,8 @@ const buttonVariants = cva("btn btn-sm", {
 
 const variantStyle: Record<string, React.CSSProperties> = {
   default: {
-    color: "#212121",
-    backgroundColor: "#02d0d1",
+    color: "#ffffff",
+    backgroundColor: "#0565ab",
     fontFamily: "KelsonBd",
     borderRadius: 0,
     textTransform: "uppercase",
@@ -48,7 +48,7 @@ const variantStyle: Record<string, React.CSSProperties> = {
   },
   danger: {
     color: "#fff",
-    backgroundColor: "#e9262a",
+    backgroundColor: "#d63026",
     fontFamily: "KelsonBd",
     borderRadius: 0,
     textTransform: "uppercase",

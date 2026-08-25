@@ -1,4 +1,6 @@
+import { redirect } from "next/navigation";
 import type { PublicPlan } from "@/lib/api";
+import { SUBSCRIPTIONS_ENABLED } from "@/lib/features";
 import { DEMO_MAGAZINES } from "@/lib/legacy-demo";
 import AbonnementClient from "./abonnement-client";
 
@@ -42,7 +44,7 @@ async function loadCover(): Promise<{
         title: latest.title,
         coverUrl: latest.coverUrl,
         issueNumber: latest.issueNumber ?? null,
-        theme: latest.theme ?? { bgColor: "#0d203d", accentColor: "#02d0d1" },
+        theme: latest.theme ?? { bgColor: "#00132b", accentColor: "#0565ab" },
       };
     }
   } catch {
@@ -59,6 +61,8 @@ async function loadCover(): Promise<{
 }
 
 export default async function AbonnementPage() {
+  if (!SUBSCRIPTIONS_ENABLED) redirect("/");
+
   const [initialPlans, initialCover] = await Promise.all([
     loadPlans(),
     loadCover(),

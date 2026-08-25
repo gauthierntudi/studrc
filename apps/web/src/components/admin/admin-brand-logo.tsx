@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 export function AdminBrandLogo({
   href = "/admin",
-  variant: _variant = "default",
+  variant = "default",
   width = 148,
   height = 52,
   className,
@@ -20,7 +20,15 @@ export function AdminBrandLogo({
   priority?: boolean;
 }) {
   return (
-    <Link href={href} className={cn("admin-brand-logo", className)}>
+    <Link
+      href={href}
+      className={cn(
+        "admin-brand-logo",
+        variant === "white" && "admin-brand-logo--white",
+        variant === "black" && "admin-brand-logo--black",
+        className,
+      )}
+    >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={BRAND.logo}

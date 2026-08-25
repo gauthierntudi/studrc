@@ -379,7 +379,7 @@ export default function HistoriquePage() {
         {!loading && !error && payments.length === 0 ? (
           <div className="opt-account__empty">
             <Receipt size={28} strokeWidth={1.75} aria-hidden />
-            <h2 style={{ marginTop: "0.85rem" }}>
+            <h2>
               {hasActiveFilters ? "Aucun résultat" : "Aucun paiement"}
             </h2>
             <p>

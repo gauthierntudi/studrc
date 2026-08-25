@@ -6,10 +6,10 @@
   --abo-muted: rgba(255, 255, 255, 0.62);
   --abo-line: rgba(255, 255, 255, 0.1);
   --abo-field: #121820;
-  --abo-accent: #02d0d1;
+  --abo-accent: #0565ab;
   --abo-accent-ink: #062a2b;
-  --abo-gold: #fcbf04;
-  --abo-red: #e9262a;
+  --abo-gold: #fdbd01;
+  --abo-red: #d63026;
   --abo-font: var(--opt-font-sans, "Plus Jakarta Sans", system-ui, sans-serif);
   --abo-display: var(--opt-font-display, Archivo, system-ui, sans-serif);
 

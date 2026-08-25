@@ -1,9 +1,12 @@
 .opt-crop {
-  --opt-navy: #0d203d;
-  --opt-red: #e9262a;
-  --opt-teal: #02d0d1;
-  --opt-muted: #6c757d;
-  --opt-border: rgba(13, 32, 61, 0.12);
+  --opt-crop-panel: var(--snow-elevated, var(--site-card, #ffffff));
+  --opt-crop-text: var(--snow-text, var(--site-ink, #00132b));
+  --opt-crop-muted: var(--snow-muted, var(--site-muted, #6c757d));
+  --opt-crop-line: var(--snow-line, var(--site-line, rgba(13, 32, 61, 0.12)));
+  --opt-crop-teal: var(--snow-teal, #0565ab);
+  --opt-crop-navy: #00132b;
+  --opt-crop-backdrop: rgba(0, 0, 0, 0.58);
+  --opt-crop-shadow: 0 24px 64px rgba(0, 0, 0, 0.32);
 
   position: fixed;
   inset: 0;
@@ -11,6 +14,21 @@
   display: grid;
   place-items: center;
   padding: 1rem;
+  color: var(--opt-crop-text);
+  color-scheme: inherit;
+}
+
+.snow-dash[data-theme="dark"] .opt-crop,
+html[data-theme="dark"]:not(:has(.snow-dash)) .opt-crop {
+  --opt-crop-backdrop: rgba(0, 0, 0, 0.72);
+  --opt-crop-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+  color-scheme: dark;
+}
+
+.snow-dash[data-theme="light"] .opt-crop {
+  --opt-crop-backdrop: rgba(13, 32, 61, 0.45);
+  --opt-crop-shadow: 0 24px 64px rgba(13, 32, 61, 0.18);
+  color-scheme: light;
 }
 
 .opt-crop__backdrop {
@@ -19,7 +37,7 @@
   border: 0;
   padding: 0;
   margin: 0;
-  background: rgba(13, 32, 61, 0.72);
+  background: var(--opt-crop-backdrop);
   cursor: pointer;
 }
 
@@ -27,12 +45,18 @@
   position: relative;
   z-index: 1;
   width: min(520px, 100%);
-  background: #fff;
+  background: var(--opt-crop-panel);
+  color: var(--opt-crop-text);
+  border: 1px solid var(--opt-crop-line);
   border-radius: 16px;
-  box-shadow: 0 24px 64px rgba(13, 32, 61, 0.28);
+  box-shadow: var(--opt-crop-shadow);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.opt-crop__panel--wide {
+  width: min(760px, 100%);
 }
 
 .opt-crop__header {
@@ -44,14 +68,14 @@
   font-family: var(--opt-font-display, "Instrument Sans", system-ui, sans-serif);
   font-size: 1.15rem;
   font-weight: 700;
-  color: var(--opt-navy);
+  color: var(--opt-crop-text);
 }
 
 .opt-crop__header p {
   margin: 0;
   font-family: var(--opt-font-sans, system-ui, sans-serif);
   font-size: 0.88rem;
-  color: var(--opt-muted);
+  color: var(--opt-crop-muted);
   line-height: 1.4;
 }
 
@@ -62,13 +86,17 @@
   background: #0a1528;
 }
 
+.opt-crop__stage--wide {
+  height: min(48vw, 400px);
+}
+
 .opt-crop__zoom {
   display: flex;
   align-items: center;
   gap: 0.65rem;
   padding: 0.9rem 1.25rem;
-  border-top: 1px solid var(--opt-border);
-  color: var(--opt-navy);
+  border-top: 1px solid var(--opt-crop-line);
+  color: var(--opt-crop-text);
 }
 
 .opt-crop__zoom-label {
@@ -80,7 +108,7 @@
 
 .opt-crop__zoom input[type="range"] {
   flex: 1;
-  accent-color: var(--opt-teal);
+  accent-color: var(--opt-crop-teal);
   height: 0.35rem;
   cursor: pointer;
 }
@@ -104,7 +132,8 @@
   font-weight: 700;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease,
+    background 0.15s ease, color 0.15s ease;
 }
 
 .opt-crop__btn:disabled {
@@ -113,26 +142,34 @@
 }
 
 .opt-crop__btn--ghost {
-  background: var(--opt-navy);
-  color: #fff;
-  border-color: var(--opt-navy);
+  background: var(--snow-active, var(--opt-crop-navy));
+  color: var(--opt-crop-text, #fff);
+  border-color: var(--opt-crop-line, var(--opt-crop-navy));
+}
+
+html:not(:has(.snow-dash)) .opt-crop__btn--ghost {
+  background: var(--site-ink, var(--opt-crop-navy));
+  color: var(--site-bg, #fff);
+  border-color: var(--site-ink, var(--opt-crop-navy));
 }
 
 .opt-crop__btn--ghost:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(13, 32, 61, 0.22);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
 }
 
 .opt-crop__btn--primary {
-  background: var(--opt-teal);
-  color: #0d203d;
+  background: var(--opt-crop-teal);
+  color: #0a0a0a;
 }
 
 .opt-crop__btn--primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(2, 208, 209, 0.35);
+  background: #0474c4;
+  color: #fff;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--opt-crop-teal) 40%, transparent);
 }
 
 .opt-crop__btn--primary svg {
-  color: #0d203d;
+  color: currentColor;
 }

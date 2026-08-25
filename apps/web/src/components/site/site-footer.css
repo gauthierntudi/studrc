@@ -1,18 +1,33 @@
 /* Footer Opt1mum — presse moderne */
 
 .opt-ft {
-  --opt-ft-bg: #0c1118;
-  --opt-ft-panel: #121820;
+  --opt-ft-bg: var(--studrc-navy, #00132b);
+  --opt-ft-panel: #06203f;
   --opt-ft-line: rgba(255, 255, 255, 0.1);
   --opt-ft-muted: rgba(255, 255, 255, 0.62);
   --opt-ft-text: #f4f4f4;
-  --opt-ft-teal: #02d0d1;
-  --opt-ft-red: #e9262a;
+  --opt-ft-teal: var(--studrc-gold, #fdbd01);
+  --opt-ft-red: var(--studrc-red, #d63026);
 
+  position: relative;
   background: var(--opt-ft-bg);
   color: var(--opt-ft-text);
   margin-top: 0;
-  border-top: 3px solid var(--opt-ft-teal);
+  border-top: 0;
+}
+
+.opt-ft::before {
+  content: "";
+  display: block;
+  height: 3px;
+  background-color: #0462a9;
+  background-image:
+    linear-gradient(#0462a9, #0462a9),
+    linear-gradient(#febb00, #febb00),
+    linear-gradient(#d63026, #d63026);
+  background-size: 33.334% 100%, 33.333% 100%, 33.333% 100%;
+  background-position: 0 0, 33.334% 0, 66.667% 0;
+  background-repeat: no-repeat;
 }
 
 .opt-ft a {
@@ -123,6 +138,7 @@
   font-size: 0.88rem;
   font-weight: 500;
   color: var(--opt-ft-muted);
+  text-transform: capitalize;
   transition: color 0.15s ease;
 }
 
@@ -154,6 +170,7 @@
 }
 
 .opt-ft__recent-thumb {
+  position: relative;
   display: block;
   aspect-ratio: 1;
   overflow: hidden;
@@ -224,7 +241,7 @@
 }
 
 .opt-ft__bottom {
-  background: var(--opt-ft-red);
+  background: #011223;
   padding: 0.95rem 1.5rem calc(0.95rem + env(safe-area-inset-bottom, 0px));
 }
 

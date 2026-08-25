@@ -2,8 +2,8 @@
  * Enqueue rasterization for magazines that have a PDF but pages not READY.
  *
  * Usage (API container / local):
- *   pnpm --filter @opt1mum/api exec tsx scripts/enqueue-magazine-pages-backfill.ts
- *   pnpm --filter @opt1mum/api exec tsx scripts/enqueue-magazine-pages-backfill.ts --limit=10
+ *   pnpm --filter @studrc/api exec tsx scripts/enqueue-magazine-pages-backfill.ts
+ *   pnpm --filter @studrc/api exec tsx scripts/enqueue-magazine-pages-backfill.ts --limit=10
  */
 import { config as loadEnv } from 'dotenv';
 import { resolve } from 'path';

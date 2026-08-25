@@ -502,7 +502,7 @@ export class AuthService {
 
   async refresh(refreshToken: string | undefined, res: Response) {
     if (!refreshToken) {
-      throw new UnauthorizedException('Session expirée');
+      return null;
     }
 
     try {
@@ -529,7 +529,8 @@ export class AuthService {
       await this.setAuthCookies(res, subscriber.id, subscriber.email);
       return this.toPublicSubscriber(subscriber);
     } catch {
-      throw new UnauthorizedException('Session expirée');
+      this.clearAuthCookies(res);
+      return null;
     }
   }
 

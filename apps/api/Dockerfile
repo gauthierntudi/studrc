@@ -26,7 +26,7 @@ WORKDIR /app
 FROM base AS deps
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
 COPY apps/api/package.json ./apps/api/
-RUN pnpm install --filter @opt1mum/api... --frozen-lockfile
+RUN pnpm install --filter @studrc/api... --frozen-lockfile
 
 FROM base AS build
 COPY --from=deps /app /app
@@ -46,6 +46,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libjpeg62-turbo \
     libgif7 \
     libpixman-1-0 \
+    ffmpeg \
   && rm -rf /var/lib/apt/lists/* \
   && groupadd -r nodejs && useradd -r -g nodejs nestjs
 

@@ -4,8 +4,8 @@
   --opt-d-ink: #111111;
   --opt-d-muted: #6b6b6b;
   --opt-d-line: #e6e6e6;
-  --opt-d-red: #e9262a;
-  --opt-d-teal: #02d0d1;
+  --opt-d-red: #d63026;
+  --opt-d-teal: #0565ab;
 
   background: #fff;
   padding: 2.75rem 1.5rem 3rem;
@@ -28,10 +28,10 @@
 .opt-dossiers__title {
   margin: 0;
   font-family: var(--opt-font-display);
-  font-size: clamp(1.75rem, 2.8vw, 2.35rem);
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
   font-weight: 800;
   letter-spacing: -0.03em;
-  color: var(--opt-d-ink);
+  color: #febb00;
   line-height: 1.1;
 }
 
@@ -122,9 +122,9 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #111;
+  color: #00132b;
   line-height: 1.2;
-  background: var(--opt-cat-teal, #02d0d1);
+  background: #febb00;
 }
 
 .opt-dossiers__card-title {

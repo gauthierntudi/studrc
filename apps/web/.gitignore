@@ -33,6 +33,10 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# Avatars locaux (le dossier reste versionné via .gitkeep)
+/public/legacy/profil/*
+!/public/legacy/profil/.gitkeep
+
 # vercel
 .vercel
 

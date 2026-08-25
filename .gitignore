@@ -18,6 +18,10 @@ coverage/
 apps/api/prisma/*.db
 apps/api/prisma/*.db-journal
 
+# Compose override VPS (Postgres/Redis locaux, réseaux) — hors git
+docker-compose.override.yml
+docker-compose.override.yaml
+
 # Certs
 deploy/certbot/
 

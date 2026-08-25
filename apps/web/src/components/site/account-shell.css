@@ -1,16 +1,17 @@
 /* Shell commun pages espace abonné (notifications, historique) */
 
 .opt-account {
-  --opt-navy: #0d203d;
-  --opt-red: #e9262a;
-  --opt-teal: #02d0d1;
-  --opt-muted: #6c757d;
-  --opt-border: rgba(13, 32, 61, 0.1);
+  --opt-navy: #00132b;
+  --opt-red: #d63026;
+  --opt-teal: #0565ab;
+  --opt-ink: var(--site-ink, var(--opt-navy));
+  --opt-muted: var(--site-muted, #6c757d);
+  --opt-border: var(--site-line, rgba(13, 32, 61, 0.1));
   --opt-radius: 14px;
-  --opt-shadow: 0 12px 40px rgba(13, 32, 61, 0.08);
+  --opt-shadow: var(--site-elev, 0 12px 40px rgba(13, 32, 61, 0.08));
 
-  background: #fff;
-  color: var(--opt-navy);
+  background: var(--site-bg, #fff);
+  color: var(--opt-ink);
   min-height: 55vh;
   padding: 2rem 0 3rem;
 }
@@ -37,6 +38,7 @@
   font-size: clamp(1.5rem, 4vw, 2rem);
   font-weight: 700;
   letter-spacing: -0.02em;
+  color: var(--opt-ink);
 }
 
 .opt-account__hero p {
@@ -52,7 +54,12 @@
   text-align: center;
   border: 1px solid var(--opt-border);
   border-radius: var(--opt-radius);
-  box-shadow: var(--opt-shadow);
+  background: var(--site-card, #fff);
+  color: var(--opt-ink);
+}
+
+.opt-account__empty svg {
+  color: var(--opt-ink);
 }
 
 .opt-account__empty h2 {
@@ -60,6 +67,11 @@
   font-family: var(--opt-font-display);
   font-size: 1.15rem;
   font-weight: 700;
+  color: var(--opt-ink);
+}
+
+.opt-account__empty svg + h2 {
+  margin-top: 0.85rem;
 }
 
 .opt-account__empty p {
@@ -97,6 +109,7 @@
   padding: 0.75rem;
   border: 1px solid var(--opt-border);
   border-radius: 12px;
+  background: var(--site-card, transparent);
   text-decoration: none;
   color: inherit;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -112,7 +125,7 @@ a.opt-account__item:hover {
   height: 64px;
   border-radius: 8px;
   object-fit: cover;
-  background: #eef2f6;
+  background: var(--site-bg-soft, #eef2f6);
 }
 
 .opt-account__thumb--mag {
@@ -127,6 +140,7 @@ a.opt-account__item:hover {
   font-size: 0.95rem;
   font-weight: 700;
   line-height: 1.3;
+  color: var(--opt-ink);
 }
 
 .opt-account__meta {
@@ -164,7 +178,7 @@ a.opt-account__item:hover {
 }
 
 .opt-account__badge--muted {
-  background: rgba(13, 32, 61, 0.06);
+  background: color-mix(in srgb, var(--opt-ink) 8%, transparent);
   color: var(--opt-muted);
 }
 
@@ -176,6 +190,7 @@ a.opt-account__item:hover {
   padding: 1rem 1.1rem;
   border: 1px solid var(--opt-border);
   border-radius: 12px;
+  background: var(--site-card, transparent);
 }
 
 .opt-account__pay-amount {

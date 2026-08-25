@@ -1,9 +1,9 @@
 {
-  "name": "@opt1mum/web",
+  "name": "@studrc/web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "pnpm sync:pdf-worker && next dev --turbopack --port 3000",
+    "dev": "pnpm sync:pdf-worker && node ../../scripts/dev-with-backoff.mjs next dev --webpack --port 3000",
     "build": "pnpm sync:pdf-worker && next build",
     "sync:pdf-worker": "node ./scripts/sync-pdf-worker.mjs",
     "start": "next start --port 3000",
@@ -16,6 +16,7 @@
     "@tanstack/react-query": "^5.101.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "hls.js": "^1.7.1",
     "js-cookie": "^3.0.8",
     "lucide-react": "^1.26.0",
     "next": "16.2.11",

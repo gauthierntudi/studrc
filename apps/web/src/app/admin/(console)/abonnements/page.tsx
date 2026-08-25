@@ -14,6 +14,7 @@ import {
   type PaymentStatusName,
   type SubscriptionStatusName,
 } from "@/lib/api";
+import { SUBSCRIPTIONS_ENABLED } from "@/lib/features";
 import { cn } from "@/lib/utils";
 
 const TAKE = 10;
@@ -111,7 +112,7 @@ function initials(name: string): string {
 }
 
 const AVATAR_PALETTE = [
-  { bg: "#02d0d1", fg: "#041512" },
+  { bg: "#0565ab", fg: "#041512" },
   { bg: "#5b7cfa", fg: "#ffffff" },
   { bg: "#f97366", fg: "#ffffff" },
   { bg: "#10b981", fg: "#ffffff" },
@@ -198,6 +199,12 @@ function paymentBadgeClass(status: PaymentStatusName): string {
 }
 
 export default function AdminSubscriptionsPage() {
+  const router = useRouter();
+  useEffect(() => {
+    if (!SUBSCRIPTIONS_ENABLED) router.replace("/admin");
+  }, [router]);
+  if (!SUBSCRIPTIONS_ENABLED) return null;
+
   return (
     <Suspense
       fallback={

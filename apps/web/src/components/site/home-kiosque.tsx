@@ -6,37 +6,50 @@ import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { A11y, FreeMode } from "swiper/modules";
 import type { Swiper as SwiperType } from "swiper";
-import { DEMO_MAGAZINES } from "@/lib/legacy-demo";
+import {
+  DEMO_INSPIRATIONNEL_FEATURED,
+  DEMO_INSPIRATIONNEL_GRID,
+} from "@/lib/legacy-demo";
+import { articleHref } from "@/lib/home-articles";
 import { CoverImage } from "@/components/site/cover-image";
+import { VideoPlay } from "@/components/site/video-play";
+import { StoryHoverPreview } from "@/components/site/story-hover-preview";
+import { SUBSCRIPTIONS_ENABLED } from "@/lib/features";
 
 import "swiper/css";
 import "swiper/css/free-mode";
 import "./home-kiosque.css";
 
-const FALLBACK_COVER = "/legacy/covers/1591457791.jpg";
+const FALLBACK_COVER = "/legacy/articles/1591545644.png";
 
-export type HomeKiosqueItem = {
+export type HomeStoriesItem = {
   id: string | number;
+  slug?: string;
   titre: string;
   cover: string;
   dateLabel: string;
+  videoHlsUrl?: string | null;
+  videoPosterUrl?: string | null;
 };
 
-const DEMO_ITEMS: HomeKiosqueItem[] = DEMO_MAGAZINES.map((m) => ({
-  id: m.id,
-  titre: m.titre,
-  cover: m.cover,
-  dateLabel: m.dateLabel,
+const DEMO_ITEMS: HomeStoriesItem[] = [
+  DEMO_INSPIRATIONNEL_FEATURED,
+  ...DEMO_INSPIRATIONNEL_GRID,
+].map((s) => ({
+  id: s.id,
+  slug: s.slug,
+  titre: s.titre,
+  cover: s.cover,
+  dateLabel: s.dateLabel,
 }));
 
-/** Section kiosque — carousel Swiper des numéros. */
+/** Carrousel STU STORIES — miniatures vidéo. */
 export function HomeKiosque({
-  magazines,
+  items: incoming,
 }: {
-  magazines?: HomeKiosqueItem[];
+  items?: HomeStoriesItem[];
 } = {}) {
-  const items =
-    magazines && magazines.length > 0 ? magazines : DEMO_ITEMS;
+  const items = incoming && incoming.length > 0 ? incoming : DEMO_ITEMS;
   const swiperRef = useRef<SwiperType | null>(null);
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(items.length > 1);
@@ -52,20 +65,21 @@ export function HomeKiosque({
         <header className="opt-kiosque__head">
           <div className="opt-kiosque__head-text">
             <h2 id="opt-kiosque-title" className="opt-kiosque__title">
-              <Link href="/kiosque" className="opt-kiosque__logo-link">
-                STU MAG
+              <Link href="/rubrique/stu-stories" className="opt-kiosque__logo-link">
+                STU STORIES
               </Link>
             </h2>
             <p className="opt-kiosque__lead">
-              Feuilletez STU MAG, le magazine numérique bimestriel — analyses
-              approfondies sur smartphone, tablette et ordinateur.
+              Des visages, des parcours, des écoles et des initiatives qui
+              inspirent — les histoires de ceux qui transforment l’école chaque
+              jour.
             </p>
           </div>
           <div className="opt-kiosque__head-actions">
             <div
               className="opt-kiosque__nav"
               role="group"
-              aria-label="Parcourir le kiosque"
+              aria-label="Parcourir STU STORIES"
             >
               <button
                 type="button"
@@ -86,8 +100,8 @@ export function HomeKiosque({
                 <ChevronRight size={20} strokeWidth={2} aria-hidden />
               </button>
             </div>
-            <Link href="/kiosque" className="opt-kiosque__all">
-              Tout le kiosque
+            <Link href="/rubrique/stu-stories" className="opt-kiosque__all">
+              Toutes les stories
               <ArrowRight size={18} strokeWidth={2} aria-hidden />
             </Link>
           </div>
@@ -97,8 +111,8 @@ export function HomeKiosque({
           <Swiper
             className="opt-kiosque__swiper"
             modules={[FreeMode, A11y]}
-            slidesPerView={2}
-            spaceBetween={16}
+            slidesPerView={2.4}
+            spaceBetween={12}
             grabCursor
             freeMode={{
               enabled: true,
@@ -110,12 +124,12 @@ export function HomeKiosque({
             watchOverflow
             breakpoints={{
               576: {
-                slidesPerView: 3,
-                spaceBetween: 18,
+                slidesPerView: 3.5,
+                spaceBetween: 14,
               },
               992: {
-                slidesPerView: 6,
-                spaceBetween: 20,
+                slidesPerView: 5.4,
+                spaceBetween: 16,
               },
             }}
             onSwiper={(swiper) => {
@@ -128,26 +142,30 @@ export function HomeKiosque({
             onFromEdge={syncNav}
             onResize={syncNav}
           >
-            {items.map((mag, i) => (
-              <SwiperSlide key={mag.id} className="opt-kiosque__item">
+            {items.map((story) => (
+              <SwiperSlide key={story.id} className="opt-kiosque__item">
                 <Link
-                  href={`/kiosque?magazine=${encodeURIComponent(String(mag.id))}`}
+                  href={articleHref(story)}
                   className="opt-kiosque__card"
                   draggable={false}
                 >
-                  <div className="opt-kiosque__cover-wrap">
-                    <span className="opt-kiosque__rank" aria-hidden>
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
+                  <div className="opt-kiosque__cover-wrap opt-kiosque__cover-wrap--video">
                     <CoverImage
-                      src={mag.cover || FALLBACK_COVER}
-                      className="opt-kiosque__cover"
+                      src={story.cover || FALLBACK_COVER}
+                      className="opt-kiosque__cover opt-kiosque__cover--video"
                     />
+                    {story.videoHlsUrl ? (
+                      <StoryHoverPreview
+                        src={story.videoHlsUrl}
+                        poster={story.videoPosterUrl || story.cover}
+                      />
+                    ) : null}
+                    <VideoPlay size={22} />
                   </div>
                   <div className="opt-kiosque__meta">
                     <div className="opt-kiosque__meta-top">
-                      <h3 className="opt-kiosque__name">{mag.titre}</h3>
-                      <span className="opt-kiosque__date">{mag.dateLabel}</span>
+                      <h3 className="opt-kiosque__name">{story.titre}</h3>
+                      <span className="opt-kiosque__date">{story.dateLabel}</span>
                     </div>
                   </div>
                 </Link>
@@ -157,15 +175,20 @@ export function HomeKiosque({
         </div>
 
         <div className="opt-kiosque__cta">
-          <Link href="/kiosque" className="opt-kiosque__btn opt-kiosque__btn--dark">
-            Voir tous les numéros
-          </Link>
           <Link
-            href="/abonnement"
-            className="opt-kiosque__btn opt-kiosque__btn--teal"
+            href="/rubrique/stu-stories"
+            className="opt-kiosque__btn opt-kiosque__btn--dark"
           >
-            S&apos;abonner
+            Voir toutes les vidéos
           </Link>
+          {SUBSCRIPTIONS_ENABLED ? (
+            <Link
+              href="/abonnement"
+              className="opt-kiosque__btn opt-kiosque__btn--teal"
+            >
+              S&apos;abonner
+            </Link>
+          ) : null}
         </div>
       </div>
     </section>
