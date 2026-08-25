@@ -6,6 +6,7 @@ import { Pagination, A11y } from "swiper/modules";
 import type { PublicArticleCard } from "@/lib/api";
 import { CoverImage } from "@/components/site/cover-image";
 import { VideoPlay } from "@/components/site/video-play";
+import { isVideoRubrique } from "@/lib/rubriques";
 
 import "swiper/css";
 import "swiper/css/pagination";
@@ -83,7 +84,10 @@ export function RubriqueHeroCarousel({ items, video }: Props) {
                   <span className="opt-rubrique__ph" aria-hidden />
                 )}
               </span>
-              {video ? <VideoPlay size={22} /> : null}
+              {video ||
+              isVideoRubrique(item.category, item.categoryLabel) ? (
+                <VideoPlay size={22} />
+              ) : null}
               <span className="opt-rubrique__hero-shade" aria-hidden />
               <span className="opt-rubrique__hero-body">
                 <span className="opt-rubrique__hero-badge">

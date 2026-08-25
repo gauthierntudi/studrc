@@ -8,6 +8,7 @@ import {
 } from "@/lib/api";
 import { CoverImage } from "@/components/site/cover-image";
 import { VideoPlay } from "@/components/site/video-play";
+import { isVideoRubrique } from "@/lib/rubriques";
 
 const BATCH = 8;
 
@@ -207,6 +208,9 @@ function FeedRow({
   article: PublicArticleCard;
   video?: boolean;
 }) {
+  const showPlay =
+    video || isVideoRubrique(article.category, article.categoryLabel);
+
   return (
     <article className="opt-rubrique__feed-row">
       <Link
@@ -219,7 +223,7 @@ function FeedRow({
           ) : (
             <span className="opt-rubrique__ph" aria-hidden />
           )}
-          {video ? (
+          {showPlay ? (
             <VideoPlay size={18} className="opt-video-play--sm" />
           ) : null}
         </span>
