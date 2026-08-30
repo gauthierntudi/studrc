@@ -4,13 +4,14 @@ Plateforme média et observatoire du système éducatif de la République Démoc
 
 **Domaine :** [studrc.com](https://studrc.com) · API `api.studrc.com`
 
-Monorepo Next.js 16 + NestJS.
+Monorepo Next.js 16 + NestJS + Flutter.
 
 ## Stack
 
 | Couche | Techno |
 |--------|--------|
 | Web | Next.js 16, Tailwind, TanStack Query, RHF, Zod, shadcn/ui |
+| Mobile | Flutter (`apps/mobile`) — Android + iOS |
 | API | NestJS, Prisma, PostgreSQL, Redis, BullMQ |
 | Paiements | Stripe (live) · FlexPaie |
 | Email | Resend |
@@ -22,6 +23,7 @@ Monorepo Next.js 16 + NestJS.
 ```
 v2/
 ├── apps/web          # Next.js → :3000
+├── apps/mobile       # Flutter (hors workspace pnpm)
 ├── apps/api          # NestJS  → :3001/api
 ├── deploy/           # Nginx, env example
 ├── docs/             # Architecture, migration, paiements…
@@ -50,7 +52,19 @@ pnpm dev
 - Site : http://localhost:3000  
 - API health : http://localhost:3001/api/health  
 
-Configurer les secrets dans `v2/.env` (jamais committer).
+### App mobile (Flutter)
+
+Pointe par défaut sur l’API **en ligne** (`https://api.studrc.com/api`).
+
+```bash
+cd apps/mobile
+flutter pub get
+flutter run
+```
+
+Détails : [apps/mobile/README.md](./apps/mobile/README.md)
+
+Configurer les secrets dans `.env` (jamais committer).
 
 ## Documentation
 
@@ -69,7 +83,7 @@ Configurer les secrets dans `v2/.env` (jamais committer).
 - [x] Auth abonnés (register / login / me / refresh / logout)
 - [x] Auth finalisée (verify email Resend, reset password, admin)
 - [x] Design system Opt1mum (tokens + shells public/admin)
-- [ ] UI kiosque / lecteur PDF / admin magazines (données)
-- [ ] Stripe + FlexPaie branchés
-- [ ] ETL MySQL → Postgres + médias R2
-- [ ] Cutover production (`studrc.com`)
+- [x] Site + API en production (`studrc.com` / `api.studrc.com`)
+- [x] App Flutter (`apps/mobile`) — lecteur public sur l’API en ligne
+- [ ] Jetons JWT mobile déployés (login app)
+- [ ] Google Sign-In iOS / Android

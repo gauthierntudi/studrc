@@ -42,6 +42,18 @@ export type Subscriber = {
   createdAt: string;
 };
 
+export type AuthSession = {
+  accessToken: string;
+  refreshToken: string;
+  user: Subscriber;
+};
+
+function unwrapSubscriber(payload: AuthSession | Subscriber | null) {
+  if (!payload) return null;
+  if ("user" in payload && payload.user) return payload.user;
+  return payload as Subscriber;
+}
+
 export type AdminUser = {
   id: string;
   name: string;
@@ -316,10 +328,10 @@ export const authApi = {
     phone?: string;
     turnstileToken?: string;
   }) {
-    return apiFetch<Subscriber>("/auth/register", {
+    return apiFetch<AuthSession>("/auth/register", {
       method: "POST",
       body: JSON.stringify(input),
-    });
+    }).then(unwrapSubscriber) as Promise<Subscriber>;
   },
 
   login(input: {
@@ -327,17 +339,17 @@ export const authApi = {
     password: string;
     turnstileToken?: string;
   }) {
-    return apiFetch<Subscriber>("/auth/login", {
+    return apiFetch<AuthSession>("/auth/login", {
       method: "POST",
       body: JSON.stringify(input),
-    });
+    }).then(unwrapSubscriber) as Promise<Subscriber>;
   },
 
   loginWithGoogle(credential: string, turnstileToken?: string) {
-    return apiFetch<Subscriber>("/auth/google", {
+    return apiFetch<AuthSession>("/auth/google", {
       method: "POST",
       body: JSON.stringify({ credential, turnstileToken }),
-    });
+    }).then(unwrapSubscriber) as Promise<Subscriber>;
   },
 
   me() {
@@ -372,7 +384,9 @@ export const authApi = {
   },
 
   refresh() {
-    return apiFetch<Subscriber | null>("/auth/refresh", { method: "POST" });
+    return apiFetch<AuthSession | Subscriber | null>("/auth/refresh", {
+      method: "POST",
+    }).then(unwrapSubscriber);
   },
 
   logout() {

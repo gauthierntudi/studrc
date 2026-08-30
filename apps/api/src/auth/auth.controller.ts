@@ -23,6 +23,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { RefreshDto } from './dto/refresh.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
@@ -76,8 +77,12 @@ export class AuthController {
   refresh(
     @Req() req: Request & { cookies?: Record<string, string> },
     @Res({ passthrough: true }) res: Response,
+    @Body() dto: RefreshDto,
   ) {
-    return this.auth.refresh(req.cookies?.refresh_token, res);
+    return this.auth.refresh(
+      dto.refreshToken?.trim() || req.cookies?.refresh_token,
+      res,
+    );
   }
 
   @Post('logout')
@@ -86,7 +91,14 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
     @Ip() ip: string,
   ) {
-    return this.auth.logout(res, req.cookies?.access_token, ip);
+    const header = req.headers.authorization;
+    const bearer =
+      header?.startsWith('Bearer ') ? header.slice(7).trim() : undefined;
+    return this.auth.logout(
+      res,
+      bearer || req.cookies?.access_token,
+      ip,
+    );
   }
 
   @UseGuards(OptionalJwtAuthGuard)

@@ -104,7 +104,7 @@ export class AuthService {
       verifyToken,
     );
 
-    await this.setAuthCookies(res, subscriber.id, subscriber.email);
+    const tokens = await this.setAuthCookies(res, subscriber.id, subscriber.email);
 
     void this.activity.log({
       actorType: ActivityActorType.SUBSCRIBER,
@@ -125,7 +125,7 @@ export class AuthService {
       meta: { email: subscriber.email, reason: 'register' },
     });
 
-    return this.toPublicSubscriber(subscriber);
+    return this.toAuthSession(subscriber, tokens);
   }
 
   async login(dto: LoginDto, res: Response, ip?: string | null) {
@@ -145,7 +145,7 @@ export class AuthService {
       throw new UnauthorizedException('Email ou mot de passe incorrect');
     }
 
-    await this.setAuthCookies(res, subscriber.id, subscriber.email);
+    const tokens = await this.setAuthCookies(res, subscriber.id, subscriber.email);
 
     void this.activity.log({
       actorType: ActivityActorType.SUBSCRIBER,
@@ -156,7 +156,7 @@ export class AuthService {
       ip,
     });
 
-    return this.toPublicSubscriber(subscriber);
+    return this.toAuthSession(subscriber, tokens);
   }
 
   /**
@@ -223,7 +223,7 @@ export class AuthService {
       });
     }
 
-    await this.setAuthCookies(res, subscriber.id, subscriber.email);
+    const tokens = await this.setAuthCookies(res, subscriber.id, subscriber.email);
 
     void this.activity.log({
       actorType: ActivityActorType.SUBSCRIBER,
@@ -235,7 +235,7 @@ export class AuthService {
       meta: { email: subscriber.email },
     });
 
-    return this.toPublicSubscriber(subscriber);
+    return this.toAuthSession(subscriber, tokens);
   }
 
   private async verifyGoogleIdToken(
@@ -525,8 +525,8 @@ export class AuthService {
         throw new UnauthorizedException();
       }
 
-      await this.setAuthCookies(res, subscriber.id, subscriber.email);
-      return this.toPublicSubscriber(subscriber);
+      const tokens = await this.setAuthCookies(res, subscriber.id, subscriber.email);
+      return this.toAuthSession(subscriber, tokens);
     } catch {
       this.clearAuthCookies(res);
       return null;
@@ -864,6 +864,19 @@ export class AuthService {
       ...common,
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
+
+    return { accessToken, refreshToken };
+  }
+
+  private toAuthSession(
+    subscriber: Parameters<AuthService['toPublicSubscriber']>[0],
+    tokens: { accessToken: string; refreshToken: string },
+  ) {
+    return {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      user: this.toPublicSubscriber(subscriber),
+    };
   }
 
   private clearAuthCookies(res: Response) {
