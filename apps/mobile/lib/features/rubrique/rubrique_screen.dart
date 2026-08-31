@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api.dart';
+import '../../core/constants.dart';
 import '../../widgets/article_tile.dart';
 
 final rubriqueProvider =
@@ -18,7 +19,9 @@ class RubriqueScreen extends ConsumerWidget {
     final async = ref.watch(rubriqueProvider(slug));
     return Scaffold(
       appBar: AppBar(
-        title: Text(async.valueOrNull?.label ?? slug.toUpperCase()),
+        title: Text(
+          capitalizeLabel(async.valueOrNull?.label ?? slug),
+        ),
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),

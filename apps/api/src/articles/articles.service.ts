@@ -122,6 +122,7 @@ const PUBLIC_CARD_SELECT = {
   videoHlsKey: true,
   videoPosterKey: true,
   videoStatus: true,
+  videoDurationSec: true,
   author: { select: { name: true } },
 } satisfies Prisma.ArticleSelect;
 
@@ -582,6 +583,7 @@ export class ArticlesService {
           : null,
       videoPosterUrl: this.resolveMediaUrl(article.videoPosterKey),
       videoStatus: article.videoStatus,
+      videoDurationSec: article.videoDurationSec,
     };
   }
 

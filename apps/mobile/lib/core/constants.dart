@@ -15,11 +15,21 @@ const kBrandRed = 0xFFD63026;
 const kBrandBlue = 0xFF0565AB;
 
 const kRubriques = <({String slug, String label, String tone})>[
-  (slug: 'stu-news', label: 'STU NEWS', tone: 'red'),
-  (slug: 'stu-data', label: 'STU DATA', tone: 'blue'),
-  (slug: 'stu-stories', label: 'STU STORIES', tone: 'gold'),
-  (slug: 'stu-talk', label: 'STU TALK', tone: 'teal'),
+  (slug: 'stu-news', label: 'Stu News', tone: 'red'),
+  (slug: 'stu-data', label: 'Stu Data', tone: 'blue'),
+  (slug: 'stu-stories', label: 'Stu Stories', tone: 'gold'),
+  (slug: 'stu-talk', label: 'Stu Talk', tone: 'teal'),
 ];
+
+/// Title case for rubrique names (`STU NEWS` → `Stu News`).
+String capitalizeLabel(String value) {
+  final parts = value.trim().split(RegExp(r'[\s_-]+'));
+  return [
+    for (final part in parts)
+      if (part.isNotEmpty)
+        '${part[0].toUpperCase()}${part.substring(1).toLowerCase()}',
+  ].join(' ');
+}
 
 bool isVideoRubrique(String? category, [String? label]) {
   bool match(String? value) {

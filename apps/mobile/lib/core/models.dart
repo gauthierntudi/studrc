@@ -13,6 +13,7 @@ class ArticleCard {
     this.videoHlsUrl,
     this.videoPosterUrl,
     this.videoStatus,
+    this.videoDurationSec,
   });
 
   final String id;
@@ -28,6 +29,17 @@ class ArticleCard {
   final String? videoHlsUrl;
   final String? videoPosterUrl;
   final String? videoStatus;
+  final int? videoDurationSec;
+
+  bool get hasReadyVideo =>
+      videoStatus == 'READY' && (videoHlsUrl?.isNotEmpty ?? false);
+
+  String get durationLabel {
+    final sec = videoDurationSec;
+    if (sec == null || sec <= 0) return '';
+    final minutes = (sec / 60).ceil().clamp(1, 9999);
+    return '$minutes min';
+  }
 
   factory ArticleCard.fromJson(Map<String, dynamic> json) {
     return ArticleCard(
@@ -44,6 +56,7 @@ class ArticleCard {
       videoHlsUrl: json['videoHlsUrl'] as String?,
       videoPosterUrl: json['videoPosterUrl'] as String?,
       videoStatus: json['videoStatus'] as String?,
+      videoDurationSec: (json['videoDurationSec'] as num?)?.toInt(),
     );
   }
 }
@@ -100,6 +113,9 @@ class ArticleDetail {
   final String? videoStatus;
   final String content;
   final List<ArticleBlock> blocks;
+
+  bool get hasReadyVideo =>
+      videoStatus == 'READY' && (videoHlsUrl?.isNotEmpty ?? false);
 
   factory ArticleDetail.fromJson(Map<String, dynamic> json) {
     final author = json['author'];

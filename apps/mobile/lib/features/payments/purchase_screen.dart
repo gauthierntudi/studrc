@@ -4,6 +4,7 @@ import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api.dart';
 import '../../core/models.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/cover.dart';
 
 class PurchaseScreen extends ConsumerStatefulWidget {
@@ -163,9 +164,9 @@ class _PurchaseScreenState extends ConsumerState<PurchaseScreen> {
                   Text(
                     mag.title,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
+                    style: AppTheme.displayText(
+                      size: 20,
+                      weight: FontWeight.w800,
                     ),
                   ),
                   if (_priceLabel.isNotEmpty)

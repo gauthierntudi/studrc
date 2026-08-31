@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../features/account/account_screen.dart';
 import '../features/account/notifications_screen.dart';
@@ -10,15 +11,38 @@ import '../features/auth/register_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/kiosque/kiosque_screen.dart';
 import '../features/news/news_screen.dart';
+import '../features/onboarding/onboarding_screen.dart';
 import '../features/payments/purchase_screen.dart';
 import '../features/reader/reader_screen.dart';
 import '../features/rubrique/rubrique_screen.dart';
 import '../features/search/search_screen.dart';
 import '../features/shell/app_shell.dart';
+import 'onboarding.dart';
 
-final appRouter = GoRouter(
-  initialLocation: '/',
-  routes: [
+final appRouterProvider = Provider<GoRouter>((ref) {
+  final onboarding = ref.read(onboardingProvider);
+  return createAppRouter(onboarding);
+});
+
+GoRouter createAppRouter(OnboardingController onboarding) {
+  return GoRouter(
+    initialLocation: '/',
+    refreshListenable: onboarding,
+    redirect: (context, state) {
+      final loc = state.matchedLocation;
+      if (!onboarding.completed && loc != '/onboarding') {
+        return '/onboarding';
+      }
+      if (onboarding.completed && loc == '/onboarding') {
+        return '/';
+      }
+      return null;
+    },
+    routes: [
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingScreen(),
+      ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
           AppShell(navigationShell: navigationShell),
@@ -105,5 +129,6 @@ final appRouter = GoRouter(
       builder: (context, state) =>
           PurchaseScreen(magazineId: state.pathParameters['id']!),
     ),
-  ],
-);
+    ],
+  );
+}

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api.dart';
 import '../../core/models.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/cover.dart';
 
 final kiosqueProvider = FutureProvider((ref) {
@@ -63,7 +64,7 @@ class _MagCard extends StatelessWidget {
             magazine.title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.w800),
+            style: AppTheme.displayText(size: 15, weight: FontWeight.w800),
           ),
           Text(
             [

@@ -202,6 +202,19 @@ class ApiClient {
         parse: (d) => ArticleDetail.fromJson(_map(d)),
       );
 
+  Future<List<ArticleCard>> related(String slug, {int take = 12}) => _get(
+        '/articles/related',
+        query: {'slug': slug, 'take': take},
+        parse: (d) {
+          final items = _map(d)['items'] as List?;
+          return items
+                  ?.whereType<Map>()
+                  .map((e) => ArticleCard.fromJson(Map<String, dynamic>.from(e)))
+                  .toList() ??
+              const <ArticleCard>[];
+        },
+      );
+
   Future<({List<ArticleCard> items, int total})> search(
     String q, {
     String? category,
