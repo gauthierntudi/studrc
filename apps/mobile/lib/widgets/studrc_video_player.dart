@@ -15,7 +15,16 @@ class StudrcVideoPlayer extends StatefulWidget {
     this.poster,
     this.accent = AppTheme.gold,
     this.radius = 8,
-  });
+    this.autoplay = false,
+    this.showControls = true,
+    this.wakelock = true,
+    this.player,
+    this.controller,
+    this.videoKey,
+  }) : assert(
+         (player == null) == (controller == null),
+         'player et controller doivent être fournis ensemble',
+       );
 
   final String src;
   final String? poster;
@@ -23,14 +32,27 @@ class StudrcVideoPlayer extends StatefulWidget {
   /// Jaune charte pour la barre, le play et le spinner.
   final Color accent;
   final double radius;
+  final bool autoplay;
+  final bool showControls;
+  final bool wakelock;
+
+  /// Lecteur partagé (mini-player). S’il est fourni, ce widget ne l’ouvre
+  /// pas et ne le détruit pas.
+  final Player? player;
+  final VideoController? controller;
+
+  /// Clé stable pour déplacer le [Video] sans recréer la texture.
+  final Key? videoKey;
 
   @override
   State<StudrcVideoPlayer> createState() => _StudrcVideoPlayerState();
 }
 
 class _StudrcVideoPlayerState extends State<StudrcVideoPlayer> {
-  late final Player _player = Player();
-  late final VideoController _controller = VideoController(_player);
+  late final bool _ownsPlayer = widget.player == null;
+  late final Player _player = widget.player ?? Player();
+  late final VideoController _controller =
+      widget.controller ?? VideoController(_player);
   final List<StreamSubscription<dynamic>> _subs = [];
   bool _started = false;
   bool _muted = false;
@@ -41,7 +63,24 @@ class _StudrcVideoPlayerState extends State<StudrcVideoPlayer> {
   @override
   void initState() {
     super.initState();
-    _player.open(Media(widget.src), play: false);
+    if (_ownsPlayer) {
+      _player.open(Media(widget.src), play: widget.autoplay);
+      _started = widget.autoplay || _player.state.playing;
+    } else {
+      _started = true;
+      if (widget.autoplay) {
+        void playSoon() {
+          if (!mounted) return;
+          _player.play();
+        }
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          playSoon();
+          WidgetsBinding.instance.addPostFrameCallback((_) => playSoon());
+        });
+      }
+    }
+    _muted = _player.state.volume <= 0;
     _subs.add(
       _player.stream.playing.listen((playing) {
         if (playing && !_started && mounted) {
@@ -62,7 +101,9 @@ class _StudrcVideoPlayerState extends State<StudrcVideoPlayer> {
     for (final sub in _subs) {
       sub.cancel();
     }
-    _player.dispose();
+    if (_ownsPlayer) {
+      _player.dispose();
+    }
     super.dispose();
   }
 
@@ -88,8 +129,8 @@ class _StudrcVideoPlayerState extends State<StudrcVideoPlayer> {
       displaySeekBar: true,
       automaticallyImplySkipNextButton: false,
       automaticallyImplySkipPreviousButton: false,
-      volumeGesture: true,
-      brightnessGesture: true,
+      volumeGesture: false,
+      brightnessGesture: false,
       seekGesture: true,
       seekOnDoubleTap: true,
       seekOnDoubleTapEnabledWhileControlsVisible: true,
@@ -173,6 +214,7 @@ class _StudrcVideoPlayerState extends State<StudrcVideoPlayer> {
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(widget.radius),
+      clipBehavior: widget.radius == 0 ? Clip.none : Clip.hardEdge,
       child: ColoredBox(
         color: Colors.black,
         child: AspectRatio(
@@ -184,22 +226,26 @@ class _StudrcVideoPlayerState extends State<StudrcVideoPlayer> {
               fit: StackFit.expand,
               children: [
                 Video(
+                  key: widget.videoKey,
                   controller: _controller,
                   fill: Colors.black,
                   fit: BoxFit.contain,
-                  controls: MaterialVideoControls,
-                  wakelock: true,
-                  pauseUponEnteringBackgroundMode: true,
+                  controls: widget.showControls
+                      ? MaterialVideoControls
+                      : NoVideoControls,
+                  wakelock: widget.wakelock,
+                  pauseUponEnteringBackgroundMode: _ownsPlayer,
                 ),
-                if (!_started) _PosterStart(
-                  poster: widget.poster,
-                  accent: widget.accent,
-                  ink: _ink,
-                  onPlay: () {
-                    HapticFeedback.lightImpact();
-                    _player.play();
-                  },
-                ),
+                if (!_started)
+                  _PosterStart(
+                    poster: widget.poster,
+                    accent: widget.accent,
+                    ink: _ink,
+                    onPlay: () {
+                      HapticFeedback.lightImpact();
+                      _player.play();
+                    },
+                  ),
               ],
             ),
           ),
@@ -239,7 +285,8 @@ class _PosterStart extends StatelessWidget {
                   CachedNetworkImage(
                     imageUrl: poster!,
                     fit: BoxFit.cover,
-                    errorWidget: (_, _, _) => const ColoredBox(color: Colors.black),
+                    errorWidget: (_, _, _) =>
+                        const ColoredBox(color: Colors.black),
                   )
                 else
                   const ColoredBox(color: Colors.black),
@@ -259,11 +306,7 @@ class _PosterStart extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: Icon(
-                      Icons.play_arrow_rounded,
-                      color: ink,
-                      size: 36,
-                    ),
+                    child: Icon(Icons.play_arrow_rounded, color: ink, size: 36),
                   ),
                 ),
               ],

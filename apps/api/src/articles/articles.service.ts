@@ -31,6 +31,7 @@ import { enqueueArticleVideo } from './video/article-video.queue';
 import { videoSourcePrefix } from './video/process-article-video';
 import {
   CATEGORY_META,
+  SHORT_CATEGORY_SLUG,
   categoryDisplay,
   categoryQuerySlugs,
   isVideoCategory,
@@ -200,8 +201,15 @@ export class ArticlesService {
 
   private readonly publicCardSelect = PUBLIC_CARD_SELECT;
 
+  private readonly notShort: Prisma.ArticleWhereInput = {
+    NOT: { category: SHORT_CATEGORY_SLUG },
+  };
+
   async getHomeFeed() {
-    const published: Prisma.ArticleWhereInput = { isPublished: true };
+    const published: Prisma.ArticleWhereInput = {
+      isPublished: true,
+      ...this.notShort,
+    };
 
     const [
       featured,
@@ -284,7 +292,7 @@ export class ArticlesService {
   async listRecentPublished(take = 3) {
     const limit = Math.min(Math.max(take, 1), 12);
     const items = await this.prisma.article.findMany({
-      where: { isPublished: true },
+      where: { isPublished: true, ...this.notShort },
       orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
       take: limit,
       select: this.publicCardSelect,
@@ -300,6 +308,7 @@ export class ArticlesService {
     const rows = await this.prisma.$queryRaw<Array<{ id: string }>>`
       SELECT id FROM articles
       WHERE "isPublished" = true
+        AND (category IS NULL OR category <> ${SHORT_CATEGORY_SLUG})
       ORDER BY RANDOM()
       LIMIT ${limit}
     `;
@@ -348,7 +357,9 @@ export class ArticlesService {
 
     const where: Prisma.ArticleWhereInput = {
       isPublished: true,
-      ...(category ? { category: { in: categoryQuerySlugs(category) } } : {}),
+      ...(category
+        ? { category: { in: categoryQuerySlugs(category) } }
+        : this.notShort),
       OR: [
         { title: { contains: q, mode: 'insensitive' } },
         { slug: { contains: q, mode: 'insensitive' } },
@@ -384,7 +395,7 @@ export class ArticlesService {
   async listMostReadPublished(take = 5) {
     const limit = Math.min(Math.max(take, 1), 10);
     const items = await this.prisma.article.findMany({
-      where: { isPublished: true },
+      where: { isPublished: true, ...this.notShort },
       orderBy: [{ viewCount: 'desc' }, { publishedAt: 'desc' }],
       take: limit,
       select: this.publicCardSelect,
@@ -398,7 +409,10 @@ export class ArticlesService {
   async listPublishedFeed(take = 12, skip = 0) {
     const limit = Math.min(Math.max(take, 1), 48);
     const offset = Math.max(skip, 0);
-    const where = { isPublished: true } as const;
+    const where: Prisma.ArticleWhereInput = {
+      isPublished: true,
+      ...this.notShort,
+    };
 
     const [total, items, mostRead] = await this.prisma.$transaction([
       this.prisma.article.count({ where }),
@@ -506,10 +520,11 @@ export class ArticlesService {
         })
       : [];
 
-    if (items.length < limit) {
+    if (items.length < limit && relatedCategory !== SHORT_CATEGORY_SLUG) {
       const fill = await this.prisma.article.findMany({
         where: {
           isPublished: true,
+          ...this.notShort,
           id: { notIn: [current.id, ...items.map((a) => a.id)] },
         },
         orderBy,
@@ -889,7 +904,7 @@ export class ArticlesService {
     if (!article) throw new NotFoundException('Article introuvable');
     if (!isVideoCategory(article.category)) {
       throw new BadRequestException(
-        'La vidéo est réservée aux rubriques STU TALK et STU STORIES',
+        'La vidéo est réservée aux rubriques STU TALK, STU STORIES et SHORT',
       );
     }
     if (dto.size > ARTICLE_VIDEO_MAX_BYTES) {
@@ -934,7 +949,7 @@ export class ArticlesService {
     if (!article) throw new NotFoundException('Article introuvable');
     if (!isVideoCategory(article.category)) {
       throw new BadRequestException(
-        'La vidéo est réservée aux rubriques STU TALK et STU STORIES',
+        'La vidéo est réservée aux rubriques STU TALK, STU STORIES et SHORT',
       );
     }
 

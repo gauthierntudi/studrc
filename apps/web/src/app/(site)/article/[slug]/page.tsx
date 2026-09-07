@@ -9,6 +9,7 @@ import {
 } from "@/lib/site-url";
 import {
   isStoriesRubrique,
+  isShortRubrique,
   isVideoRubrique,
   RUBRIQUE_BY_SLUG,
 } from "@/lib/rubriques";
@@ -26,6 +27,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const article = await articlesPublicApi.bySlug(slug);
     if (!article.isPublished) {
       return { title: "Article", robots: { index: false, follow: false } };
+    }
+    if (isShortRubrique(article.category)) {
+      return { title: "Short", robots: { index: false, follow: false } };
     }
 
     const title = article.title;
@@ -83,6 +87,7 @@ export default async function ArticlePage({ params }: Props) {
   }
 
   if (!article.isPublished) notFound();
+  if (isShortRubrique(article.category)) notFound();
 
   let related: PublicArticleCard[] = [];
   try {

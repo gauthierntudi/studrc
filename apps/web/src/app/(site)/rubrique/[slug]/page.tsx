@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { articlesPublicApi } from "@/lib/api";
 import { BRAND } from "@/lib/brand";
-import { CATEGORY_BLURB, RUBRIQUE_BY_SLUG } from "@/lib/rubriques";
+import { CATEGORY_BLURB, RUBRIQUE_BY_SLUG, isShortRubrique } from "@/lib/rubriques";
 import { RubriqueFeed } from "./rubrique-feed";
 import { RubriqueHeroCarousel } from "./rubrique-hero";
 import "./rubrique.css";
@@ -17,6 +17,9 @@ const INITIAL_FEED = 8;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
+  if (isShortRubrique(slug)) {
+    return { title: `Rubrique — ${BRAND.name}`, robots: { index: false } };
+  }
   try {
     const feed = await articlesPublicApi.byCategory(slug, { take: 1 });
     return {
@@ -32,6 +35,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function RubriquePage({ params }: Props) {
   const { slug } = await params;
+  if (isShortRubrique(slug)) notFound();
 
   let feed;
   try {

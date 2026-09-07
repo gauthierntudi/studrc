@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/router.dart';
 import 'features/splash/splash_view.dart';
 import 'theme/app_theme.dart';
+import 'widgets/now_playing_overlay.dart';
 
 class StudrcApp extends ConsumerStatefulWidget {
   const StudrcApp({super.key, this.showSplash = true});
@@ -36,21 +37,23 @@ class _StudrcAppState extends ConsumerState<StudrcApp> {
       themeMode: ThemeMode.system,
       routerConfig: router,
       builder: (context, child) {
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            child ?? const SizedBox.shrink(),
-            IgnorePointer(
-              ignoring: !_splash,
-              child: AnimatedOpacity(
-                opacity: _splash ? 1 : 0,
-                duration: MediaQuery.of(context).disableAnimations
-                    ? Duration.zero
-                    : const Duration(milliseconds: 280),
-                child: const SplashView(),
+        return NowPlayingOverlayHost(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              child ?? const SizedBox.shrink(),
+              IgnorePointer(
+                ignoring: !_splash,
+                child: AnimatedOpacity(
+                  opacity: _splash ? 1 : 0,
+                  duration: MediaQuery.of(context).disableAnimations
+                      ? Duration.zero
+                      : const Duration(milliseconds: 280),
+                  child: const SplashView(),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api.dart';
 import '../../core/constants.dart';
 import '../../widgets/article_tile.dart';
+import '../shorts/shorts_feed.dart';
 
 final rubriqueProvider =
     FutureProvider.family((ref, String slug) {
@@ -16,6 +17,9 @@ class RubriqueScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (isShortRubrique(slug)) {
+      return const ShortsScreen();
+    }
     final async = ref.watch(rubriqueProvider(slug));
     return Scaffold(
       appBar: AppBar(
@@ -32,6 +36,7 @@ class RubriqueScreen extends ConsumerWidget {
           if (feed.items.isEmpty) {
             return const Center(child: Text('Pas encore d’articles.'));
           }
+          final chapo = slug == 'stu-news' || slug == 'stu-data';
           return ListView.separated(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
             itemCount: feed.items.length,
@@ -40,10 +45,16 @@ class RubriqueScreen extends ConsumerWidget {
               if (i == 0) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: FeaturedCard(article: feed.items[i]),
+                  child: FeaturedCard(
+                    article: feed.items[i],
+                    showExcerpt: chapo,
+                  ),
                 );
               }
-              return ArticleTile(article: feed.items[i]);
+              return ArticleTile(
+                article: feed.items[i],
+                showExcerpt: chapo,
+              );
             },
           );
         },

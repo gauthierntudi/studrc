@@ -5,7 +5,11 @@ export type CategoryMeta = {
   tone: CategoryTone;
   /** Anciennes rubriques Opt1mum encore présentes en base. */
   aliases?: string[];
+  /** Visible seulement dans l’app mobile (pas le site). */
+  mobileOnly?: boolean;
 };
+
+export const SHORT_CATEGORY_SLUG = 'stu-short';
 
 export const CATEGORY_META: Record<string, CategoryMeta> = {
   'stu-news': {
@@ -31,6 +35,11 @@ export const CATEGORY_META: Record<string, CategoryMeta> = {
   'stu-mag': {
     label: 'STU MAG',
     tone: 'dark',
+  },
+  [SHORT_CATEGORY_SLUG]: {
+    label: 'SHORT',
+    tone: 'gold',
+    mobileOnly: true,
   },
 };
 
@@ -68,9 +77,24 @@ export function categoryDisplay(raw: string | null | undefined): {
   return { label: key || 'Actualité', tone: 'teal' };
 }
 
-export const VIDEO_CATEGORY_SLUGS = ['stu-talk', 'stu-stories'] as const;
+export function isShortCategory(raw: string | null | undefined): boolean {
+  return resolveCategorySlug(raw ?? '') === SHORT_CATEGORY_SLUG;
+}
+
+export function isMobileOnlyCategory(raw: string | null | undefined): boolean {
+  const slug = resolveCategorySlug(raw ?? '');
+  return Boolean(slug && CATEGORY_META[slug]?.mobileOnly);
+}
+
+export const VIDEO_CATEGORY_SLUGS = [
+  'stu-talk',
+  'stu-stories',
+  SHORT_CATEGORY_SLUG,
+] as const;
 
 export function isVideoCategory(raw: string | null | undefined): boolean {
   const slug = resolveCategorySlug(raw ?? '');
-  return slug === 'stu-talk' || slug === 'stu-stories';
+  return (
+    slug === 'stu-talk' || slug === 'stu-stories' || slug === SHORT_CATEGORY_SLUG
+  );
 }

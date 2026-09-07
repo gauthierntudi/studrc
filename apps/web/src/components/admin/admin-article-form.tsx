@@ -616,9 +616,12 @@ export function AdminArticleForm({ mode, articleId }: AdminArticleFormProps) {
                       {ARTICLE_CATEGORIES.map((c) => (
                         <option key={c.value} value={c.value}>
                           {c.label}
-                          {c.value === "stu-talk" || c.value === "stu-stories"
+                          {c.value === "stu-talk" ||
+                          c.value === "stu-stories"
                             ? " — vidéo"
-                            : ""}
+                            : c.value === "stu-short"
+                              ? " — vidéo mobile"
+                              : ""}
                         </option>
                       ))}
                     </select>
@@ -828,17 +831,25 @@ export function AdminArticleForm({ mode, articleId }: AdminArticleFormProps) {
                 </label>
                 <AdminDropzone
                 variant="image"
-                thumbRatio="wide"
+                thumbRatio={form.category === "stu-short" ? "portrait" : "wide"}
                 accept="image/jpeg,image/png,image/webp"
                 label="Cover principale"
-                hint="Glisser-déposer ou cliquer · recadrage 16:9 · JPG, PNG, WEBP · max 5 Mo"
+                hint={
+                  form.category === "stu-short"
+                    ? "Glisser-déposer ou cliquer · format vertical 9:16 · JPG, PNG, WEBP · max 5 Mo"
+                    : "Glisser-déposer ou cliquer · recadrage 16:9 · JPG, PNG, WEBP · max 5 Mo"
+                }
                 fileName={coverFile?.name ?? (coverPreview ? "cover" : null)}
                 previewUrl={coverPreview}
                 onFile={onCoverPick}
               />
               {isVideoRubrique(form.category) ? (
                 <div className="admin-dash__field">
-                  <span>Vidéo (STU TALK / STU STORIES)</span>
+                  <span>
+                    {form.category === "stu-short"
+                      ? "Vidéo SHORT (vertical 9:16 recommandé)"
+                      : "Vidéo (STU TALK / STU STORIES)"}
+                  </span>
                   <AdminArticleVideo
                     articleId={articleId ?? savedArticle?.id}
                     category={form.category}

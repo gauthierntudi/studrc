@@ -2,32 +2,39 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api.dart';
+import '../../core/article_nav.dart';
 import '../../core/constants.dart';
 import '../../core/models.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/article_tile.dart';
 import '../../widgets/cover.dart';
-import '../../widgets/studrc_logo.dart';
+import '../../widgets/studrc_filter_tabs.dart';
+import '../../widgets/studrc_masthead.dart';
 
 final homeProvider = FutureProvider((ref) async {
   final api = ref.watch(apiClientProvider);
   final feed = await api.home();
-  MagazineCard? latest;
+  var magazines = <MagazineCard>[];
   try {
-    latest = await api.latestMagazine();
-  } catch (_) {}
-  return (feed: feed, latest: latest);
+    magazines = await api.magazines(take: 12);
+  } catch (_) {
+    try {
+      final latest = await api.latestMagazine();
+      if (latest != null) magazines = [latest];
+    } catch (_) {}
+  }
+  return (feed: feed, magazines: magazines);
 });
 
 List<ArticleCard> _unique(Iterable<ArticleCard> items) {
   final seen = <String>{};
-  return [for (final a in items) if (seen.add(a.id)) a];
+  return [
+    for (final a in items)
+      if (seen.add(a.id)) a,
+  ];
 }
 
-final _tabLabels = <String>[
-  'À la une',
-  ...kRubriques.map((r) => r.label),
-];
+final _tabLabels = <String>['À la une', ...kRubriques.map((r) => r.label)];
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -56,23 +63,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget build(BuildContext context) {
     final async = ref.watch(homeProvider);
     final user = ref.watch(sessionProvider);
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final line = dark
-        ? Colors.white.withValues(alpha: 0.08)
-        : const Color(0xFFE6E6E6);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
-            _Masthead(
+            StudrcMasthead(
               onSearch: () => context.push('/recherche'),
-              onNotify: () => context.push(
-                user == null ? '/connexion' : '/notifications',
-              ),
+              onNotify: () =>
+                  context.push(user == null ? '/connexion' : '/notifications'),
             ),
-            _SectionTabs(controller: _tabs, line: line),
+            StudrcFilterTabs(controller: _tabs, labels: _tabLabels),
             Expanded(
               child: async.when(
                 loading: () => const _HomeSkeleton(),
@@ -95,7 +97,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       _UnePage(
                         une: une,
                         feed: feed,
-                        latest: data.latest,
+                        magazines: data.magazines,
                         onRefresh: () async => ref.refresh(homeProvider.future),
                       ),
                       for (var i = 0; i < kRubriques.length; i++)
@@ -117,139 +119,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 }
 
-class _Masthead extends StatelessWidget {
-  const _Masthead({required this.onSearch, required this.onNotify});
-
-  final VoidCallback onSearch;
-  final VoidCallback onNotify;
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final ink = dark ? Colors.white : AppTheme.navy;
-    return SizedBox(
-      height: 52,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 48,
-              child: _HeaderIcon(
-                icon: Icons.search,
-                tooltip: 'Rechercher',
-                color: ink,
-                onTap: onSearch,
-              ),
-            ),
-            Expanded(
-              child: Center(
-                child: StudrcLogo(height: 26, color: ink),
-              ),
-            ),
-            SizedBox(
-              width: 48,
-              child: _HeaderIcon(
-                icon: Icons.notifications_none_rounded,
-                tooltip: 'Notifications',
-                color: ink,
-                onTap: onNotify,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _HeaderIcon extends StatelessWidget {
-  const _HeaderIcon({
-    required this.icon,
-    required this.tooltip,
-    required this.color,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String tooltip;
-  final Color color;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: onTap,
-      tooltip: tooltip,
-      icon: Icon(icon, size: 24),
-      color: color,
-      style: IconButton.styleFrom(
-        minimumSize: const Size(44, 44),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      ),
-    );
-  }
-}
-
-class _SectionTabs extends StatelessWidget {
-  const _SectionTabs({required this.controller, required this.line});
-
-  final TabController controller;
-  final Color line;
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final selected = dark ? Colors.white : AppTheme.navy;
-    final idle = selected.withValues(alpha: 0.42);
-
-    return Material(
-      color: Colors.transparent,
-      child: TabBar(
-        controller: controller,
-        isScrollable: true,
-        tabAlignment: TabAlignment.start,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        labelPadding: const EdgeInsets.symmetric(horizontal: 14),
-        labelColor: selected,
-        unselectedLabelColor: idle,
-        labelStyle: AppTheme.displayText(
-          size: 13,
-          weight: FontWeight.w700,
-          height: 1.1,
-          letterSpacing: 0.15,
-        ),
-        unselectedLabelStyle: AppTheme.sansText(
-          size: 13,
-          weight: FontWeight.w600,
-          height: 1.1,
-          letterSpacing: 0.1,
-        ),
-        indicator: const UnderlineTabIndicator(
-          borderSide: BorderSide(color: AppTheme.gold, width: 2.5),
-        ),
-        indicatorSize: TabBarIndicatorSize.label,
-        dividerColor: line,
-        dividerHeight: 0.5,
-        splashFactory: NoSplash.splashFactory,
-        overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-        tabs: [for (final label in _tabLabels) Tab(text: label, height: 40)],
-      ),
-    );
-  }
-}
-
 class _UnePage extends StatelessWidget {
   const _UnePage({
     required this.une,
     required this.feed,
-    required this.latest,
+    required this.magazines,
     required this.onRefresh,
   });
 
   final List<ArticleCard> une;
   final HomeFeed feed;
-  final MagazineCard? latest;
+  final List<MagazineCard> magazines;
   final Future<void> Function() onRefresh;
 
   @override
@@ -276,18 +156,17 @@ class _UnePage extends StatelessWidget {
             const SizedBox(height: 20),
             _CoverRail(items: une.skip(1).take(10).toList()),
           ],
-          ...rails.where((r) => r.items.isNotEmpty).map(
-                (r) => _RubriqueRail(
+          ...rails
+              .where((r) => r.items.isNotEmpty)
+              .map(
+                (r) =>                 _RubriqueRail(
                   label: r.label,
                   slug: r.slug,
                   tone: r.tone,
                   items: r.items.take(10).toList(),
                 ),
               ),
-          if (latest != null) ...[
-            const SizedBox(height: 8),
-            _KiosqueTeaser(magazine: latest!),
-          ],
+          if (magazines.isNotEmpty) _StuMagRail(magazines: magazines),
         ],
       ),
     );
@@ -322,23 +201,82 @@ class _RubriquePage extends StatelessWidget {
     return RefreshIndicator(
       color: AppTheme.gold,
       onRefresh: onRefresh,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
-        children: [
-          FeaturedCard(article: items.first),
-          const SizedBox(height: 8),
-          ...items.skip(1).map(
-                (a) => ArticleTile(article: a, showMeta: false),
-              ),
-          const SizedBox(height: 12),
-          TextButton(
-            onPressed: () => context.push('/rubrique/$slug'),
-            child: const Text('Voir toute la rubrique'),
-          ),
-        ],
-      ),
+      child: isPortraitRubrique(slug)
+          ? _PortraitRubriqueList(items: items, slug: slug)
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+              children: [
+                FeaturedCard(article: items.first, showExcerpt: true),
+                const SizedBox(height: 8),
+                ...items.skip(1).map(
+                  (a) => ArticleTile(
+                    article: a,
+                    showMeta: false,
+                    showExcerpt: true,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => context.push('/rubrique/$slug'),
+                  child: const Text('Voir toute la rubrique'),
+                ),
+              ],
+            ),
     );
   }
+}
+
+class _PortraitRubriqueList extends StatelessWidget {
+  const _PortraitRubriqueList({required this.items, required this.slug});
+
+  final List<ArticleCard> items;
+  final String slug;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const gap = 12.0;
+        const pad = 20.0;
+        final width = constraints.maxWidth - pad * 2;
+        final cardWidth = (width - gap) / 2;
+        final coverHeight = cardWidth * 4 / 3;
+        return ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(pad, 16, pad, 40),
+          children: [
+            Wrap(
+              spacing: gap,
+              runSpacing: 16,
+              children: [
+                for (final article in items)
+                  SizedBox(
+                    width: cardWidth,
+                    child: _CoverCard(
+                      article: article,
+                      width: cardWidth,
+                      coverHeight: coverHeight,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => context.push('/rubrique/$slug'),
+              child: const Text('Voir toute la rubrique'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Largeur d’une carte de rail : 2 cartes visibles + aperçu de la suivante.
+({double width, double gap}) _railCardMetrics(BuildContext context) {
+  const gap = 12.0;
+  final available = MediaQuery.sizeOf(context).width - 40;
+  return (width: (available - gap) / 2.2, gap: gap);
 }
 
 class _CoverRail extends StatelessWidget {
@@ -348,13 +286,23 @@ class _CoverRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final metrics = _railCardMetrics(context);
+    final cardWidth = metrics.width;
+    final gap = metrics.gap;
+    final coverHeight = cardWidth * 4 / 3;
+
     return SizedBox(
-      height: 188,
+      height: coverHeight + 52,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
         itemCount: items.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 12),
-        itemBuilder: (context, i) => _CoverCard(article: items[i]),
+        separatorBuilder: (_, _) => SizedBox(width: gap),
+        itemBuilder: (context, i) => _CoverCard(
+          article: items[i],
+          width: cardWidth,
+          coverHeight: coverHeight,
+        ),
       ),
     );
   }
@@ -408,10 +356,9 @@ class _RubriqueRail extends StatelessWidget {
                   ),
                   Icon(
                     Icons.chevron_right,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.4),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.4),
                   ),
                 ],
               ),
@@ -426,29 +373,39 @@ class _RubriqueRail extends StatelessWidget {
 }
 
 class _CoverCard extends StatelessWidget {
-  const _CoverCard({required this.article});
+  const _CoverCard({
+    required this.article,
+    this.width = 168,
+    this.coverHeight = 112,
+  });
 
   final ArticleCard article;
+  final double width;
+  final double coverHeight;
 
   @override
   Widget build(BuildContext context) {
-    final play = isVideoRubrique(article.category, article.categoryLabel);
+    final video =
+        isVideoRubrique(article.category, article.categoryLabel) ||
+        article.hasReadyVideo;
+    final clock = article.durationClock;
     final scheme = Theme.of(context).colorScheme;
     return SizedBox(
-      width: 168,
+      width: width,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () =>
-              context.push('/article/${Uri.encodeComponent(article.slug)}'),
+          onTap: () => openArticleCard(context, article),
           borderRadius: BorderRadius.circular(16),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Cover(
-                url: article.coverUrl,
-                play: play,
-                height: 112,
+                url: article.videoPosterUrl ?? article.coverUrl,
+                play: video && clock.isEmpty,
+                duration: clock,
+                height: coverHeight,
                 radius: 16,
               ),
               const SizedBox(height: 8),
@@ -471,60 +428,239 @@ class _CoverCard extends StatelessWidget {
   }
 }
 
-class _KiosqueTeaser extends StatelessWidget {
-  const _KiosqueTeaser({required this.magazine});
-  final MagazineCard magazine;
+class _StuMagRail extends StatelessWidget {
+  const _StuMagRail({required this.magazines});
+
+  final List<MagazineCard> magazines;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Material(
-      color: isDark ? scheme.surface : Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        onTap: () => context.go('/kiosque'),
-        borderRadius: BorderRadius.circular(20),
-        child: Ink(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: scheme.outlineVariant.withValues(alpha: 0.5),
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 88,
-                  height: 118,
-                  child: Cover(url: magazine.coverUrl, radius: 12),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    magazine.title,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTheme.displayText(
-                      size: 16,
-                      weight: FontWeight.w800,
-                      height: 1.25,
+    final metrics = _railCardMetrics(context);
+    final cardWidth = metrics.width;
+    final gap = metrics.gap;
+    final coverHeight = cardWidth * 4 / 3;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => context.go('/kiosque'),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE1045C),
+                      shape: BoxShape.circle,
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Stu Mag',
+                      style: AppTheme.displayText(
+                        size: 16,
+                        weight: FontWeight.w800,
+                        color: scheme.onSurface,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    'Tous les numéros',
+                    style: AppTheme.sansText(
+                      size: 13,
+                      weight: FontWeight.w600,
+                      color: scheme.onSurface.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  Icon(
+                    Icons.chevron_right,
+                    color: scheme.onSurface.withValues(alpha: 0.4),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: coverHeight + 72,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.none,
+              itemCount: magazines.length,
+              separatorBuilder: (_, _) => SizedBox(width: gap),
+              itemBuilder: (context, i) => _MagIssueCard(
+                magazine: magazines[i],
+                width: cardWidth,
+                coverHeight: coverHeight,
+                latest: i == 0,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MagIssueCard extends StatelessWidget {
+  const _MagIssueCard({
+    required this.magazine,
+    required this.width,
+    required this.coverHeight,
+    required this.latest,
+  });
+
+  final MagazineCard magazine;
+  final double width;
+  final double coverHeight;
+  final bool latest;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final issue = _issueLabel(magazine.issueNumber);
+    final free = magazine.accessType == 'FREE';
+
+    return SizedBox(
+      width: width,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => context.push('/magazine/${magazine.id}'),
+          borderRadius: BorderRadius.circular(6),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(6),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.navy.withValues(alpha: 0.16),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
-                Icon(
-                  Icons.chevron_right,
-                  color: scheme.onSurface.withValues(alpha: 0.4),
+                child: Stack(
+                  children: [
+                    Cover(
+                      url: magazine.coverUrl,
+                      height: coverHeight,
+                      radius: 6,
+                    ),
+                    if (latest)
+                      const Positioned(
+                        top: 8,
+                        right: 8,
+                        child: _MagChip(
+                          'Nouveau',
+                          color: AppTheme.red,
+                          ink: Colors.white,
+                        ),
+                      ),
+                    if (issue != null)
+                      Positioned(
+                        left: 8,
+                        bottom: 8,
+                        child: _MagChip(
+                          issue,
+                          color: AppTheme.navy,
+                          ink: Colors.white,
+                        ),
+                      ),
+                    if (free)
+                      const Positioned(
+                        right: 8,
+                        bottom: 8,
+                        child: _MagChip(
+                          'Gratuit',
+                          color: AppTheme.gold,
+                          ink: AppTheme.navy,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                magazine.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTheme.displayText(
+                  size: 13,
+                  weight: FontWeight.w700,
+                  height: 1.25,
+                  color: scheme.onSurface,
+                ),
+              ),
+              if (magazine.dateLabel.isNotEmpty) ...[
+                const SizedBox(height: 3),
+                Text(
+                  magazine.dateLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.sansText(
+                    size: 11,
+                    weight: FontWeight.w600,
+                    color: scheme.onSurface.withValues(alpha: 0.5),
+                  ),
                 ),
               ],
-            ),
+            ],
           ),
         ),
       ),
     );
   }
+}
+
+class _MagChip extends StatelessWidget {
+  const _MagChip(this.label, {required this.color, required this.ink});
+
+  final String label;
+  final Color color;
+  final Color ink;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        style: AppTheme.sansText(
+          size: 10,
+          weight: FontWeight.w800,
+          height: 1.1,
+          letterSpacing: 0.2,
+          color: ink,
+        ),
+      ),
+    );
+  }
+}
+
+String? _issueLabel(String? value) {
+  if (value == null) return null;
+  final trimmed = value.trim();
+  if (trimmed.isEmpty) return null;
+  if (trimmed.startsWith('#') || trimmed.toLowerCase().startsWith('n')) {
+    return trimmed;
+  }
+  return '#$trimmed';
 }
 
 class _HomeSkeleton extends StatelessWidget {
@@ -534,27 +670,41 @@ class _HomeSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     final fill = Theme.of(context).colorScheme.surfaceContainerHighest;
     Widget box({double h = 16, double r = 10}) => Container(
-          height: h,
-          decoration: BoxDecoration(
-            color: fill,
-            borderRadius: BorderRadius.circular(r),
-          ),
-        );
+      height: h,
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(r),
+      ),
+    );
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Column(
         children: [
-          box(h: 260, r: 22),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 112,
-            child: Row(
-              children: [
-                Expanded(child: box(h: 112, r: 16)),
-                const SizedBox(width: 12),
-                Expanded(child: box(h: 112, r: 16)),
-              ],
+          AspectRatio(
+            aspectRatio: 4 / 3,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: fill,
+                borderRadius: BorderRadius.circular(22),
+              ),
             ),
+          ),
+          const SizedBox(height: 20),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final w = (constraints.maxWidth - 12) / 2.2;
+              final h = w * 4 / 3;
+              return SizedBox(
+                height: h,
+                child: Row(
+                  children: [
+                    Expanded(child: box(h: h, r: 16)),
+                    const SizedBox(width: 12),
+                    Expanded(child: box(h: h, r: 16)),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),

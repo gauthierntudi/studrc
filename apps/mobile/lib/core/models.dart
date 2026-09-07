@@ -41,6 +41,28 @@ class ArticleCard {
     return '$minutes min';
   }
 
+  String get durationClock {
+    final sec = videoDurationSec;
+    if (sec == null || sec <= 0) return '';
+    final m = sec ~/ 60;
+    final s = sec % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
+  }
+
+  /// Chapô brut, sans balises HTML.
+  String get chapo {
+    final raw = excerpt?.trim() ?? '';
+    if (raw.isEmpty) return '';
+    return raw
+        .replaceAll(RegExp(r'<[^>]+>'), ' ')
+        .replaceAll(RegExp(r'&nbsp;', caseSensitive: false), ' ')
+        .replaceAll('&amp;', '&')
+        .replaceAll('&quot;', '"')
+        .replaceAll(RegExp(r'&#39;|&apos;'), "'")
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
   factory ArticleCard.fromJson(Map<String, dynamic> json) {
     return ArticleCard(
       id: '${json['id']}',
@@ -51,7 +73,8 @@ class ArticleCard {
       category: json['category'] as String?,
       categoryLabel: '${json['categoryLabel'] ?? json['category'] ?? ''}',
       categoryTone: '${json['categoryTone'] ?? 'teal'}',
-      authorName: '${json['authorName'] ?? json['author']?['name'] ?? 'STUDRC'}',
+      authorName:
+          '${json['authorName'] ?? json['author']?['name'] ?? 'STUDRC'}',
       dateLabel: '${json['dateLabel'] ?? ''}',
       videoHlsUrl: json['videoHlsUrl'] as String?,
       videoPosterUrl: json['videoPosterUrl'] as String?,
@@ -62,11 +85,7 @@ class ArticleCard {
 }
 
 class ArticleBlock {
-  const ArticleBlock({
-    this.title,
-    this.coverUrl,
-    required this.content,
-  });
+  const ArticleBlock({this.title, this.coverUrl, required this.content});
 
   final String? title;
   final String? coverUrl;
@@ -90,6 +109,7 @@ class ArticleDetail {
     this.coverUrl,
     this.category,
     this.categoryLabel,
+    this.categoryTone,
     this.authorName,
     this.publishedAt,
     this.videoHlsUrl,
@@ -106,6 +126,7 @@ class ArticleDetail {
   final String? coverUrl;
   final String? category;
   final String? categoryLabel;
+  final String? categoryTone;
   final String? authorName;
   final String? publishedAt;
   final String? videoHlsUrl;
@@ -119,7 +140,8 @@ class ArticleDetail {
 
   factory ArticleDetail.fromJson(Map<String, dynamic> json) {
     final author = json['author'];
-    final blocks = (json['blocks'] as List?)
+    final blocks =
+        (json['blocks'] as List?)
             ?.whereType<Map>()
             .map((b) => ArticleBlock.fromJson(Map<String, dynamic>.from(b)))
             .toList() ??
@@ -132,6 +154,7 @@ class ArticleDetail {
       coverUrl: json['coverUrl'] as String?,
       category: json['category'] as String?,
       categoryLabel: json['categoryLabel'] as String?,
+      categoryTone: json['categoryTone'] as String?,
       authorName: author is Map ? author['name'] as String? : null,
       publishedAt: json['publishedAt'] as String?,
       videoHlsUrl: json['videoHlsUrl'] as String?,
@@ -243,10 +266,7 @@ class Subscriber {
 }
 
 class AppSettings {
-  const AppSettings({
-    this.captcha = false,
-    this.turnstileSiteKey = '',
-  });
+  const AppSettings({this.captcha = false, this.turnstileSiteKey = ''});
 
   final bool captcha;
   final String turnstileSiteKey;
@@ -293,6 +313,8 @@ class MagazineCard {
     this.currency = 'USD',
     this.accessType,
     this.description,
+    this.bgColor,
+    this.accentColor,
   });
 
   final String id;
@@ -304,6 +326,10 @@ class MagazineCard {
   final String currency;
   final String? accessType;
   final String? description;
+  final String? bgColor;
+  final String? accentColor;
+
+  bool get isFree => accessType == 'FREE';
 
   factory MagazineCard.fromJson(Map<String, dynamic> json) {
     return MagazineCard(
@@ -316,6 +342,12 @@ class MagazineCard {
       currency: '${json['currency'] ?? 'USD'}',
       accessType: json['accessType'] as String?,
       description: json['description'] as String?,
+      bgColor: json['theme'] is Map
+          ? json['theme']['bgColor'] as String?
+          : json['bgColor'] as String?,
+      accentColor: json['theme'] is Map
+          ? json['theme']['accentColor'] as String?
+          : json['accentColor'] as String?,
     );
   }
 }
@@ -373,7 +405,8 @@ class MagazineSession {
       accessVia: json['accessVia'] as String?,
       accessType: json['accessType'] as String?,
       message: json['message'] as String?,
-      pages: (json['pages'] as List?)
+      pages:
+          (json['pages'] as List?)
               ?.whereType<Map>()
               .map((e) => MagazinePage.fromJson(Map<String, dynamic>.from(e)))
               .toList() ??
@@ -428,7 +461,9 @@ class PurchaseItem {
       title: mag is Map
           ? '${mag['title'] ?? json['title'] ?? 'Magazine'}'
           : '${json['title'] ?? 'Achat'}',
-      coverUrl: mag is Map ? mag['coverUrl'] as String? : json['coverUrl'] as String?,
+      coverUrl: mag is Map
+          ? mag['coverUrl'] as String?
+          : json['coverUrl'] as String?,
       magazineId: mag is Map ? '${mag['id']}' : json['magazineId'] as String?,
     );
   }

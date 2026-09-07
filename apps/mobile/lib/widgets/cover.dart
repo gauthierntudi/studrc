@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
+import 'duration_badge.dart';
 import 'play_badge.dart';
 
 class Cover extends StatelessWidget {
@@ -8,6 +9,7 @@ class Cover extends StatelessWidget {
     super.key,
     required this.url,
     this.play = false,
+    this.duration,
     this.height,
     this.radius = 14,
     this.headers,
@@ -15,6 +17,7 @@ class Cover extends StatelessWidget {
 
   final String? url;
   final bool play;
+  final String? duration;
   final double? height;
   final double radius;
   final Map<String, String>? headers;
@@ -29,10 +32,8 @@ class Cover extends StatelessWidget {
             fit: BoxFit.cover,
             width: double.infinity,
             height: height,
-            placeholder: (_, _) =>
-                Container(color: const Color(0xFF1A3A5C)),
-            errorWidget: (_, _, _) =>
-                Container(color: const Color(kBrandNavy)),
+            placeholder: (_, _) => Container(color: const Color(0xFF1A3A5C)),
+            errorWidget: (_, _, _) => Container(color: const Color(kBrandNavy)),
           );
 
     return ClipRRect(
@@ -45,6 +46,8 @@ class Cover extends StatelessWidget {
           children: [
             image,
             if (play) const PlayBadge(),
+            if (duration != null && duration!.isNotEmpty)
+              Positioned(right: 6, bottom: 6, child: DurationBadge(duration!)),
           ],
         ),
       ),

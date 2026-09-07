@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import '../core/article_nav.dart';
 import '../core/constants.dart';
 import '../core/models.dart';
 import '../theme/app_theme.dart';
 import 'cover.dart';
+import 'duration_badge.dart';
 
 class ArticleTile extends StatelessWidget {
   const ArticleTile({
@@ -11,22 +12,27 @@ class ArticleTile extends StatelessWidget {
     required this.article,
     this.compact = false,
     this.showMeta = true,
+    this.showExcerpt = false,
   });
 
   final ArticleCard article;
   final bool compact;
   final bool showMeta;
+  final bool showExcerpt;
 
   @override
   Widget build(BuildContext context) {
-    final play = isVideoRubrique(article.category, article.categoryLabel);
+    final video =
+        isVideoRubrique(article.category, article.categoryLabel) ||
+        article.hasReadyVideo;
+    final clock = article.durationClock;
     final scheme = Theme.of(context).colorScheme;
-    final size = compact ? 72.0 : 88.0;
+    final thumbH = compact ? 72.0 : 88.0;
+    final thumbW = thumbH * 4 / 3;
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () =>
-            context.push('/article/${Uri.encodeComponent(article.slug)}'),
+        onTap: () => openArticleCard(context, article),
         borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 10),
@@ -34,12 +40,14 @@ class ArticleTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
-                width: size,
-                height: size,
+                width: thumbW,
+                height: thumbH,
                 child: Cover(
-                  url: article.coverUrl,
-                  play: play,
-                  radius: 16,
+                  url: article.videoPosterUrl ?? article.coverUrl,
+                  play: video && clock.isEmpty,
+                  duration: clock,
+                  height: thumbH,
+                  radius: 12,
                 ),
               ),
               const SizedBox(width: 14),
@@ -61,7 +69,7 @@ class ArticleTile extends StatelessWidget {
                     ],
                     Text(
                       article.title,
-                      maxLines: showMeta ? 3 : 2,
+                      maxLines: showExcerpt ? 2 : (showMeta ? 3 : 2),
                       overflow: TextOverflow.ellipsis,
                       style: AppTheme.displayText(
                         size: compact ? 14 : 16,
@@ -70,6 +78,19 @@ class ArticleTile extends StatelessWidget {
                         color: scheme.onSurface,
                       ),
                     ),
+                    if (showExcerpt && article.chapo.isNotEmpty) ...[
+                      const SizedBox(height: 5),
+                      Text(
+                        article.chapo,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.sansText(
+                          size: compact ? 12 : 13,
+                          height: 1.4,
+                          color: scheme.onSurface.withValues(alpha: 0.58),
+                        ),
+                      ),
+                    ],
                     if (showMeta && article.dateLabel.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Text(
@@ -92,16 +113,26 @@ class ArticleTile extends StatelessWidget {
 }
 
 class FeaturedCard extends StatelessWidget {
-  const FeaturedCard({super.key, required this.article, this.badge});
+  const FeaturedCard({
+    super.key,
+    required this.article,
+    this.badge,
+    this.showExcerpt = false,
+  });
 
   final ArticleCard article;
   final String? badge;
+  final bool showExcerpt;
 
   @override
   Widget build(BuildContext context) {
-    final play = isVideoRubrique(article.category, article.categoryLabel);
+    final video =
+        isVideoRubrique(article.category, article.categoryLabel) ||
+        article.hasReadyVideo;
+    final clock = article.durationClock;
     final tone = AppTheme.toneColor(article.categoryTone);
-    final label = badge ??
+    final label =
+        badge ??
         (article.categoryLabel.isNotEmpty
             ? capitalizeLabel(article.categoryLabel)
             : 'À la une');
@@ -111,77 +142,100 @@ class FeaturedCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(22),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () =>
-            context.push('/article/${Uri.encodeComponent(article.slug)}'),
-        child: Stack(
-          children: [
-            Cover(
-              url: article.coverUrl,
-              play: play,
-              height: 260,
-              radius: 22,
-            ),
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(22),
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.05),
-                      Colors.black.withValues(alpha: 0.15),
-                      Colors.black.withValues(alpha: 0.78),
-                    ],
-                    stops: const [0.35, 0.55, 1],
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: 16,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        onTap: () => openArticleCard(context, article),
+        child: AspectRatio(
+          aspectRatio: 4 / 3,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return Stack(
+                fit: StackFit.expand,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: tone,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                      child: Text(
-                        label,
-                        style: AppTheme.sansText(
-                          size: 11,
-                          weight: FontWeight.w800,
-                          letterSpacing: 0,
-                          color: tone == AppTheme.gold
-                              ? AppTheme.navy
-                              : Colors.white,
-                        ),
-                      ),
+                  Cover(
+                    url: article.videoPosterUrl ?? article.coverUrl,
+                    play: video && clock.isEmpty,
+                    height: constraints.maxHeight,
+                    radius: 22,
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    article.title,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTheme.displayText(
-                      size: 22,
-                      weight: FontWeight.w800,
-                      height: 1.2,
-                      color: Colors.white,
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color(0x0D000000),
+                          Color(0x26000000),
+                          Color(0xC7000000),
+                        ],
+                        stops: [0.35, 0.55, 1],
+                      ),
+                    ),
+                  ),
+                  if (clock.isNotEmpty)
+                    Positioned(
+                      right: 14,
+                      bottom: 14,
+                      child: DurationBadge(clock),
+                    ),
+                  Positioned(
+                    left: 16,
+                    right: clock.isNotEmpty ? 72 : 16,
+                    bottom: 16,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: tone,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            label,
+                            style: AppTheme.sansText(
+                              size: 11,
+                              weight: FontWeight.w800,
+                              letterSpacing: 0,
+                              color: tone == AppTheme.gold
+                                  ? AppTheme.navy
+                                  : Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          article.title,
+                          maxLines: showExcerpt ? 2 : 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTheme.displayText(
+                            size: 22,
+                            weight: FontWeight.w800,
+                            height: 1.2,
+                            color: Colors.white,
+                          ),
+                        ),
+                        if (showExcerpt && article.chapo.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            article.chapo,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTheme.sansText(
+                              size: 13,
+                              height: 1.35,
+                              color: Colors.white.withValues(alpha: 0.88),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 ],
-              ),
-            ),
-          ],
+              );
+            },
+          ),
         ),
       ),
     );

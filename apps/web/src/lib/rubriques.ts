@@ -56,12 +56,23 @@ export const RUBRIQUES: readonly Rubrique[] = [
   },
 ] as const;
 
+export const SHORT_RUBRIQUE: Rubrique = {
+  slug: "stu-short",
+  href: "/rubrique/stu-short",
+  label: "SHORT",
+  blurb:
+    "Formats courts verticaux, à feuilleter comme TikTok — visibles uniquement dans l’app.",
+  tone: "gold",
+  format: "video",
+};
+
 export const RUBRIQUE_BY_SLUG = Object.fromEntries(
   RUBRIQUES.map((r) => [r.slug, r]),
 ) as Record<string, Rubrique>;
 
 export const ARTICLE_CATEGORY_OPTIONS = [
   ...RUBRIQUES.map((r) => ({ value: r.slug, label: r.label })),
+  { value: SHORT_RUBRIQUE.slug, label: SHORT_RUBRIQUE.label },
 ] as const;
 
 export const CATEGORY_BLURB: Record<string, string> = Object.fromEntries(
@@ -74,10 +85,9 @@ export const SEARCH_FILTERS = [
 ] as const;
 
 const VIDEO_KEYS = new Set(
-  RUBRIQUES.filter((r) => r.format === "video").flatMap((r) => [
-    r.slug,
-    r.label.toLowerCase(),
-  ]),
+  [...RUBRIQUES, SHORT_RUBRIQUE]
+    .filter((r) => r.format === "video")
+    .flatMap((r) => [r.slug, r.label.toLowerCase()]),
 );
 
 /** Anciennes rubriques Opt1mum encore présentes en base / démo. */
@@ -104,6 +114,17 @@ export function isVideoRubrique(
     if (!value) return false;
     const key = value.trim().toLowerCase();
     return VIDEO_KEYS.has(key) || VIDEO_ALIASES.has(key);
+  });
+}
+
+/** SHORT — formats verticaux, app mobile seulement. */
+export function isShortRubrique(
+  ...values: Array<string | null | undefined>
+): boolean {
+  return values.some((value) => {
+    if (!value) return false;
+    const key = value.trim().toLowerCase();
+    return key === "stu-short" || key === "short";
   });
 }
 

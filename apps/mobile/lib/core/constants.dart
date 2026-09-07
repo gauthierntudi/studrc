@@ -21,6 +21,11 @@ const kRubriques = <({String slug, String label, String tone})>[
   (slug: 'stu-talk', label: 'Stu Talk', tone: 'teal'),
 ];
 
+const kNewsRubriques = <({String slug, String label, String tone})>[
+  ...kRubriques,
+  (slug: 'stu-short', label: 'Short', tone: 'gold'),
+];
+
 /// Title case for rubrique names (`STU NEWS` → `Stu News`).
 String capitalizeLabel(String value) {
   final parts = value.trim().split(RegExp(r'[\s_-]+'));
@@ -31,6 +36,58 @@ String capitalizeLabel(String value) {
   ].join(' ');
 }
 
+String toneFromCategory(String? category, [String? label]) {
+  final candidates = [category, label].whereType<String>().map(
+    (v) => v.trim().toLowerCase().replaceAll('_', '-').replaceAll(' ', '-'),
+  );
+
+  const aliases = <String, String>{
+    'stu-news': 'red',
+    'stu-data': 'blue',
+    'stu-stories': 'gold',
+    'stu-talk': 'teal',
+    'stu-short': 'gold',
+    'stu-mag': 'dark',
+    'edito': 'red',
+    'start-up': 'red',
+    'vus-sur-le-net': 'red',
+    'zoom': 'red',
+    'decryptages': 'blue',
+    'decryptage': 'blue',
+    'inspirationnel': 'gold',
+    'game-changers': 'gold',
+    'game-changer': 'gold',
+    'grandes-entrevues': 'teal',
+    'grande-entrevue': 'teal',
+    'entrevue-croisee': 'teal',
+  };
+
+  for (final key in candidates) {
+    if (key.isEmpty) continue;
+    final mapped = aliases[key];
+    if (mapped != null) return mapped;
+    for (final r in kRubriques) {
+      if (key == r.slug) return r.tone;
+    }
+  }
+  return 'red';
+}
+
+bool isPortraitRubrique(String? slug) {
+  final key = slug?.trim().toLowerCase() ?? '';
+  return key == 'stu-stories' || key == 'stu-talk';
+}
+
+bool isShortRubrique(String? category, [String? label]) {
+  bool match(String? value) {
+    if (value == null) return false;
+    final key = value.trim().toLowerCase();
+    return key == 'stu-short' || key == 'short';
+  }
+
+  return match(category) || match(label);
+}
+
 bool isVideoRubrique(String? category, [String? label]) {
   bool match(String? value) {
     if (value == null) return false;
@@ -39,6 +96,8 @@ bool isVideoRubrique(String? category, [String? label]) {
         key == 'stu stories' ||
         key == 'stu-talk' ||
         key == 'stu talk' ||
+        key == 'stu-short' ||
+        key == 'short' ||
         key == 'inspirationnel' ||
         key == 'game-changers' ||
         key == 'game-changer' ||
