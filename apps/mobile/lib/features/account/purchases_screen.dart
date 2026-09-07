@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/api.dart';
 import '../../widgets/cover.dart';
 
@@ -38,7 +39,7 @@ class PurchasesScreen extends ConsumerWidget {
                   child: Cover(url: p.coverUrl, radius: 6),
                 ),
                 title: Text(p.title),
-                trailing: const Icon(Icons.chevron_right),
+                trailing: const Icon(LucideIcons.chevronRight),
                 onTap: p.magazineId == null
                     ? null
                     : () => context.push('/magazine/${p.magazineId}'),

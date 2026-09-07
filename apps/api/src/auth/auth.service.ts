@@ -170,12 +170,12 @@ export class AuthService {
     turnstileToken?: string | null,
   ) {
     await this.turnstile.assertValid(turnstileToken, ip);
-    const clientId = this.config.get<string>('GOOGLE_CLIENT_ID')?.trim() ?? '';
-    if (!clientId) {
+    const audiences = this.googleAudienceIds();
+    if (!audiences.length) {
       throw new BadRequestException('Connexion Google non configurée');
     }
 
-    const googleUser = await this.verifyGoogleIdToken(credential, clientId);
+    const googleUser = await this.verifyGoogleIdToken(credential, audiences);
     if (!googleUser) {
       throw new UnauthorizedException('Vérification Google échouée');
     }
@@ -238,9 +238,25 @@ export class AuthService {
     return this.toAuthSession(subscriber, tokens);
   }
 
+  /** Client IDs OAuth acceptés (web GSI + iOS / Android natifs). */
+  private googleAudienceIds(): string[] {
+    const extra = (this.config.get<string>('GOOGLE_CLIENT_IDS') ?? '')
+      .split(/[,\s]+/)
+      .map((v) => v.trim())
+      .filter(Boolean);
+    const raw = [
+      this.config.get<string>('GOOGLE_CLIENT_ID'),
+      this.config.get<string>('NEXT_PUBLIC_GOOGLE_CLIENT_ID'),
+      this.config.get<string>('GOOGLE_IOS_CLIENT_ID'),
+      this.config.get<string>('GOOGLE_ANDROID_CLIENT_ID'),
+      ...extra,
+    ];
+    return [...new Set(raw.map((v) => v?.trim() ?? '').filter(Boolean))];
+  }
+
   private async verifyGoogleIdToken(
     idToken: string,
-    clientId: string,
+    audiences: string[],
   ): Promise<{
     email: string;
     name: string;
@@ -263,7 +279,8 @@ export class AuthService {
         picture?: string;
       };
 
-      if ((data.aud ?? '') !== clientId) {
+      const aud = (data.aud ?? '').trim();
+      if (!aud || !audiences.includes(aud)) {
         return null;
       }
       if (data.exp && Number(data.exp) < Math.floor(Date.now() / 1000)) {

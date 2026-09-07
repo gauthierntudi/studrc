@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/api.dart';
 import '../../widgets/auth_shell.dart';
 import '../../widgets/captcha_block.dart';
@@ -83,7 +84,7 @@ class _ForgotScreenState extends ConsumerState<ForgotScreen> {
             AuthGlassField(
               controller: _email,
               hint: 'Entrez votre e-mail',
-              icon: Icons.mail_outline_rounded,
+              icon: LucideIcons.mail,
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _submit(),

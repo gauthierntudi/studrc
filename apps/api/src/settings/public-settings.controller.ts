@@ -24,10 +24,18 @@ export class PublicSettingsController {
       this.config.get<string>('TURNSTILE_SITE_KEY')?.trim() ||
       this.config.get<string>('NEXT_PUBLIC_TURNSTILE_SITE_KEY')?.trim() ||
       '';
+    const googleClientId =
+      this.config.get<string>('GOOGLE_CLIENT_ID')?.trim() ||
+      this.config.get<string>('NEXT_PUBLIC_GOOGLE_CLIENT_ID')?.trim() ||
+      '';
+    const googleIosClientId =
+      this.config.get<string>('GOOGLE_IOS_CLIENT_ID')?.trim() || '';
     return {
       api: 'https://api.studrc.com/api',
       captcha,
       turnstileSiteKey: captcha ? siteKey : '',
+      googleClientId,
+      googleIosClientId,
     };
   }
 }

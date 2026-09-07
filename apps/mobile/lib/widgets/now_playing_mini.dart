@@ -3,17 +3,21 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../core/article_nav.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../core/now_playing.dart';
-import '../core/router.dart';
 import '../theme/app_theme.dart';
 
 /// Chrome de la barre mini (titre, pause, fermer). La texture vidéo
 /// est posée par l’overlay sur le slot 114×64 de gauche.
 class NowPlayingMiniBar extends ConsumerStatefulWidget {
-  const NowPlayingMiniBar({super.key, required this.session});
+  const NowPlayingMiniBar({
+    super.key,
+    required this.session,
+    this.onOpen,
+  });
 
   final NowPlaying session;
+  final VoidCallback? onOpen;
 
   @override
   ConsumerState<NowPlayingMiniBar> createState() => _NowPlayingMiniBarState();
@@ -21,18 +25,15 @@ class NowPlayingMiniBar extends ConsumerStatefulWidget {
 
 class _NowPlayingMiniBarState extends ConsumerState<NowPlayingMiniBar> {
   StreamSubscription<bool>? _sub;
-  bool _playing = true;
+  bool _playing = false;
 
   @override
   void initState() {
     super.initState();
-    final ctrl = ref.read(nowPlayingProvider.notifier);
-    _playing = ctrl.player.state.playing || ctrl.keepPlaying;
-    _sub = ctrl.player.stream.playing.listen((playing) {
+    final player = ref.read(nowPlayingProvider.notifier).player;
+    _playing = player.state.playing;
+    _sub = player.stream.playing.listen((playing) {
       if (mounted) setState(() => _playing = playing);
-    });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(nowPlayingProvider.notifier).resumeIfKept();
     });
   }
 
@@ -40,15 +41,6 @@ class _NowPlayingMiniBarState extends ConsumerState<NowPlayingMiniBar> {
   void dispose() {
     _sub?.cancel();
     super.dispose();
-  }
-
-  void _openWatchScreen() {
-    final session = widget.session;
-    ref.read(nowPlayingProvider.notifier).resumeIfKept();
-    ref.read(appRouterProvider).push(
-      '/article/${Uri.encodeComponent(session.slug)}',
-      extra: rememberedArticleTone(session.slug),
-    );
   }
 
   @override
@@ -82,7 +74,7 @@ class _NowPlayingMiniBarState extends ConsumerState<NowPlayingMiniBar> {
             ),
             Expanded(
               child: InkWell(
-                onTap: _openWatchScreen,
+                onTap: widget.onOpen,
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(10, 8, 4, 8),
                   child: Text(
@@ -103,13 +95,13 @@ class _NowPlayingMiniBarState extends ConsumerState<NowPlayingMiniBar> {
               tooltip: _playing ? 'Pause' : 'Lecture',
               onPressed: ctrl.playOrPause,
               icon: Icon(
-                _playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                _playing ? LucideIcons.pause : LucideIcons.play,
               ),
             ),
             IconButton(
               tooltip: 'Fermer',
               onPressed: ctrl.stop,
-              icon: const Icon(Icons.close_rounded),
+              icon: const Icon(LucideIcons.x),
             ),
           ],
         ),

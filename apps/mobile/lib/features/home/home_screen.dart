@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/api.dart';
 import '../../core/article_nav.dart';
 import '../../core/constants.dart';
 import '../../core/models.dart';
+import '../../core/now_playing.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/article_tile.dart';
 import '../../widgets/cover.dart';
 import '../../widgets/studrc_filter_tabs.dart';
 import '../../widgets/studrc_masthead.dart';
+import '../shorts/shorts_feed.dart';
 
 final homeProvider = FutureProvider((ref) async {
   final api = ref.watch(apiClientProvider);
@@ -34,7 +37,11 @@ List<ArticleCard> _unique(Iterable<ArticleCard> items) {
   ];
 }
 
-final _tabLabels = <String>['À la une', ...kRubriques.map((r) => r.label)];
+final _tabLabels = <String>[
+  'À la une',
+  ...kRubriques.map((r) => r.label),
+  'Shorts',
+];
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -51,6 +58,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void initState() {
     super.initState();
     _tabs = TabController(length: _tabLabels.length, vsync: this);
+    _tabs.addListener(() {
+      if (!mounted) return;
+      setState(() {});
+      if (_tabs.index == _tabLabels.length - 1) {
+        ref.read(nowPlayingProvider.notifier).stop();
+      }
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(shortsFeedProvider);
+    });
   }
 
   @override
@@ -63,57 +80,106 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget build(BuildContext context) {
     final async = ref.watch(homeProvider);
     final user = ref.watch(sessionProvider);
+    final shortTab = _tabs.index == _tabLabels.length - 1;
+    final tabs = StudrcFilterTabs(controller: _tabs, labels: _tabLabels);
+
+    ref.listen(shortsFeedProvider, (prev, next) {
+      final items = next.valueOrNull?.items;
+      if (items == null || !mounted) return;
+      precacheShortPosters(context, items);
+    });
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            StudrcMasthead(
-              onSearch: () => context.push('/recherche'),
-              onNotify: () =>
-                  context.push(user == null ? '/connexion' : '/notifications'),
+      backgroundColor: shortTab
+          ? Colors.black
+          : Theme.of(context).scaffoldBackgroundColor,
+      body: Column(
+        children: [
+          if (!shortTab)
+            SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  StudrcMasthead(
+                    onSearch: () => context.push('/recherche'),
+                    onNotify: () => context.push(
+                      user == null ? '/connexion' : '/notifications',
+                    ),
+                  ),
+                  tabs,
+                ],
+              ),
             ),
-            StudrcFilterTabs(controller: _tabs, labels: _tabLabels),
-            Expanded(
-              child: async.when(
-                loading: () => const _HomeSkeleton(),
-                error: (e, _) => _Retry(
-                  message: ref.read(apiClientProvider).apiError(e),
-                  onRetry: () => ref.refresh(homeProvider),
-                ),
-                data: (data) {
-                  final feed = data.feed;
-                  final une = _unique([...feed.featured, ...feed.topGrid]);
-                  final byRubrique = [
-                    feed.stuNews,
-                    feed.stuData,
-                    feed.stuStories,
-                    feed.stuTalk,
-                  ];
-                  return TabBarView(
-                    controller: _tabs,
-                    children: [
-                      _UnePage(
-                        une: une,
-                        feed: feed,
-                        magazines: data.magazines,
-                        onRefresh: () async => ref.refresh(homeProvider.future),
-                      ),
-                      for (var i = 0; i < kRubriques.length; i++)
-                        _RubriquePage(
-                          items: byRubrique[i],
-                          slug: kRubriques[i].slug,
+          Expanded(
+            child: Stack(
+              children: [
+                async.when(
+                  loading: () => shortTab
+                      ? ShortsFeedView(active: true)
+                      : const _HomeSkeleton(),
+                  error: (e, _) => shortTab
+                      ? ShortsFeedView(active: true)
+                      : _Retry(
+                          message: ref.read(apiClientProvider).apiError(e),
+                          onRetry: () => ref.refresh(homeProvider),
+                        ),
+                  data: (data) {
+                    final feed = data.feed;
+                    final une = _unique([...feed.featured, ...feed.topGrid]);
+                    final byRubrique = [
+                      feed.stuNews,
+                      feed.stuData,
+                      feed.stuStories,
+                      feed.stuTalk,
+                    ];
+                    return TabBarView(
+                      controller: _tabs,
+                      physics: shortTab
+                          ? const NeverScrollableScrollPhysics()
+                          : null,
+                      children: [
+                        _UnePage(
+                          une: une,
+                          feed: feed,
+                          magazines: data.magazines,
                           onRefresh: () async =>
                               ref.refresh(homeProvider.future),
                         ),
-                    ],
-                  );
-                },
-              ),
+                        for (var i = 0; i < kRubriques.length; i++)
+                          _RubriquePage(
+                            items: byRubrique[i],
+                            slug: kRubriques[i].slug,
+                            onRefresh: () async =>
+                                ref.refresh(homeProvider.future),
+                          ),
+                        ShortsFeedView(active: shortTab),
+                      ],
+                    );
+                  },
+                ),
+                if (shortTab)
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: DecoratedBox(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Color(0xCC000000), Color(0x00000000)],
+                        ),
+                      ),
+                      child: SafeArea(
+                        bottom: false,
+                        child: Theme(data: AppTheme.dark(), child: tabs),
+                      ),
+                    ),
+                  ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -355,7 +421,7 @@ class _RubriqueRail extends StatelessWidget {
                     ),
                   ),
                   Icon(
-                    Icons.chevron_right,
+                    LucideIcons.chevronRight,
                     color: Theme.of(
                       context,
                     ).colorScheme.onSurface.withValues(alpha: 0.4),
@@ -481,7 +547,7 @@ class _StuMagRail extends StatelessWidget {
                     ),
                   ),
                   Icon(
-                    Icons.chevron_right,
+                    LucideIcons.chevronRight,
                     color: scheme.onSurface.withValues(alpha: 0.4),
                   ),
                 ],

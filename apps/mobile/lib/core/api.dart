@@ -37,6 +37,13 @@ class SessionController extends StateNotifier<Subscriber?> {
     state = await _api.login(email, password, turnstileToken: turnstile);
   }
 
+  Future<void> loginWithGoogle(String credential, {String? turnstile}) async {
+    state = await _api.loginWithGoogle(
+      credential,
+      turnstileToken: turnstile,
+    );
+  }
+
   Future<void> register({
     required String name,
     required String email,
@@ -87,7 +94,9 @@ class ApiClient {
           if (error.response?.statusCode == 401 &&
               req.extra['retried'] != true &&
               !req.path.contains('/auth/refresh') &&
-              !req.path.contains('/auth/login')) {
+              !req.path.contains('/auth/login') &&
+              !req.path.contains('/auth/google') &&
+              !req.path.contains('/auth/register')) {
             final ok = await _refresh();
             if (ok) {
               req.extra['retried'] = true;
@@ -158,6 +167,8 @@ class ApiClient {
       return AppSettings(
         captcha: kTurnstileSiteKey.isNotEmpty,
         turnstileSiteKey: kTurnstileSiteKey,
+        googleClientId: kGoogleServerClientId,
+        googleIosClientId: kGoogleIosClientId,
       );
     }
   }
@@ -250,6 +261,20 @@ class ApiClient {
       data: {
         'email': email,
         'password': password,
+        if (turnstileToken case final token?) 'turnstileToken': token,
+      },
+    );
+    return _saveSession(_map(res.data));
+  }
+
+  Future<Subscriber> loginWithGoogle(
+    String credential, {
+    String? turnstileToken,
+  }) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/auth/google',
+      data: {
+        'credential': credential,
         if (turnstileToken case final token?) 'turnstileToken': token,
       },
     );

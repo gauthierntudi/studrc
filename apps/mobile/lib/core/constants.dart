@@ -9,6 +9,12 @@ const kSiteUrl = 'https://studrc.com';
 
 const kTurnstileSiteKey = String.fromEnvironment('TURNSTILE_SITE_KEY');
 
+/// Client OAuth Web (serverClientId) — même valeur que GOOGLE_CLIENT_ID.
+const kGoogleServerClientId = String.fromEnvironment('GOOGLE_CLIENT_ID');
+
+/// Client OAuth iOS (Info.plist / GIDClientID), optionnel au runtime.
+const kGoogleIosClientId = String.fromEnvironment('GOOGLE_IOS_CLIENT_ID');
+
 const kBrandNavy = 0xFF00132B;
 const kBrandGold = 0xFFFDBD01;
 const kBrandRed = 0xFFD63026;
@@ -23,7 +29,7 @@ const kRubriques = <({String slug, String label, String tone})>[
 
 const kNewsRubriques = <({String slug, String label, String tone})>[
   ...kRubriques,
-  (slug: 'stu-short', label: 'Short', tone: 'gold'),
+  (slug: 'stu-short', label: 'Shorts', tone: 'gold'),
 ];
 
 /// Title case for rubrique names (`STU NEWS` → `Stu News`).

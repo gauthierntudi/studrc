@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../theme/app_theme.dart';
 
 class PlayBadge extends StatelessWidget {
@@ -22,7 +23,7 @@ class PlayBadge extends StatelessWidget {
             ),
           ],
         ),
-        child: const Icon(Icons.play_arrow, color: Colors.black, size: 28),
+        child: const Icon(LucideIcons.play, color: Colors.black, size: 22),
       ),
     );
   }

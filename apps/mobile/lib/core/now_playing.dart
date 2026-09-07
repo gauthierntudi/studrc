@@ -1,4 +1,5 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -11,6 +12,7 @@ class NowPlaying {
     required this.src,
     this.poster,
     this.minimized = false,
+    this.fullscreen = false,
   });
 
   final String slug;
@@ -18,14 +20,16 @@ class NowPlaying {
   final String src;
   final String? poster;
   final bool minimized;
+  final bool fullscreen;
 
-  NowPlaying copyWith({bool? minimized}) {
+  NowPlaying copyWith({bool? minimized, bool? fullscreen}) {
     return NowPlaying(
       slug: slug,
       title: title,
       src: src,
       poster: poster,
       minimized: minimized ?? this.minimized,
+      fullscreen: fullscreen ?? this.fullscreen,
     );
   }
 }
@@ -33,13 +37,9 @@ class NowPlaying {
 class NowPlayingController extends StateNotifier<NowPlaying?> {
   NowPlayingController() : super(null);
 
-  /// Surface unique : ne jamais démonter le [Video] en réduisant.
-  final GlobalKey videoSurfaceKey = GlobalKey();
-
   Player? _player;
   VideoController? _video;
   bool _keepPlaying = false;
-  int _playGen = 0;
 
   NowPlaying? get session => state;
   bool get keepPlaying => _keepPlaying;
@@ -58,36 +58,59 @@ class NowPlayingController extends StateNotifier<NowPlaying?> {
     final src = article.videoHlsUrl;
     if (src == null || src.isEmpty) return;
     final same = state?.src == src;
-    if (!same) _keepPlaying = true;
+    if (same) {
+      if (state?.minimized == true) expand();
+      return;
+    }
+    await _restoreSystemUi();
+    await _resetPlayback();
+    _keepPlaying = true;
     state = NowPlaying(
       slug: article.slug,
       title: article.title,
       src: src,
       poster: article.videoPosterUrl ?? article.coverUrl,
     );
-    if (!same) {
-      await player.open(Media(src), play: true);
-    } else if (_keepPlaying) {
-      await player.play();
-    }
-    if (_keepPlaying) _playAfterTreeSettles();
+    await player.open(Media(src), play: true);
   }
 
   void minimize() {
     final current = state;
     if (current == null || current.minimized) return;
-    // Réduire = continuer. media_kit met souvent pause au démontage du Video
-    // avant même player.state.playing, donc on ne se fie pas à cet état.
-    _keepPlaying = true;
-    state = current.copyWith(minimized: true);
-    _playAfterTreeSettles();
+    if (current.fullscreen) {
+      _restoreSystemUi();
+    }
+    _keepPlaying = player.state.playing || _keepPlaying;
+    state = current.copyWith(minimized: true, fullscreen: false);
+  }
+
+  void expand() {
+    final current = state;
+    if (current == null || !current.minimized) return;
+    state = current.copyWith(minimized: false);
+  }
+
+  Future<void> toggleFullscreen() async {
+    final current = state;
+    if (current == null) return;
+    if (current.fullscreen) {
+      await _restoreSystemUi();
+      state = current.copyWith(fullscreen: false);
+      return;
+    }
+    _keepPlaying = player.state.playing || _keepPlaying;
+    state = current.copyWith(minimized: false, fullscreen: true);
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    await SystemChrome.setPreferredOrientations(const [
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
   }
 
   Future<void> playOrPause() async {
     if (_player == null) return;
     if (player.state.playing) {
       _keepPlaying = false;
-      _playGen++;
       await player.pause();
     } else {
       _keepPlaying = true;
@@ -95,46 +118,54 @@ class NowPlayingController extends StateNotifier<NowPlaying?> {
     }
   }
 
-  /// Après démontage / remontage du widget [Video], media_kit met souvent
-  /// pause *après* le premier `play()`. On relance une fois l’arbre posé.
   Future<void> resumeIfKept() async {
     if (!_keepPlaying || _player == null || state == null) return;
+    if (player.state.playing) return;
     try {
       await player.play();
     } catch (_) {}
   }
 
-  void _playAfterTreeSettles() {
-    final gen = ++_playGen;
-    void later(VoidCallback fn) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (gen != _playGen) return;
-        fn();
-      });
-    }
+  void stop() {
+    _keepPlaying = false;
+    state = null;
+    _restoreSystemUi();
+    _disposePlayerSoon();
+  }
 
-    later(() {
-      resumeIfKept();
-      later(() {
-        resumeIfKept();
-        Future<void>.delayed(const Duration(milliseconds: 80), () {
-          if (gen != _playGen) return;
-          resumeIfKept();
-        });
-      });
+  Future<void> _resetPlayback() async {
+    state = null;
+    final old = _player;
+    _player = null;
+    _video = null;
+    if (old == null) return;
+    try {
+      await old.dispose();
+    } catch (_) {}
+  }
+
+  void _disposePlayerSoon() {
+    final old = _player;
+    _player = null;
+    _video = null;
+    if (old == null) return;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      old.dispose();
     });
   }
 
-  void stop() {
-    _keepPlaying = false;
-    _playGen++;
-    _player?.stop();
-    state = null;
+  Future<void> _restoreSystemUi() async {
+    try {
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      await SystemChrome.setPreferredOrientations(const [
+        DeviceOrientation.portraitUp,
+      ]);
+    } catch (_) {}
   }
 
   @override
   void dispose() {
-    _playGen++;
+    _restoreSystemUi();
     _player?.dispose();
     super.dispose();
   }

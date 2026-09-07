@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/api.dart';
 import '../../core/models.dart';
 import '../../theme/app_theme.dart';
@@ -111,22 +112,22 @@ class _SignedIn extends ConsumerWidget {
         ),
         const Divider(),
         ListTile(
-          leading: const Icon(Icons.person_outline),
+          leading: const Icon(LucideIcons.userRound),
           title: const Text('Profil'),
           onTap: () => context.push('/profil'),
         ),
         ListTile(
-          leading: const Icon(Icons.notifications_outlined),
+          leading: const Icon(LucideIcons.bell),
           title: const Text('Notifications'),
           onTap: () => context.push('/notifications'),
         ),
         ListTile(
-          leading: const Icon(Icons.shopping_bag_outlined),
+          leading: const Icon(LucideIcons.shoppingBag),
           title: const Text('Mes achats'),
           onTap: () => context.push('/achats'),
         ),
         ListTile(
-          leading: const Icon(Icons.logout),
+          leading: const Icon(LucideIcons.logOut),
           title: const Text('Se déconnecter'),
           onTap: () => ref.read(sessionProvider.notifier).logout(),
         ),

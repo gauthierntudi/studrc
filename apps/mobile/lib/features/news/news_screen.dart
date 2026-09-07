@@ -46,6 +46,9 @@ class _NewsScreenState extends ConsumerState<NewsScreen>
         ref.read(nowPlayingProvider.notifier).stop();
       }
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(shortsFeedProvider);
+    });
   }
 
   @override
@@ -59,6 +62,12 @@ class _NewsScreenState extends ConsumerState<NewsScreen>
     final user = ref.watch(sessionProvider);
     final shortTab = _tabs.index == kNewsRubriques.length;
     final tabs = StudrcFilterTabs(controller: _tabs, labels: _newsTabLabels);
+
+    ref.listen(shortsFeedProvider, (prev, next) {
+      final items = next.valueOrNull?.items;
+      if (items == null || !mounted) return;
+      precacheShortPosters(context, items);
+    });
 
     return Scaffold(
       backgroundColor: shortTab
@@ -93,7 +102,7 @@ class _NewsScreenState extends ConsumerState<NewsScreen>
                     const _NewsFeedPage(slug: ''),
                     for (final r in kNewsRubriques)
                       r.slug == 'stu-short'
-                          ? const ShortsFeedView()
+                          ? ShortsFeedView(active: shortTab)
                           : _NewsFeedPage(slug: r.slug),
                   ],
                 ),

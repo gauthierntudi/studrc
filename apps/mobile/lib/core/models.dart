@@ -266,15 +266,24 @@ class Subscriber {
 }
 
 class AppSettings {
-  const AppSettings({this.captcha = false, this.turnstileSiteKey = ''});
+  const AppSettings({
+    this.captcha = false,
+    this.turnstileSiteKey = '',
+    this.googleClientId = '',
+    this.googleIosClientId = '',
+  });
 
   final bool captcha;
   final String turnstileSiteKey;
+  final String googleClientId;
+  final String googleIosClientId;
 
   factory AppSettings.fromJson(Map<String, dynamic> json) {
     return AppSettings(
       captcha: json['captcha'] == true,
       turnstileSiteKey: '${json['turnstileSiteKey'] ?? ''}',
+      googleClientId: '${json['googleClientId'] ?? ''}',
+      googleIosClientId: '${json['googleIosClientId'] ?? ''}',
     );
   }
 }

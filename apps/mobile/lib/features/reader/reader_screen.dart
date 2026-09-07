@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/api.dart';
 import '../../core/models.dart';
 import '../../theme/app_theme.dart';
@@ -149,7 +150,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                             ),
                             errorWidget: (_, _, _) => const Center(
                               child: Icon(
-                                Icons.broken_image_outlined,
+                                LucideIcons.imageOff,
                                 color: Colors.white54,
                               ),
                             ),
@@ -251,7 +252,7 @@ class _Locked extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(
-              Icons.lock_outline_rounded,
+              LucideIcons.lock,
               color: AppTheme.gold,
               size: 36,
             ),

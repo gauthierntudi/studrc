@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../theme/app_theme.dart';
 
 class AppShell extends StatelessWidget {
@@ -40,23 +41,23 @@ class _TabItem {
 
 const _tabs = <_TabItem>[
   _TabItem(
-    icon: Icons.home_outlined,
-    selectedIcon: Icons.home_rounded,
+    icon: LucideIcons.house,
+    selectedIcon: LucideIcons.house500,
     label: 'Accueil',
   ),
   _TabItem(
-    icon: Icons.auto_stories_outlined,
-    selectedIcon: Icons.auto_stories_rounded,
+    icon: LucideIcons.newspaper,
+    selectedIcon: LucideIcons.newspaper500,
     label: 'Actualités',
   ),
   _TabItem(
-    icon: Icons.menu_book_outlined,
-    selectedIcon: Icons.menu_book_rounded,
+    icon: LucideIcons.bookOpen,
+    selectedIcon: LucideIcons.bookOpen500,
     label: 'Kiosque',
   ),
   _TabItem(
-    icon: Icons.person_outline_rounded,
-    selectedIcon: Icons.person_rounded,
+    icon: LucideIcons.userRound,
+    selectedIcon: LucideIcons.userRound500,
     label: 'Compte',
   ),
 ];

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/router.dart';
 import 'features/splash/splash_view.dart';
@@ -20,6 +21,10 @@ class _StudrcAppState extends ConsumerState<StudrcApp> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setPreferredOrientations(const [
+      DeviceOrientation.portraitUp,
+    ]);
     if (!widget.showSplash) return;
     Future<void>.delayed(const Duration(milliseconds: 1100), () {
       if (mounted) setState(() => _splash = false);

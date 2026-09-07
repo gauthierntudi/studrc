@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/api.dart';
 
 final notificationsProvider = FutureProvider((ref) {
@@ -45,7 +46,7 @@ class NotificationsScreen extends ConsumerWidget {
               return ListTile(
                 title: Text(n.title),
                 subtitle: n.body == null ? null : Text(n.body!),
-                trailing: n.read ? null : const Icon(Icons.circle, size: 10),
+                trailing: n.read ? null : const Icon(LucideIcons.circle, size: 10),
                 onTap: () async {
                   if (!n.read && n.id.isNotEmpty) {
                     await ref.read(apiClientProvider).markNotificationRead(n.id);

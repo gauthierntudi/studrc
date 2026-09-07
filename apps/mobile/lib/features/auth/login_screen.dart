@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/api.dart';
+import '../../core/google_auth.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/auth_shell.dart';
 import '../../widgets/captcha_block.dart';
+import '../../widgets/google_sign_in_button.dart';
 
 const _kRememberEmail = 'auth.remember_email';
 
@@ -133,13 +136,45 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  Future<void> _submitGoogle() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final token = await _token();
+      if (!mounted) return;
+      if (captchaIsRequired(ref.read(appSettingsProvider).valueOrNull) &&
+          token == null) {
+        return;
+      }
+      final settings = ref.read(appSettingsProvider).valueOrNull;
+      final credential = await GoogleAuth.idToken(settings);
+      if (!mounted) return;
+      await ref
+          .read(sessionProvider.notifier)
+          .loginWithGoogle(credential, turnstile: token);
+      if (mounted) context.go('/compte');
+    } on GoogleSignInCanceled {
+      return;
+    } catch (e) {
+      setState(() {
+        _error = ref.read(apiClientProvider).apiError(e);
+        _turnstile = null;
+        _captchaTick++;
+      });
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AuthShell(
       greeting: _signup ? 'Bienvenue !' : 'Bonjour !',
       subtitle: _signup
-          ? 'Créez votre compte avec votre e-mail et un mot de passe.'
-          : 'Connectez-vous avec votre e-mail et votre mot de passe.',
+          ? 'Créez votre compte avec votre e-mail ou Google.'
+          : 'Connectez-vous avec votre e-mail ou Google.',
       cardTitle: _signup ? 'Inscription' : 'Connexion',
       footer: Wrap(
         alignment: WrapAlignment.center,
@@ -177,7 +212,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               AuthGlassField(
                 controller: _name,
                 hint: 'Entrez votre nom',
-                icon: Icons.person_outline_rounded,
+                icon: LucideIcons.userRound,
                 textCapitalization: TextCapitalization.words,
                 textInputAction: TextInputAction.next,
                 autofillHints: const [AutofillHints.name],
@@ -187,7 +222,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             AuthGlassField(
               controller: _email,
               hint: 'Entrez votre e-mail',
-              icon: Icons.mail_outline_rounded,
+              icon: LucideIcons.mail,
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.next,
               autofillHints: const [AutofillHints.email],
@@ -198,7 +233,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               hint: _signup
                   ? 'Mot de passe (8 car. min.)'
                   : 'Entrez votre mot de passe',
-              icon: Icons.lock_outline_rounded,
+              icon: LucideIcons.lock,
               obscure: _obscure,
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _submit(),
@@ -213,8 +248,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 onPressed: () => setState(() => _obscure = !_obscure),
                 icon: Icon(
                   _obscure
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
+                      ? LucideIcons.eye
+                      : LucideIcons.eyeOff,
                   color: Theme.of(
                     context,
                   ).colorScheme.onSurface.withValues(alpha: 0.45),
@@ -274,6 +309,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               label: _signup ? 'Créer mon compte' : 'Se connecter',
               busy: _busy,
               onPressed: _submit,
+            ),
+            GoogleSignInButton(
+              busy: _busy,
+              dividerLabel: _signup
+                  ? 'Inscription rapide'
+                  : 'Connexion rapide',
+              onPressed: _submitGoogle,
             ),
           ],
         ),

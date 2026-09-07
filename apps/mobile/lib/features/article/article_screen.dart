@@ -6,6 +6,7 @@ import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/api.dart';
@@ -15,7 +16,6 @@ import '../../core/models.dart';
 import '../../core/now_playing.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cover.dart';
-import '../../widgets/studrc_video_player.dart';
 import '../shorts/shorts_feed.dart';
 
 final articleProvider = FutureProvider.family((ref, String slug) {
@@ -115,9 +115,6 @@ class _VideoWatchViewState extends ConsumerState<_VideoWatchView> {
     );
     _nowPlaying = ref.read(nowPlayingProvider.notifier);
     _nowPlaying.start(widget.article);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _nowPlaying.resumeIfKept();
-    });
     _restoreSaved();
   }
 
@@ -254,17 +251,20 @@ class _VideoWatchViewState extends ConsumerState<_VideoWatchView> {
         article.excerpt != null && article.excerpt!.trim().isNotEmpty;
     final hasDesc = _hasBody(article);
     final canExpand = hasExcerpt || hasDesc;
+    final session = ref.watch(nowPlayingProvider);
     final fade = (1 - (_pull / 180)).clamp(0.0, 1.0);
     final pullAreaHeight = MediaQuery.sizeOf(context).width * 9 / 16;
     final topInset = MediaQuery.paddingOf(context).top;
-    final session = ref.watch(nowPlayingProvider);
-    final nowPlaying = ref.read(nowPlayingProvider.notifier);
-    final showVideo = session == null || !session.minimized;
 
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
+        final live = ref.read(nowPlayingProvider);
+        if (live?.fullscreen == true) {
+          ref.read(nowPlayingProvider.notifier).toggleFullscreen();
+          return;
+        }
         _collapse();
       },
       child: AnnotatedRegion<SystemUiOverlayStyle>(
@@ -288,40 +288,33 @@ class _VideoWatchViewState extends ConsumerState<_VideoWatchView> {
                     color: Colors.black,
                     child: Stack(
                       children: [
-                        if (showVideo)
-                          StudrcVideoPlayer(
-                            key: nowPlaying.videoSurfaceKey,
-                            src: article.videoHlsUrl!,
-                            poster:
-                                article.videoPosterUrl ?? article.coverUrl,
-                            radius: 0,
-                            autoplay: nowPlaying.keepPlaying,
-                            player: nowPlaying.player,
-                            controller: nowPlaying.video,
-                          )
-                        else
-                          const AspectRatio(
-                            aspectRatio: 16 / 9,
-                            child: ColoredBox(color: Colors.black),
-                          ),
-                        Positioned(
-                          top: topInset > 0 ? topInset - 2 : 4,
-                          left: 4,
-                          child: IconButton(
-                            onPressed: _collapse,
-                            tooltip: 'Réduire',
-                            style: IconButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              backgroundColor: Colors.black.withValues(
-                                alpha: 0.35,
-                              ),
-                              minimumSize: const Size(44, 44),
-                            ),
-                            icon: const Icon(
-                              Icons.keyboard_arrow_down_rounded,
-                            ),
+                        AspectRatio(
+                          aspectRatio: 16 / 9,
+                          child: _MainPlayerPoster(
+                            url: article.videoPosterUrl ?? article.coverUrl,
                           ),
                         ),
+                        if (session == null ||
+                            session.slug != article.slug ||
+                            session.minimized)
+                          Positioned(
+                            top: topInset > 0 ? topInset - 2 : 4,
+                            left: 4,
+                            child: IconButton(
+                              onPressed: _collapse,
+                              tooltip: 'Réduire',
+                              style: IconButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                backgroundColor: Colors.black.withValues(
+                                  alpha: 0.35,
+                                ),
+                                minimumSize: const Size(44, 44),
+                              ),
+                              icon: const Icon(
+                                LucideIcons.chevronDown,
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -372,7 +365,7 @@ class _VideoWatchViewState extends ConsumerState<_VideoWatchView> {
                                     top: 4,
                                   ),
                                   child: Icon(
-                                    Icons.expand_more_rounded,
+                                    LucideIcons.chevronDown,
                                     color: scheme.onSurface.withValues(
                                       alpha: 0.55,
                                     ),
@@ -408,8 +401,8 @@ class _VideoWatchViewState extends ConsumerState<_VideoWatchView> {
                             visualDensity: VisualDensity.compact,
                             icon: Icon(
                               _saved
-                                  ? Icons.bookmark_rounded
-                                  : Icons.bookmark_border_rounded,
+                                  ? LucideIcons.bookmarkCheck
+                                  : LucideIcons.bookmark,
                               color: _saved
                                   ? AppTheme.gold
                                   : scheme.onSurface.withValues(alpha: 0.7),
@@ -420,7 +413,7 @@ class _VideoWatchViewState extends ConsumerState<_VideoWatchView> {
                             onPressed: _share,
                             visualDensity: VisualDensity.compact,
                             icon: Icon(
-                              Icons.ios_share_rounded,
+                              LucideIcons.share2,
                               color: scheme.onSurface.withValues(alpha: 0.7),
                             ),
                           ),
@@ -723,7 +716,7 @@ class _ArticleViewState extends ConsumerState<_ArticleView> {
                     child: Row(
                       children: [
                         _HeroIconButton(
-                          icon: Icons.arrow_back_rounded,
+                          icon: LucideIcons.arrowLeft,
                           tooltip: 'Retour',
                           onPressed: _back,
                           color: ink,
@@ -746,7 +739,7 @@ class _ArticleViewState extends ConsumerState<_ArticleView> {
                         PopupMenuButton<String>(
                           tooltip: 'Plus',
                           iconColor: ink,
-                          icon: const Icon(Icons.more_vert_rounded),
+                          icon: const Icon(LucideIcons.ellipsisVertical),
                           onSelected: (value) {
                             switch (value) {
                               case 'share':
@@ -929,8 +922,8 @@ class _ArticleHero extends StatelessWidget {
                     const Spacer(),
                     _HeroIconButton(
                       icon: saved
-                          ? Icons.bookmark_rounded
-                          : Icons.bookmark_border_rounded,
+                          ? LucideIcons.bookmarkCheck
+                          : LucideIcons.bookmark,
                       tooltip: saved ? 'Retirer' : 'Enregistrer',
                       onPressed: onSave,
                       color: saved && ink != AppTheme.navy
@@ -938,7 +931,7 @@ class _ArticleHero extends StatelessWidget {
                           : ink,
                     ),
                     _HeroIconButton(
-                      icon: Icons.ios_share_rounded,
+                      icon: LucideIcons.share2,
                       tooltip: 'Partager',
                       onPressed: onShare,
                       color: ink,
@@ -1351,4 +1344,28 @@ String? _videoDateLabel(String? publishedAt) {
     return weeks <= 1 ? '1 semaine' : '$weeks semaines';
   }
   return DateFormat('d MMMM y', 'fr').format(posted);
+}
+
+class _MainPlayerPoster extends StatelessWidget {
+  const _MainPlayerPoster({this.url});
+
+  final String? url;
+
+  @override
+  Widget build(BuildContext context) {
+    if (url == null || url!.isEmpty) {
+      return const ColoredBox(color: Colors.black);
+    }
+    return ColoredBox(
+      color: Colors.black,
+      child: CachedNetworkImage(
+        imageUrl: url!,
+        fit: BoxFit.cover,
+        fadeInDuration: Duration.zero,
+        fadeOutDuration: Duration.zero,
+        placeholder: (_, _) => const ColoredBox(color: Colors.black),
+        errorWidget: (_, _, _) => const ColoredBox(color: Colors.black),
+      ),
+    );
+  }
 }

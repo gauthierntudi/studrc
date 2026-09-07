@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../theme/app_theme.dart';
 import 'studrc_logo.dart';
 
@@ -25,7 +26,7 @@ class StudrcMasthead extends StatelessWidget {
             SizedBox(
               width: 48,
               child: _HeaderIcon(
-                icon: Icons.search,
+                icon: LucideIcons.search,
                 tooltip: 'Rechercher',
                 color: ink,
                 onTap: onSearch,
@@ -37,7 +38,7 @@ class StudrcMasthead extends StatelessWidget {
             SizedBox(
               width: 48,
               child: _HeaderIcon(
-                icon: Icons.notifications_none_rounded,
+                icon: LucideIcons.bell,
                 tooltip: 'Notifications',
                 color: ink,
                 onTap: onNotify,
