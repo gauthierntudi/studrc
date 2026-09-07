@@ -142,18 +142,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _error = null;
     });
     try {
-      final token = await _token();
-      if (!mounted) return;
-      if (captchaIsRequired(ref.read(appSettingsProvider).valueOrNull) &&
-          token == null) {
-        return;
-      }
       final settings = ref.read(appSettingsProvider).valueOrNull;
       final credential = await GoogleAuth.idToken(settings);
       if (!mounted) return;
-      await ref
-          .read(sessionProvider.notifier)
-          .loginWithGoogle(credential, turnstile: token);
+      await ref.read(sessionProvider.notifier).loginWithGoogle(credential);
       if (mounted) context.go('/compte');
     } on GoogleSignInCanceled {
       return;

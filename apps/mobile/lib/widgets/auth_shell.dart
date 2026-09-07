@@ -12,7 +12,7 @@ class AuthShell extends StatelessWidget {
     required this.cardTitle,
     required this.child,
     this.footer,
-    this.tagline = 'Média et observatoire de l’éducation en RDC.',
+    this.tagline,
   });
 
   final String greeting;
@@ -295,7 +295,7 @@ class AuthPrimaryButton extends StatelessWidget {
           foregroundColor: fg,
           disabledBackgroundColor: bg.withValues(alpha: 0.45),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
         child: busy

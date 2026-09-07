@@ -169,7 +169,7 @@ export class AuthService {
     ip?: string | null,
     turnstileToken?: string | null,
   ) {
-    await this.turnstile.assertValid(turnstileToken, ip);
+    void turnstileToken;
     const audiences = this.googleAudienceIds();
     if (!audiences.length) {
       throw new BadRequestException('Connexion Google non configurée');
