@@ -111,6 +111,9 @@ class ArticleDetail {
     this.categoryLabel,
     this.categoryTone,
     this.authorName,
+    this.authorAvatarUrl,
+    this.authorTitle,
+    this.viewCount = 0,
     this.publishedAt,
     this.videoHlsUrl,
     this.videoPosterUrl,
@@ -128,6 +131,9 @@ class ArticleDetail {
   final String? categoryLabel;
   final String? categoryTone;
   final String? authorName;
+  final String? authorAvatarUrl;
+  final String? authorTitle;
+  final int viewCount;
   final String? publishedAt;
   final String? videoHlsUrl;
   final String? videoPosterUrl;
@@ -140,6 +146,7 @@ class ArticleDetail {
 
   factory ArticleDetail.fromJson(Map<String, dynamic> json) {
     final author = json['author'];
+    final byline = json['bylineAuthor'];
     final blocks =
         (json['blocks'] as List?)
             ?.whereType<Map>()
@@ -156,6 +163,9 @@ class ArticleDetail {
       categoryLabel: json['categoryLabel'] as String?,
       categoryTone: json['categoryTone'] as String?,
       authorName: author is Map ? author['name'] as String? : null,
+      authorAvatarUrl: author is Map ? author['avatarUrl'] as String? : null,
+      authorTitle: byline is Map ? byline['title'] as String? : null,
+      viewCount: (json['viewCount'] as num?)?.toInt() ?? 0,
       publishedAt: json['publishedAt'] as String?,
       videoHlsUrl: json['videoHlsUrl'] as String?,
       videoPosterUrl: json['videoPosterUrl'] as String?,

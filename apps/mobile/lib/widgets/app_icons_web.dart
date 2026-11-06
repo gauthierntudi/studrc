@@ -12,6 +12,7 @@ abstract final class AppIcons {
   static const bookmarkCheck = Icons.bookmark;
   static const camera = Icons.camera_alt_outlined;
   static const chevronDown = Icons.keyboard_arrow_down;
+  static const chevronLeft = Icons.chevron_left;
   static const chevronRight = Icons.chevron_right;
   static const circleCheck = Icons.check_circle_outline;
   static const clock = Icons.schedule;

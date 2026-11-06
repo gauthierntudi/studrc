@@ -8,7 +8,6 @@ import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:studrc/widgets/app_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../core/api.dart';
 import '../../core/article_nav.dart';
 import '../../core/constants.dart';
@@ -144,8 +143,7 @@ class _VideoWatchViewState extends ConsumerState<_VideoWatchView> {
   }
 
   Future<void> _share() {
-    final url =
-        '$kSiteUrl/article/${Uri.encodeComponent(widget.article.slug)}';
+    final url = '$kSiteUrl/article/${Uri.encodeComponent(widget.article.slug)}';
     return SharePlus.instance.share(
       ShareParams(
         text: '${widget.article.title}\n$url',
@@ -310,9 +308,7 @@ class _VideoWatchViewState extends ConsumerState<_VideoWatchView> {
                                 ),
                                 minimumSize: const Size(44, 44),
                               ),
-                              icon: const Icon(
-                                AppIcons.chevronDown,
-                              ),
+                              icon: const Icon(AppIcons.chevronDown),
                             ),
                           ),
                       ],
@@ -342,9 +338,7 @@ class _VideoWatchViewState extends ConsumerState<_VideoWatchView> {
                         onTap: canExpand ? _openDescription : null,
                         child: Semantics(
                           button: canExpand,
-                          label: canExpand
-                              ? 'Afficher la description'
-                              : null,
+                          label: canExpand ? 'Afficher la description' : null,
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -379,20 +373,16 @@ class _VideoWatchViewState extends ConsumerState<_VideoWatchView> {
                       Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              [
-                                if (article.authorName != null &&
-                                    article.authorName!.trim().isNotEmpty)
-                                  article.authorName,
+                            child: _ArticleAuthor(
+                              name: article.authorName,
+                              title: [
+                                if ((article.authorTitle ?? '')
+                                    .trim()
+                                    .isNotEmpty)
+                                  article.authorTitle!.trim(),
                                 if (date != null) date,
                               ].join(' · '),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTheme.sansText(
-                                size: 13,
-                                weight: FontWeight.w600,
-                                color: scheme.onSurface.withValues(alpha: 0.55),
-                              ),
+                              avatarUrl: article.authorAvatarUrl,
                             ),
                           ),
                           IconButton(
@@ -527,7 +517,7 @@ class _ArticleViewState extends ConsumerState<_ArticleView> {
   }
 
   void _onScroll() {
-    final threshold = MediaQuery.sizeOf(context).height * 0.7;
+    final threshold = MediaQuery.sizeOf(context).height * 0.38;
     final compact = _scroll.offset > threshold;
     if (compact != _compactChrome) {
       setState(() => _compactChrome = compact);
@@ -563,18 +553,6 @@ class _ArticleViewState extends ConsumerState<_ArticleView> {
     );
   }
 
-  Future<void> _copyLink() async {
-    await Clipboard.setData(ClipboardData(text: _webUrl));
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Lien copié')));
-  }
-
-  Future<void> _openSite() {
-    return launchUrl(Uri.parse(_webUrl), mode: LaunchMode.externalApplication);
-  }
-
   void _back() {
     if (context.canPop()) {
       context.pop();
@@ -586,22 +564,26 @@ class _ArticleViewState extends ConsumerState<_ArticleView> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final date = _dateLabel(article.publishedAt);
     final related = ref.watch(relatedProvider(article.slug));
-    final surface = Theme.of(context).scaffoldBackgroundColor;
     final scheme = Theme.of(context).colorScheme;
-    final wash = AppTheme.toneColor(
+    final surface = Theme.of(context).scaffoldBackgroundColor;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final tone = AppTheme.toneColor(
       article.categoryTone ??
           toneFromCategory(article.category, article.categoryLabel),
     );
-    final ink = wash.computeLuminance() > 0.45 ? AppTheme.navy : Colors.white;
+    final heroHeight = size.height * 0.46;
+    const overlap = 34.0;
+    final excerpt = article.excerpt?.trim() ?? '';
+    final rubrique = _rubriqueLabel(article);
+    final muted = scheme.onSurface.withValues(alpha: 0.55);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: wash.computeLuminance() > 0.45
+      value: _compactChrome && !dark
           ? SystemUiOverlayStyle.dark
           : SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: wash,
+        backgroundColor: surface,
         body: Stack(
           children: [
             CustomScrollView(
@@ -611,93 +593,140 @@ class _ArticleViewState extends ConsumerState<_ArticleView> {
               ),
               slivers: [
                 SliverToBoxAdapter(
-                  child: SizedBox(
-                    height: size.height,
-                    child: _ArticleHero(
-                      article: article,
-                      date: date,
-                      saved: _saved,
-                      wash: wash,
-                      ink: ink,
-                      onSave: _toggleSaved,
-                      onShare: _share,
-                    ),
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: surface,
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(28),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: heroHeight,
+                        child: _ArticleCover(url: article.coverUrl, tone: tone),
                       ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(24, 28, 24, 0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (article.excerpt != null &&
-                                  article.excerpt!.trim().isNotEmpty) ...[
-                                Text(
-                                  article.excerpt!,
-                                  style: AppTheme.sansText(
-                                    size: 17,
-                                    height: 1.5,
-                                    color: scheme.onSurface.withValues(
-                                      alpha: 0.88,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 22),
-                              ],
-                              _ArticleHtml(article: article),
-                            ],
+                      Padding(
+                        padding: EdgeInsets.only(top: heroHeight - overlap),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: size.height - heroHeight + overlap,
                           ),
-                        ),
-                        related.when(
-                          loading: () => const SizedBox(height: 48),
-                          error: (_, _) => const SizedBox(height: 48),
-                          data: (items) {
-                            if (items.isEmpty) {
-                              return const SizedBox(height: 48);
-                            }
-                            return Column(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: surface,
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(overlap),
+                              ),
+                            ),
+                            child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const SizedBox(height: 28),
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                  ),
-                                  child: Text(
-                                    'À lire aussi',
-                                    style: AppTheme.displayText(
-                                      size: 18,
-                                      weight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                _RelatedArticleRail(
-                                  articles: items,
                                   padding: const EdgeInsets.fromLTRB(
                                     24,
-                                    0,
+                                    30,
                                     24,
                                     0,
                                   ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      if (rubrique.isNotEmpty) ...[
+                                        Text(
+                                          rubrique.toUpperCase(),
+                                          style: AppTheme.sansText(
+                                            size: 13,
+                                            weight: FontWeight.w600,
+                                            height: 1.2,
+                                            letterSpacing: 0.4,
+                                            color: tone,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                      ],
+                                      Text(
+                                        article.title,
+                                        style: AppTheme.displayText(
+                                          size: 26,
+                                          weight: FontWeight.w700,
+                                          height: 1.25,
+                                          letterSpacing: -0.2,
+                                          color: scheme.onSurface,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      _ArticleMeta(
+                                        ago: _agoLabel(article.publishedAt),
+                                        views: article.viewCount,
+                                        color: muted,
+                                        saved: _saved,
+                                        onShare: _share,
+                                      ),
+                                      const SizedBox(height: 18),
+                                      _ArticleAuthor(
+                                        name: article.authorName,
+                                        title: article.authorTitle,
+                                        avatarUrl: article.authorAvatarUrl,
+                                      ),
+                                      const SizedBox(height: 22),
+                                      if (excerpt.isNotEmpty) ...[
+                                        Text(
+                                          excerpt,
+                                          style: AppTheme.sansText(
+                                            size: 16,
+                                            height: 1.75,
+                                            color: muted,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 18),
+                                      ],
+                                      _ArticleHtml(article: article),
+                                    ],
+                                  ),
                                 ),
-                                const SizedBox(height: 48),
+                                related.when(
+                                  loading: () => const SizedBox(height: 48),
+                                  error: (_, _) => const SizedBox(height: 48),
+                                  data: (items) {
+                                    if (items.isEmpty) {
+                                      return const SizedBox(height: 48);
+                                    }
+                                    return Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const SizedBox(height: 28),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 24,
+                                          ),
+                                          child: Text(
+                                            'À lire aussi',
+                                            style: AppTheme.displayText(
+                                              size: 18,
+                                              weight: FontWeight.w800,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        _RelatedArticleRail(
+                                          articles: items,
+                                          padding: const EdgeInsets.fromLTRB(
+                                            24,
+                                            0,
+                                            24,
+                                            0,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 48),
+                                      ],
+                                    );
+                                  },
+                                ),
                               ],
-                            );
-                          },
+                            ),
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -708,21 +737,37 @@ class _ArticleViewState extends ConsumerState<_ArticleView> {
               right: 0,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                color: _compactChrome ? wash : Colors.transparent,
+                decoration: BoxDecoration(
+                  color: _compactChrome ? surface : Colors.transparent,
+                  boxShadow: _compactChrome
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            blurRadius: 10,
+                          ),
+                        ]
+                      : const [],
+                ),
                 child: SafeArea(
                   bottom: false,
                   child: SizedBox(
-                    height: 48,
+                    height: 52,
                     child: Row(
                       children: [
+                        const SizedBox(width: 8),
                         _HeroIconButton(
-                          icon: AppIcons.arrowLeft,
+                          icon: AppIcons.chevronLeft,
                           tooltip: 'Retour',
                           onPressed: _back,
-                          color: ink,
+                          color: _compactChrome
+                              ? scheme.onSurface
+                              : Colors.white,
+                          shadow: !_compactChrome,
                         ),
-                        if (_compactChrome)
-                          Expanded(
+                        Expanded(
+                          child: AnimatedOpacity(
+                            opacity: _compactChrome ? 1 : 0,
+                            duration: const Duration(milliseconds: 160),
                             child: Text(
                               article.title,
                               maxLines: 1,
@@ -730,41 +775,23 @@ class _ArticleViewState extends ConsumerState<_ArticleView> {
                               style: AppTheme.displayText(
                                 size: 16,
                                 weight: FontWeight.w700,
-                                color: ink,
+                                color: scheme.onSurface,
                               ),
                             ),
-                          )
-                        else
-                          const Spacer(),
-                        PopupMenuButton<String>(
-                          tooltip: 'Plus',
-                          iconColor: ink,
-                          icon: const Icon(AppIcons.ellipsisVertical),
-                          onSelected: (value) {
-                            switch (value) {
-                              case 'share':
-                                _share();
-                              case 'copy':
-                                _copyLink();
-                              case 'open':
-                                _openSite();
-                            }
-                          },
-                          itemBuilder: (context) => const [
-                            PopupMenuItem(
-                              value: 'share',
-                              child: Text('Partager'),
-                            ),
-                            PopupMenuItem(
-                              value: 'copy',
-                              child: Text('Copier le lien'),
-                            ),
-                            PopupMenuItem(
-                              value: 'open',
-                              child: Text('Ouvrir sur le site'),
-                            ),
-                          ],
+                          ),
                         ),
+                        _HeroIconButton(
+                          icon: _saved
+                              ? AppIcons.bookmarkCheck
+                              : AppIcons.bookmark,
+                          tooltip: _saved ? 'Retirer' : 'Enregistrer',
+                          onPressed: _toggleSaved,
+                          color: _compactChrome
+                              ? (_saved ? AppTheme.red : scheme.onSurface)
+                              : Colors.white,
+                          shadow: !_compactChrome,
+                        ),
+                        const SizedBox(width: 8),
                       ],
                     ),
                   ),
@@ -778,171 +805,216 @@ class _ArticleViewState extends ConsumerState<_ArticleView> {
   }
 }
 
-class _ArticleHero extends StatelessWidget {
-  const _ArticleHero({
-    required this.article,
-    required this.date,
-    required this.saved,
-    required this.wash,
-    required this.ink,
-    required this.onSave,
-    required this.onShare,
-  });
+String _rubriqueLabel(ArticleDetail article) {
+  final label = article.categoryLabel?.trim() ?? '';
+  if (label.isNotEmpty) return label;
+  final slug = article.category?.trim().toLowerCase() ?? '';
+  if (slug.isEmpty) return '';
+  for (final r in kNewsRubriques) {
+    if (r.slug == slug) return r.label;
+  }
+  return capitalizeLabel(slug);
+}
 
-  final ArticleDetail article;
-  final String? date;
-  final bool saved;
-  final Color wash;
-  final Color ink;
-  final VoidCallback onSave;
-  final VoidCallback onShare;
+const _iconShadow = [Shadow(color: Color(0x66000000), blurRadius: 10)];
+
+/// « il y a 2 h », « il y a 3 j », puis date complète.
+String _agoLabel(String? publishedAt) {
+  final parsed = publishedAt == null ? null : DateTime.tryParse(publishedAt);
+  if (parsed == null) return '';
+  final when = parsed.toLocal();
+  final diff = DateTime.now().difference(when);
+  if (diff.inMinutes < 1) return 'à l’instant';
+  if (diff.inMinutes < 60) return 'il y a ${diff.inMinutes} min';
+  if (diff.inHours < 24) return 'il y a ${diff.inHours} h';
+  if (diff.inDays < 7) return 'il y a ${diff.inDays} j';
+  return DateFormat('d MMM y', 'fr').format(when);
+}
+
+String _compactCount(int n) {
+  if (n >= 1000000) {
+    return '${(n / 1000000).toStringAsFixed(1).replaceAll('.0', '')} M';
+  }
+  if (n >= 1000) {
+    return '${(n / 1000).toStringAsFixed(1).replaceAll('.0', '')} k';
+  }
+  return '$n';
+}
+
+class _ArticleCover extends StatelessWidget {
+  const _ArticleCover({required this.url, required this.tone});
+
+  final String? url;
+  final Color tone;
 
   @override
   Widget build(BuildContext context) {
-    final url = article.coverUrl;
-    final image = url == null || url.isEmpty
-        ? ColoredBox(color: wash)
-        : CachedNetworkImage(
-            imageUrl: url,
-            fit: BoxFit.cover,
-            alignment: const Alignment(0, -0.12),
-            width: double.infinity,
-            height: double.infinity,
-            placeholder: (_, _) => ColoredBox(color: wash),
-            errorWidget: (_, _, _) => ColoredBox(color: wash),
-          );
-
+    final src = url;
     return Stack(
       fit: StackFit.expand,
       children: [
-        ColoredBox(color: wash),
-        Positioned.fill(
-          child: ShaderMask(
-            blendMode: BlendMode.dstIn,
-            shaderCallback: (rect) {
-              return const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFFFFFFFF),
-                  Color(0xFFFFFFFF),
-                  Color(0x99FFFFFF),
-                  Color(0x00FFFFFF),
-                ],
-                stops: [0.0, 0.30, 0.52, 0.78],
-              ).createShader(rect);
-            },
-            child: image,
+        if (src == null || src.isEmpty)
+          ColoredBox(color: tone)
+        else
+          CachedNetworkImage(
+            imageUrl: src,
+            fit: BoxFit.cover,
+            placeholder: (_, _) =>
+                ColoredBox(color: tone.withValues(alpha: 0.4)),
+            errorWidget: (_, _, _) => ColoredBox(color: tone),
           ),
-        ),
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withValues(
-                    alpha: ink == AppTheme.navy ? 0.08 : 0.38,
-                  ),
-                  Colors.transparent,
-                  wash.withValues(alpha: 0.08),
-                  wash.withValues(alpha: 0.55),
-                  wash.withValues(alpha: 0.92),
-                  wash,
-                ],
-                stops: const [0.0, 0.20, 0.42, 0.58, 0.72, 0.86],
-              ),
-            ),
-          ),
-        ),
-        SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 56, 24, 18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Spacer(),
-                if (date != null)
-                  Text(
-                    date!,
-                    style: AppTheme.sansText(
-                      size: 14,
-                      weight: FontWeight.w500,
-                      color: ink.withValues(alpha: 0.92),
-                    ),
-                  ),
-                const SizedBox(height: 10),
-                Text(
-                  article.title,
-                  maxLines: 6,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.displayText(
-                    size: 32,
-                    weight: FontWeight.w800,
-                    height: 1.12,
-                    letterSpacing: -0.4,
-                    color: ink,
-                  ),
-                ),
-                const SizedBox(height: 28),
-                Row(
-                  children: [
-                    Container(
-                      width: 22,
-                      height: 22,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: ink == AppTheme.navy
-                            ? AppTheme.navy
-                            : AppTheme.gold,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'S',
-                        style: AppTheme.displayText(
-                          size: 13,
-                          weight: FontWeight.w800,
-                          height: 1,
-                          color: ink == AppTheme.navy
-                              ? Colors.white
-                              : AppTheme.navy,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'STUDRC',
-                      style: AppTheme.sansText(
-                        size: 13,
-                        weight: FontWeight.w600,
-                        color: ink,
-                      ),
-                    ),
-                    const Spacer(),
-                    _HeroIconButton(
-                      icon: saved
-                          ? AppIcons.bookmarkCheck
-                          : AppIcons.bookmark,
-                      tooltip: saved ? 'Retirer' : 'Enregistrer',
-                      onPressed: onSave,
-                      color: saved && ink != AppTheme.navy
-                          ? AppTheme.gold
-                          : ink,
-                    ),
-                    _HeroIconButton(
-                      icon: AppIcons.share2,
-                      tooltip: 'Partager',
-                      onPressed: onShare,
-                      color: ink,
-                    ),
-                  ],
-                ),
-              ],
+        // Lisibilité des icônes du haut
+        const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              stops: [0, 0.32],
+              colors: [Color(0x59000000), Color(0x00000000)],
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ArticleMeta extends StatelessWidget {
+  const _ArticleMeta({
+    required this.ago,
+    required this.views,
+    required this.color,
+    required this.saved,
+    required this.onShare,
+  });
+
+  final String ago;
+  final int views;
+  final Color color;
+  final bool saved;
+  final VoidCallback onShare;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = AppTheme.sansText(size: 13, height: 1.2, color: color);
+    return Row(
+      children: [
+        if (ago.isNotEmpty) ...[
+          Icon(AppIcons.clock, size: 15, color: color),
+          const SizedBox(width: 5),
+          Text(ago, style: style),
+          const SizedBox(width: 22),
+        ],
+        Icon(AppIcons.eye, size: 15, color: color),
+        const SizedBox(width: 5),
+        Text(_compactCount(views), style: style),
+        const Spacer(),
+        InkResponse(
+          onTap: onShare,
+          radius: 20,
+          child: Icon(AppIcons.share2, size: 18, color: color),
+        ),
+      ],
+    );
+  }
+}
+
+class _ArticleAuthor extends StatelessWidget {
+  const _ArticleAuthor({
+    required this.name,
+    required this.title,
+    required this.avatarUrl,
+  });
+
+  final String? name;
+  final String? title;
+  final String? avatarUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final label = (name?.trim().isNotEmpty ?? false) ? name!.trim() : 'STUDRC';
+    final initials = label
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty)
+        .take(2)
+        .map((p) => p[0].toUpperCase())
+        .join();
+    final url = avatarUrl;
+    final role = title?.trim();
+
+    return Row(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(9),
+          child: SizedBox(
+            width: 34,
+            height: 34,
+            child: url != null && url.isNotEmpty
+                ? CachedNetworkImage(
+                    imageUrl: url,
+                    fit: BoxFit.cover,
+                    errorWidget: (_, _, _) => _Initials(initials),
+                  )
+                : _Initials(initials),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTheme.sansText(
+                  size: 15,
+                  weight: FontWeight.w600,
+                  height: 1.2,
+                  color: scheme.onSurface,
+                ),
+              ),
+              if (role != null && role.isNotEmpty)
+                Text(
+                  role,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.sansText(
+                    size: 12,
+                    height: 1.3,
+                    color: scheme.onSurface.withValues(alpha: 0.5),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Initials extends StatelessWidget {
+  const _Initials(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: AppTheme.blue,
+      child: Center(
+        child: Text(
+          text,
+          style: AppTheme.sansText(
+            size: 13,
+            weight: FontWeight.w700,
+            height: 1,
+            color: Colors.white,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -953,12 +1025,14 @@ class _HeroIconButton extends StatelessWidget {
     required this.tooltip,
     required this.onPressed,
     this.color = Colors.white,
+    this.shadow = false,
   });
 
   final IconData icon;
   final String tooltip;
   final VoidCallback onPressed;
   final Color color;
+  final bool shadow;
 
   @override
   Widget build(BuildContext context) {
@@ -968,7 +1042,12 @@ class _HeroIconButton extends StatelessWidget {
       padding: EdgeInsets.zero,
       visualDensity: VisualDensity.compact,
       constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-      icon: Icon(icon, color: color, size: 24),
+      icon: Icon(
+        icon,
+        color: color,
+        size: 24,
+        shadows: shadow ? _iconShadow : null,
+      ),
     );
   }
 }
@@ -1062,8 +1141,7 @@ class _RelatedArticleRail extends StatelessWidget {
   Widget build(BuildContext context) {
     const gap = 12.0;
     final padH = padding.horizontal;
-    final available =
-        MediaQuery.sizeOf(context).width - (padH > 0 ? padH : 32);
+    final available = MediaQuery.sizeOf(context).width - (padH > 0 ? padH : 32);
     final cardWidth = (available - gap) / 2.2;
     final coverHeight = cardWidth * 4 / 3;
 
@@ -1144,6 +1222,43 @@ class _PortraitArticleCard extends StatelessWidget {
   }
 }
 
+/// Retire les couleurs/fonds collés depuis un éditeur (ex. texte blanc
+/// `<font color="#ffffff">`) pour que le corps suive le thème de l'app.
+String _cleanHtml(String html) {
+  return html
+      .replaceAll(
+        RegExp(
+          r'''\s(color|bgcolor)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)''',
+          caseSensitive: false,
+        ),
+        '',
+      )
+      .replaceAllMapped(
+        RegExp(r'''style\s*=\s*"([^"]*)"''', caseSensitive: false),
+        (m) {
+          final kept = m[1]!
+              .split(';')
+              .where((d) {
+                final prop = d.split(':').first.trim().toLowerCase();
+                return prop.isNotEmpty &&
+                    prop != 'color' &&
+                    prop != 'background' &&
+                    prop != 'background-color' &&
+                    prop != 'font-family' &&
+                    prop != 'font-size';
+              })
+              .join(';');
+          return 'style="$kept"';
+        },
+      );
+}
+
+TextStyle _bodyStyle(BuildContext context) => AppTheme.sansText(
+  size: 16,
+  height: 1.7,
+  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.82),
+);
+
 class _ArticleHtml extends StatelessWidget {
   const _ArticleHtml({required this.article});
 
@@ -1177,8 +1292,8 @@ class _ArticleHtml extends StatelessWidget {
                     const SizedBox(height: 10),
                   ],
                   HtmlWidget(
-                    b.content,
-                    textStyle: AppTheme.sansText(size: 16, height: 1.55),
+                    _cleanHtml(b.content),
+                    textStyle: _bodyStyle(context),
                   ),
                 ],
               ),
@@ -1188,8 +1303,8 @@ class _ArticleHtml extends StatelessWidget {
     }
     if (article.content.isNotEmpty) {
       return HtmlWidget(
-        article.content,
-        textStyle: AppTheme.sansText(size: 16, height: 1.55),
+        _cleanHtml(article.content),
+        textStyle: _bodyStyle(context),
       );
     }
     return const SizedBox.shrink();
@@ -1319,14 +1434,6 @@ bool _hasBody(ArticleDetail article) {
   return article.blocks.isNotEmpty || article.content.isNotEmpty;
 }
 
-String? _dateLabel(String? publishedAt) {
-  if (publishedAt == null) return null;
-  return DateFormat(
-    'd MMMM y',
-    'fr',
-  ).format(DateTime.tryParse(publishedAt) ?? DateTime.now());
-}
-
 /// Date relative pour les vidéos : `2j`, `3 semaines`, `1 mois`, puis date complète après 30 jours.
 String? _videoDateLabel(String? publishedAt) {
   if (publishedAt == null) return null;
@@ -1334,9 +1441,11 @@ String? _videoDateLabel(String? publishedAt) {
   if (parsed == null) return null;
   final posted = parsed.toLocal();
   final now = DateTime.now();
-  final days = DateTime(now.year, now.month, now.day)
-      .difference(DateTime(posted.year, posted.month, posted.day))
-      .inDays;
+  final days = DateTime(
+    now.year,
+    now.month,
+    now.day,
+  ).difference(DateTime(posted.year, posted.month, posted.day)).inDays;
   if (days <= 0) return 'Aujourd’hui';
   if (days < 7) return '${days}j';
   if (days < 30) {
