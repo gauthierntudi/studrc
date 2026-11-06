@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:studrc/widgets/app_icons.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:share_plus/share_plus.dart';
@@ -631,7 +631,7 @@ class _ShortPageState extends ConsumerState<_ShortPage> {
           if (_hasFrame && !_playing)
             const Center(
               child: Icon(
-                LucideIcons.play,
+                AppIcons.play,
                 color: Colors.white,
                 size: 72,
               ),
@@ -716,7 +716,7 @@ class _ShortPageState extends ConsumerState<_ShortPage> {
             child: Column(
               children: [
                 _ShortAction(
-                  icon: LucideIcons.heart,
+                  icon: AppIcons.heart,
                   label: _liked ? 'Aimé' : 'J’aime',
                   color: _liked ? AppTheme.gold : Colors.white,
                   onTap: _toggleLiked,
@@ -724,22 +724,22 @@ class _ShortPageState extends ConsumerState<_ShortPage> {
                 const SizedBox(height: 18),
                 _ShortAction(
                   icon: _saved
-                      ? LucideIcons.bookmarkCheck
-                      : LucideIcons.bookmark,
+                      ? AppIcons.bookmarkCheck
+                      : AppIcons.bookmark,
                   label: _saved ? 'Sauvé' : 'Sauver',
                   onTap: _toggleSaved,
                 ),
                 const SizedBox(height: 18),
                 _ShortAction(
-                  icon: LucideIcons.share2,
+                  icon: AppIcons.share2,
                   label: 'Partager',
                   onTap: _share,
                 ),
                 const SizedBox(height: 18),
                 _ShortAction(
                   icon: _muted
-                      ? LucideIcons.volumeX
-                      : LucideIcons.volume2,
+                      ? AppIcons.volumeX
+                      : AppIcons.volume2,
                   label: _muted ? 'Son' : 'Muet',
                   onTap: _toggleMute,
                 ),
@@ -837,7 +837,7 @@ class ShortsScreen extends StatelessWidget {
                   foregroundColor: Colors.white,
                   backgroundColor: Colors.black.withValues(alpha: 0.35),
                 ),
-                icon: const Icon(LucideIcons.chevronDown),
+                icon: const Icon(AppIcons.chevronDown),
               ),
             ),
           ),

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:studrc/widgets/app_icons.dart';
 import '../core/now_playing.dart';
 import '../theme/app_theme.dart';
 
@@ -95,13 +95,13 @@ class _NowPlayingMiniBarState extends ConsumerState<NowPlayingMiniBar> {
               tooltip: _playing ? 'Pause' : 'Lecture',
               onPressed: ctrl.playOrPause,
               icon: Icon(
-                _playing ? LucideIcons.pause : LucideIcons.play,
+                _playing ? AppIcons.pause : AppIcons.play,
               ),
             ),
             IconButton(
               tooltip: 'Fermer',
               onPressed: ctrl.stop,
-              icon: const Icon(LucideIcons.x),
+              icon: const Icon(AppIcons.x),
             ),
           ],
         ),

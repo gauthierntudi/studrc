@@ -6,7 +6,7 @@ import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:studrc/widgets/app_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/api.dart';
@@ -311,7 +311,7 @@ class _VideoWatchViewState extends ConsumerState<_VideoWatchView> {
                                 minimumSize: const Size(44, 44),
                               ),
                               icon: const Icon(
-                                LucideIcons.chevronDown,
+                                AppIcons.chevronDown,
                               ),
                             ),
                           ),
@@ -365,7 +365,7 @@ class _VideoWatchViewState extends ConsumerState<_VideoWatchView> {
                                     top: 4,
                                   ),
                                   child: Icon(
-                                    LucideIcons.chevronDown,
+                                    AppIcons.chevronDown,
                                     color: scheme.onSurface.withValues(
                                       alpha: 0.55,
                                     ),
@@ -401,8 +401,8 @@ class _VideoWatchViewState extends ConsumerState<_VideoWatchView> {
                             visualDensity: VisualDensity.compact,
                             icon: Icon(
                               _saved
-                                  ? LucideIcons.bookmarkCheck
-                                  : LucideIcons.bookmark,
+                                  ? AppIcons.bookmarkCheck
+                                  : AppIcons.bookmark,
                               color: _saved
                                   ? AppTheme.gold
                                   : scheme.onSurface.withValues(alpha: 0.7),
@@ -413,7 +413,7 @@ class _VideoWatchViewState extends ConsumerState<_VideoWatchView> {
                             onPressed: _share,
                             visualDensity: VisualDensity.compact,
                             icon: Icon(
-                              LucideIcons.share2,
+                              AppIcons.share2,
                               color: scheme.onSurface.withValues(alpha: 0.7),
                             ),
                           ),
@@ -716,7 +716,7 @@ class _ArticleViewState extends ConsumerState<_ArticleView> {
                     child: Row(
                       children: [
                         _HeroIconButton(
-                          icon: LucideIcons.arrowLeft,
+                          icon: AppIcons.arrowLeft,
                           tooltip: 'Retour',
                           onPressed: _back,
                           color: ink,
@@ -739,7 +739,7 @@ class _ArticleViewState extends ConsumerState<_ArticleView> {
                         PopupMenuButton<String>(
                           tooltip: 'Plus',
                           iconColor: ink,
-                          icon: const Icon(LucideIcons.ellipsisVertical),
+                          icon: const Icon(AppIcons.ellipsisVertical),
                           onSelected: (value) {
                             switch (value) {
                               case 'share':
@@ -922,8 +922,8 @@ class _ArticleHero extends StatelessWidget {
                     const Spacer(),
                     _HeroIconButton(
                       icon: saved
-                          ? LucideIcons.bookmarkCheck
-                          : LucideIcons.bookmark,
+                          ? AppIcons.bookmarkCheck
+                          : AppIcons.bookmark,
                       tooltip: saved ? 'Retirer' : 'Enregistrer',
                       onPressed: onSave,
                       color: saved && ink != AppTheme.navy
@@ -931,7 +931,7 @@ class _ArticleHero extends StatelessWidget {
                           : ink,
                     ),
                     _HeroIconButton(
-                      icon: LucideIcons.share2,
+                      icon: AppIcons.share2,
                       tooltip: 'Partager',
                       onPressed: onShare,
                       color: ink,

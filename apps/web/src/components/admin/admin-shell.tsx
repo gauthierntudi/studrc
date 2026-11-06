@@ -26,6 +26,7 @@ import {
   Users,
   X,
   Activity,
+  CircleDot,
 } from "lucide-react";
 import { AdminBrandLogo } from "@/components/admin/admin-brand-logo";
 import { AdminModal } from "@/components/admin/admin-modal";
@@ -51,6 +52,7 @@ const PAGE_LABEL: Record<string, string> = {
   "/admin/actualites": "Actualités",
   "/admin/auteurs": "Auteurs",
   "/admin/sponsors": "Sponsors",
+  "/admin/statuts": "Statuts",
   "/admin/publicite": "Publicité",
   "/admin/monitoring": "Monitoring",
   "/admin/staff": "Staff",
@@ -149,6 +151,7 @@ export function AdminShell({
     { href: "/admin/actualites", label: "Actualités", icon: Newspaper },
     { href: "/admin/auteurs", label: "Auteurs", icon: PenLine },
     { href: "/admin/sponsors", label: "Sponsors", icon: Handshake },
+    { href: "/admin/statuts", label: "Statuts", icon: CircleDot },
     ...(isSuperAdmin
       ? [{ href: "/admin/monitoring", label: "Monitoring", icon: Activity }]
       : []),

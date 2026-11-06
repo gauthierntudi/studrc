@@ -1,0 +1,10 @@
+# Copier vers key.properties (jamais committer) :
+#   cp key.properties.example key.properties
+#
+# Puis créer le keystore :
+#   ./tool/create-upload-keystore.sh
+
+storePassword=CHANGE_ME
+keyPassword=CHANGE_ME
+keyAlias=upload
+storeFile=../upload-keystore.jks

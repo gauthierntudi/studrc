@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:studrc/widgets/app_icons.dart';
 import '../core/article_nav.dart';
 import '../core/now_playing.dart';
 import '../core/router.dart';
@@ -360,7 +360,7 @@ class _NowPlayingStageState extends ConsumerState<_NowPlayingStage>
                       backgroundColor: Colors.black.withValues(alpha: 0.35),
                       minimumSize: const Size(44, 44),
                     ),
-                    icon: const Icon(LucideIcons.chevronDown),
+                    icon: const Icon(AppIcons.chevronDown),
                   ),
                 ),
               ),

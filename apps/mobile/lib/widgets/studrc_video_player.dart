@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:studrc/widgets/app_icons.dart';
 import '../theme/app_theme.dart';
 
 /// Lecteur HLS style YouTube (barre, ±10 s, double-tap, plein écran).
@@ -175,7 +175,7 @@ class _StudrcVideoPlayerState extends State<StudrcVideoPlayer> {
         MaterialCustomButton(
           iconSize: 36,
           onPressed: () => _seekBy(const Duration(seconds: -10)),
-          icon: const Icon(LucideIcons.rotateCcw),
+          icon: const Icon(AppIcons.rotateCcw),
         ),
         const Spacer(),
         const MaterialPlayOrPauseButton(iconSize: 64),
@@ -183,7 +183,7 @@ class _StudrcVideoPlayerState extends State<StudrcVideoPlayer> {
         MaterialCustomButton(
           iconSize: 36,
           onPressed: () => _seekBy(const Duration(seconds: 10)),
-          icon: const Icon(LucideIcons.rotateCw),
+          icon: const Icon(AppIcons.rotateCw),
         ),
         const Spacer(flex: 2),
       ],
@@ -200,14 +200,14 @@ class _StudrcVideoPlayerState extends State<StudrcVideoPlayer> {
         MaterialCustomButton(
           onPressed: _toggleMute,
           icon: Icon(
-            _muted ? LucideIcons.volumeX : LucideIcons.volume2,
+            _muted ? AppIcons.volumeX : AppIcons.volume2,
           ),
         ),
         if (widget.onToggleFullscreen != null)
           MaterialCustomButton(
             onPressed: widget.onToggleFullscreen!,
             icon: Icon(
-              widget.fullscreen ? LucideIcons.minimize : LucideIcons.maximize,
+              widget.fullscreen ? AppIcons.minimize : AppIcons.maximize,
             ),
           ),
       ],
@@ -355,7 +355,7 @@ class _PosterStart extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            child: Icon(LucideIcons.play, color: ink, size: 32),
+                            child: Icon(AppIcons.play, color: ink, size: 32),
                           )
                         : SizedBox(
                             width: 42,

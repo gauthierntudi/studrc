@@ -13,14 +13,17 @@ class StudrcLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      'assets/brand/studrc-logo-white.png',
+    return SizedBox(
       height: height,
-      fit: BoxFit.contain,
-      filterQuality: FilterQuality.high,
-      color: color,
-      colorBlendMode: BlendMode.srcIn,
-      semanticLabel: 'STUDRC',
+      child: Image.asset(
+        'assets/brand/studrc-logo-white.png',
+        height: height,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+        color: color,
+        colorBlendMode: BlendMode.srcIn,
+        semanticLabel: 'STUDRC',
+      ),
     );
   }
 }

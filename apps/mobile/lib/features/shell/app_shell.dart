@@ -1,7 +1,10 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:studrc/widgets/app_icons.dart';
+import '../../core/api.dart';
 import '../../theme/app_theme.dart';
 
 class AppShell extends StatelessWidget {
@@ -41,35 +44,35 @@ class _TabItem {
 
 const _tabs = <_TabItem>[
   _TabItem(
-    icon: LucideIcons.house,
-    selectedIcon: LucideIcons.house500,
+    icon: AppIcons.house,
+    selectedIcon: AppIcons.house500,
     label: 'Accueil',
   ),
   _TabItem(
-    icon: LucideIcons.newspaper,
-    selectedIcon: LucideIcons.newspaper500,
+    icon: AppIcons.newspaper,
+    selectedIcon: AppIcons.newspaper500,
     label: 'Actualités',
   ),
   _TabItem(
-    icon: LucideIcons.bookOpen,
-    selectedIcon: LucideIcons.bookOpen500,
+    icon: AppIcons.bookOpen,
+    selectedIcon: AppIcons.bookOpen500,
     label: 'Kiosque',
   ),
   _TabItem(
-    icon: LucideIcons.userRound,
-    selectedIcon: LucideIcons.userRound500,
+    icon: AppIcons.userRound,
+    selectedIcon: AppIcons.userRound500,
     label: 'Compte',
   ),
 ];
 
-class _StudrcTabBar extends StatelessWidget {
+class _StudrcTabBar extends ConsumerWidget {
   const _StudrcTabBar({required this.index, required this.onSelect});
 
   final int index;
   final ValueChanged<int> onSelect;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final dark = Theme.of(context).brightness == Brightness.dark;
     final bg = dark ? AppTheme.navy : Colors.white;
@@ -108,6 +111,9 @@ class _StudrcTabBar extends StatelessWidget {
                       onTap: () => onSelect(i),
                       active: dark ? AppTheme.gold : AppTheme.navy,
                       idle: scheme.onSurface.withValues(alpha: dark ? 0.48 : 0.42),
+                      avatarUrl: i == 3
+                          ? ref.watch(sessionProvider)?.avatarUrl
+                          : null,
                     ),
                   ),
               ],
@@ -126,6 +132,7 @@ class _TabButton extends StatelessWidget {
     required this.onTap,
     required this.active,
     required this.idle,
+    this.avatarUrl,
   });
 
   final _TabItem tab;
@@ -133,6 +140,7 @@ class _TabButton extends StatelessWidget {
   final VoidCallback onTap;
   final Color active;
   final Color idle;
+  final String? avatarUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -140,6 +148,7 @@ class _TabButton extends StatelessWidget {
     final duration = MediaQuery.disableAnimationsOf(context)
         ? Duration.zero
         : const Duration(milliseconds: 180);
+    final photo = avatarUrl?.trim() ?? '';
 
     return Semantics(
       button: true,
@@ -168,11 +177,38 @@ class _TabButton extends StatelessWidget {
                     borderRadius: BorderRadius.circular(99),
                   ),
                 ),
-                Icon(
-                  selected ? tab.selectedIcon : tab.icon,
-                  size: 24,
-                  color: color,
-                ),
+                if (photo.isNotEmpty)
+                  AnimatedContainer(
+                    duration: duration,
+                    width: 26,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: selected ? AppTheme.gold : Colors.transparent,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: ClipOval(
+                      child: CachedNetworkImage(
+                        imageUrl: photo,
+                        fit: BoxFit.cover,
+                        width: 26,
+                        height: 26,
+                        errorWidget: (_, _, _) => Icon(
+                          selected ? tab.selectedIcon : tab.icon,
+                          size: 24,
+                          color: color,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  Icon(
+                    selected ? tab.selectedIcon : tab.icon,
+                    size: 24,
+                    color: color,
+                  ),
                 const SizedBox(height: 4),
                 FittedBox(
                   fit: BoxFit.scaleDown,

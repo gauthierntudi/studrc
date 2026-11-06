@@ -130,6 +130,17 @@ class AppTheme {
       chipTheme: ChipThemeData(
         labelStyle: sansText(size: 13, weight: FontWeight.w700, height: 1.2),
       ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return navy;
+          return Colors.white;
+        }),
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return gold;
+          return scheme.outline.withValues(alpha: 0.35);
+        }),
+        trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
+      ),
     );
   }
 

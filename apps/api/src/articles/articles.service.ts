@@ -134,7 +134,7 @@ const ARTICLE_SELECT = {
   },
 } satisfies Prisma.ArticleSelect;
 
-const PUBLIC_CARD_SELECT = {
+export const PUBLIC_CARD_SELECT = {
   id: true,
   title: true,
   slug: true,
@@ -597,7 +597,7 @@ export class ArticlesService {
     });
   }
 
-  private toPublicCard(
+  toPublicCard(
     article: Prisma.ArticleGetPayload<{ select: typeof PUBLIC_CARD_SELECT }>,
   ) {
     const meta = categoryDisplay(article.category);

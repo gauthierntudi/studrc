@@ -13,6 +13,10 @@
 			<key>NSAllowsLocalNetworking</key>
 			<true/>
 		</dict>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>STUDRC utilise vos photos pour votre photo de profil.</string>
+		<key>NSCameraUsageDescription</key>
+		<string>STUDRC utilise l’appareil photo pour votre photo de profil.</string>
 		<key>CFBundleExecutable</key>
 		<string>$(EXECUTABLE_NAME)</string>
 		<key>CFBundleIdentifier</key>

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:studrc/widgets/app_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/api.dart';
 import '../../core/google_auth.dart';
@@ -204,7 +204,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               AuthGlassField(
                 controller: _name,
                 hint: 'Entrez votre nom',
-                icon: LucideIcons.userRound,
+                icon: AppIcons.userRound,
                 textCapitalization: TextCapitalization.words,
                 textInputAction: TextInputAction.next,
                 autofillHints: const [AutofillHints.name],
@@ -214,7 +214,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             AuthGlassField(
               controller: _email,
               hint: 'Entrez votre e-mail',
-              icon: LucideIcons.mail,
+              icon: AppIcons.mail,
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.next,
               autofillHints: const [AutofillHints.email],
@@ -225,7 +225,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               hint: _signup
                   ? 'Mot de passe (8 car. min.)'
                   : 'Entrez votre mot de passe',
-              icon: LucideIcons.lock,
+              icon: AppIcons.lock,
               obscure: _obscure,
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _submit(),
@@ -240,8 +240,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 onPressed: () => setState(() => _obscure = !_obscure),
                 icon: Icon(
                   _obscure
-                      ? LucideIcons.eye
-                      : LucideIcons.eyeOff,
+                      ? AppIcons.eye
+                      : AppIcons.eyeOff,
                   color: Theme.of(
                     context,
                   ).colorScheme.onSurface.withValues(alpha: 0.45),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:studrc/widgets/app_icons.dart';
 import '../../core/api.dart';
 import '../../core/article_nav.dart';
 import '../../core/constants.dart';
@@ -13,6 +13,7 @@ import '../../widgets/cover.dart';
 import '../../widgets/studrc_filter_tabs.dart';
 import '../../widgets/studrc_masthead.dart';
 import '../shorts/shorts_feed.dart';
+import '../statuses/statuses.dart';
 
 final homeProvider = FutureProvider((ref) async {
   final api = ref.watch(apiClientProvider);
@@ -142,8 +143,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           une: une,
                           feed: feed,
                           magazines: data.magazines,
-                          onRefresh: () async =>
-                              ref.refresh(homeProvider.future),
+                          onRefresh: () async {
+                            ref.invalidate(statusesProvider);
+                            final _ = await ref.refresh(homeProvider.future);
+                          },
                         ),
                         for (var i = 0; i < kRubriques.length; i++)
                           _RubriquePage(
@@ -217,6 +220,10 @@ class _UnePage extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
         children: [
+          const StatusBubbles(
+            padding: EdgeInsets.fromLTRB(0, 0, 0, 16),
+            bleed: 20,
+          ),
           if (une.isNotEmpty) FeaturedCard(article: une.first),
           if (une.length > 1) ...[
             const SizedBox(height: 20),
@@ -421,7 +428,7 @@ class _RubriqueRail extends StatelessWidget {
                     ),
                   ),
                   Icon(
-                    LucideIcons.chevronRight,
+                    AppIcons.chevronRight,
                     color: Theme.of(
                       context,
                     ).colorScheme.onSurface.withValues(alpha: 0.4),
@@ -547,7 +554,7 @@ class _StuMagRail extends StatelessWidget {
                     ),
                   ),
                   Icon(
-                    LucideIcons.chevronRight,
+                    AppIcons.chevronRight,
                     color: scheme.onSurface.withValues(alpha: 0.4),
                   ),
                 ],

@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'auth_store.dart';
@@ -20,24 +22,36 @@ final sessionProvider = StateNotifierProvider<SessionController, Subscriber?>(
 
 class SessionController extends StateNotifier<Subscriber?> {
   SessionController(this._api) : super(null) {
+    _api.onAuthCleared = () {
+      if (mounted) state = null;
+    };
     restore();
   }
 
   final ApiClient _api;
+  int _epoch = 0;
+
+  bool _isAlive(Subscriber? user) =>
+      user != null && user.id.isNotEmpty && user.id != 'null' && user.email.isNotEmpty;
 
   Future<void> restore() async {
+    final epoch = _epoch;
     try {
-      state = await _api.me();
+      final user = await _api.me();
+      if (epoch != _epoch) return;
+      state = _isAlive(user) ? user : null;
     } catch (_) {
-      state = null;
+      if (epoch != _epoch) return;
     }
   }
 
   Future<void> login(String email, String password, {String? turnstile}) async {
+    _epoch++;
     state = await _api.login(email, password, turnstileToken: turnstile);
   }
 
   Future<void> loginWithGoogle(String credential, {String? turnstile}) async {
+    _epoch++;
     state = await _api.loginWithGoogle(
       credential,
       turnstileToken: turnstile,
@@ -51,6 +65,7 @@ class SessionController extends StateNotifier<Subscriber?> {
     String? phone,
     String? turnstile,
   }) async {
+    _epoch++;
     state = await _api.register(
       name: name,
       email: email,
@@ -61,12 +76,20 @@ class SessionController extends StateNotifier<Subscriber?> {
   }
 
   Future<void> logout() async {
+    _epoch++;
     await _api.logout();
     state = null;
   }
 
   Future<void> refreshMe() async {
-    state = await _api.me();
+    final epoch = _epoch;
+    final user = await _api.me();
+    if (epoch != _epoch) return;
+    state = _isAlive(user) ? user : null;
+  }
+
+  Future<void> uploadAvatar(String filePath) async {
+    state = await _api.uploadAvatar(filePath);
   }
 }
 
@@ -80,9 +103,22 @@ class ApiClient {
         headers: const {'Accept': 'application/json'},
       ),
     );
+    _refreshDio = Dio(
+      BaseOptions(
+        baseUrl: kApiBaseUrl,
+        connectTimeout: const Duration(seconds: 20),
+        receiveTimeout: const Duration(seconds: 20),
+        headers: const {'Accept': 'application/json'},
+      ),
+    );
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
+          if (_isAuthPublicPath(options.path)) {
+            options.headers.remove('Authorization');
+            return handler.next(options);
+          }
+          await _ensureFreshAccess();
           final token = await _store.accessToken;
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
@@ -93,10 +129,8 @@ class ApiClient {
           final req = error.requestOptions;
           if (error.response?.statusCode == 401 &&
               req.extra['retried'] != true &&
-              !req.path.contains('/auth/refresh') &&
-              !req.path.contains('/auth/login') &&
-              !req.path.contains('/auth/google') &&
-              !req.path.contains('/auth/register')) {
+              !_isAuthPublicPath(req.path) &&
+              req.data is! FormData) {
             final ok = await _refresh();
             if (ok) {
               req.extra['retried'] = true;
@@ -107,7 +141,7 @@ class ApiClient {
               try {
                 final clone = await _dio.fetch(req);
                 return handler.resolve(clone);
-              } catch (e) {
+              } catch (_) {
                 return handler.next(error);
               }
             }
@@ -120,6 +154,19 @@ class ApiClient {
 
   final AuthStore _store;
   late final Dio _dio;
+  late final Dio _refreshDio;
+  Future<bool>? _refreshing;
+  void Function()? onAuthCleared;
+
+  bool _isAuthPublicPath(String path) {
+    return path.contains('/auth/refresh') ||
+        path.contains('/auth/login') ||
+        path.contains('/auth/google') ||
+        path.contains('/auth/register') ||
+        path.contains('/auth/forgot-password') ||
+        path.contains('/auth/reset-password') ||
+        path.contains('/auth/verify-email');
+  }
 
   Future<Map<String, String>> bearerHeaders() async {
     final token = await _store.accessToken;
@@ -127,24 +174,65 @@ class ApiClient {
     return {'Authorization': 'Bearer $token'};
   }
 
-  Future<bool> _refresh() async {
+  Future<bool> _refresh() {
+    return _refreshing ??= _doRefresh().whenComplete(() => _refreshing = null);
+  }
+
+  Future<bool> _doRefresh() async {
     final refresh = await _store.refreshToken;
-    if (refresh == null || refresh.isEmpty) return false;
+    if (refresh == null || refresh.isEmpty) {
+      await _forgetAuth();
+      return false;
+    }
     try {
-      final res = await _dio.post<Map<String, dynamic>>(
+      final res = await _refreshDio.post<Map<String, dynamic>>(
         '/auth/refresh',
         data: {'refreshToken': refresh},
       );
       final data = res.data;
-      if (data == null || data['accessToken'] == null) return false;
+      if (data == null || data['accessToken'] == null) {
+        await _forgetAuth();
+        return false;
+      }
       await _store.save(
         accessToken: '${data['accessToken']}',
         refreshToken: '${data['refreshToken'] ?? refresh}',
       );
       return true;
     } catch (_) {
-      await _store.clear();
+      await _forgetAuth();
       return false;
+    }
+  }
+
+  Future<void> _forgetAuth() async {
+    await _store.clear();
+    onAuthCleared?.call();
+  }
+
+  Future<void> _ensureFreshAccess() async {
+    final token = await _store.accessToken;
+    if (!_accessExpiringSoon(token)) return;
+    final refresh = await _store.refreshToken;
+    if (refresh == null || refresh.isEmpty) return;
+    await _refresh();
+  }
+
+  bool _accessExpiringSoon(String? token) {
+    if (token == null || token.isEmpty) return true;
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return true;
+      final payload = jsonDecode(
+        utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+      );
+      if (payload is! Map) return true;
+      final exp = payload['exp'];
+      if (exp is! num) return true;
+      final now = DateTime.now().toUtc().millisecondsSinceEpoch / 1000;
+      return now > exp - 60;
+    } catch (_) {
+      return true;
     }
   }
 
@@ -190,6 +278,24 @@ class ApiClient {
 
   Future<HomeFeed> home() =>
       _get('/articles/home', parse: (d) => HomeFeed.fromJson(_map(d)));
+
+  Future<List<StatusItem>> statuses() => _get(
+        '/statuses',
+        parse: (d) {
+          final items = _map(d)['items'];
+          if (items is! List) return const <StatusItem>[];
+          return [
+            for (final e in items)
+              if (e is Map) StatusItem.fromJson(Map<String, dynamic>.from(e)),
+          ];
+        },
+      );
+
+  Future<void> markStatusViewed(String id) async {
+    try {
+      await _dio.post('/statuses/${Uri.encodeComponent(id)}/view');
+    } catch (_) {}
+  }
 
   Future<CategoryFeed> feed({int take = 12, int skip = 0}) => _get(
         '/articles/feed',
@@ -302,11 +408,20 @@ class ApiClient {
   }
 
   Future<Subscriber?> me() async {
-    final token = await _store.accessToken;
-    if (token == null) return null;
-    final res = await _dio.get<dynamic>('/auth/me');
-    if (res.data == null) return null;
-    return Subscriber.fromJson(_map(res.data));
+    Future<Subscriber?> read() async {
+      final token = await _store.accessToken;
+      if (token == null || token.isEmpty) return null;
+      final res = await _dio.get<dynamic>('/auth/me');
+      return _subscriberOrNull(res.data);
+    }
+
+    final current = await read();
+    if (current != null) return current;
+
+    final refresh = await _store.refreshToken;
+    if (refresh == null || refresh.isEmpty) return null;
+    if (await _refresh()) return read();
+    return null;
   }
 
   Future<Subscriber> updateProfile({
@@ -323,6 +438,39 @@ class ApiClient {
       },
     );
     return Subscriber.fromJson(_map(res.data));
+  }
+
+  Future<Subscriber> uploadAvatar(String filePath) async {
+    await _ensureFreshAccess();
+    try {
+      return await _postAvatar(filePath);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401 && await _refresh()) {
+        return _postAvatar(filePath);
+      }
+      rethrow;
+    }
+  }
+
+  Future<Subscriber> _postAvatar(String filePath) async {
+    final lower = filePath.toLowerCase();
+    final png = lower.endsWith('.png');
+    final form = FormData.fromMap({
+      'file': await MultipartFile.fromFile(
+        filePath,
+        filename: png ? 'avatar.png' : 'avatar.jpg',
+        contentType: DioMediaType('image', png ? 'png' : 'jpeg'),
+      ),
+    });
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/auth/me/avatar',
+      data: form,
+    );
+    final user = _subscriberOrNull(res.data);
+    if (user == null) {
+      throw Exception('Réponse profil invalide');
+    }
+    return user;
   }
 
   Future<void> forgotPassword(String email, {String? turnstileToken}) async {
@@ -376,8 +524,14 @@ class ApiClient {
         parse: (d) => MagazineSession.fromJson(_map(d)),
       );
 
-  Future<List<AppNotification>> notifications() => _get(
+  Future<List<AppNotification>> notifications({
+    int days = 7,
+    int take = 50,
+    int skip = 0,
+  }) =>
+      _get(
         '/library/notifications',
+        query: {'days': days, 'take': take, 'skip': skip},
         parse: (d) {
           final m = d is Map ? _map(d) : <String, dynamic>{};
           final items = m['items'] ?? m['notifications'] ?? (d is List ? d : []);
@@ -389,19 +543,33 @@ class ApiClient {
         },
       );
 
-  Future<int> unreadCount() => _get(
+  Future<int> unreadCount({int days = 7}) => _get(
         '/library/notifications/unread-count',
+        query: {'days': days},
         parse: (d) {
           if (d is num) return d.toInt();
           final m = _map(d);
-          return (m['count'] as num?)?.toInt() ??
+          return (m['unreadCount'] as num?)?.toInt() ??
+              (m['count'] as num?)?.toInt() ??
               (m['unread'] as num?)?.toInt() ??
               0;
         },
       );
 
-  Future<void> markNotificationRead(String id) async {
-    await _dio.post('/library/notifications/read', data: {'notificationId': id});
+  Future<int> markNotificationRead(String id) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/library/notifications/read',
+      data: {'notificationId': id},
+    );
+    final m = _map(res.data);
+    return (m['unreadCount'] as num?)?.toInt() ?? 0;
+  }
+
+  Future<void> markNotificationsSeen({int days = 7}) async {
+    await _dio.post(
+      '/library/notifications/seen',
+      queryParameters: {'days': days},
+    );
   }
 
   Future<List<PurchaseItem>> purchases() => _get(
@@ -463,6 +631,20 @@ class ApiClient {
     if (data is Map<String, dynamic>) return data;
     if (data is Map) return Map<String, dynamic>.from(data);
     return <String, dynamic>{};
+  }
+
+  Subscriber? _subscriberOrNull(dynamic data) {
+    if (data == null) return null;
+    final map = _map(data);
+    if (map.isEmpty) return null;
+    final raw = map['user'] is Map
+        ? Map<String, dynamic>.from(map['user'] as Map)
+        : map;
+    final user = Subscriber.fromJson(raw);
+    if (user.id.isEmpty || user.id == 'null' || user.email.isEmpty) {
+      return null;
+    }
+    return user;
   }
 
   String apiError(Object error) {

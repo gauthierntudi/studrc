@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:studrc/widgets/app_icons.dart';
 import '../../core/api.dart';
 import '../../core/models.dart';
 import '../../widgets/article_tile.dart';
@@ -56,7 +56,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           onSubmitted: (_) => _run(),
         ),
         actions: [
-          IconButton(onPressed: _run, icon: const Icon(LucideIcons.search)),
+          IconButton(onPressed: _run, icon: const Icon(AppIcons.search)),
         ],
       ),
       body: _loading

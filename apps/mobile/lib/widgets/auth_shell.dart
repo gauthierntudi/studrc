@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:studrc/widgets/app_icons.dart';
 import '../theme/app_theme.dart';
 
 class AuthShell extends StatelessWidget {
@@ -182,7 +182,7 @@ class _AuthBack extends StatelessWidget {
       tooltip: 'Retour',
       padding: EdgeInsets.zero,
       constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-      icon: const Icon(LucideIcons.arrowLeft, color: Colors.white, size: 24),
+      icon: const Icon(AppIcons.arrowLeft, color: Colors.white, size: 24),
     );
   }
 }

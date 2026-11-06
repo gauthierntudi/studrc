@@ -1,0 +1,124 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { AdminRole } from '@prisma/client';
+import { memoryStorage } from 'multer';
+import { CurrentAdmin } from '../auth/decorators/current-admin.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { JwtAdminGuard } from '../auth/guards/jwt-admin.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import type { AdminAuthUser } from '../auth/strategies/jwt-admin.strategy';
+import {
+  CompleteStatusVideoDto,
+  CreateStatusDto,
+  PresignStatusVideoDto,
+  UpdateStatusDto,
+} from './dto/admin-status.dto';
+import { StatusesService } from './statuses.service';
+
+type UploadedMemFile = {
+  originalname: string;
+  mimetype: string;
+  size: number;
+  buffer: Buffer;
+};
+
+const imageUpload = () =>
+  FileInterceptor('file', {
+    storage: memoryStorage(),
+    limits: { fileSize: 10_000_000 },
+  });
+
+@Controller('admin/statuses')
+@UseGuards(JwtAdminGuard, RolesGuard)
+@Roles(
+  AdminRole.SUPERADMIN,
+  AdminRole.ADMIN,
+  AdminRole.EDITOR,
+  AdminRole.REDACTEUR,
+)
+export class AdminStatusesController {
+  constructor(private readonly statuses: StatusesService) {}
+
+  @Get()
+  list(
+    @Query('state') state?: string,
+    @Query('take') take?: string,
+    @Query('skip') skip?: string,
+  ) {
+    return this.statuses.list({
+      state,
+      take: take ? Number(take) : undefined,
+      skip: skip ? Number(skip) : undefined,
+    });
+  }
+
+  @Get(':id')
+  get(@Param('id') id: string) {
+    return this.statuses.getById(id);
+  }
+
+  @Post()
+  create(@Body() dto: CreateStatusDto, @CurrentAdmin() actor: AdminAuthUser) {
+    return this.statuses.create(dto, actor.id);
+  }
+
+  @Patch(':id')
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateStatusDto,
+    @CurrentAdmin() actor: AdminAuthUser,
+  ) {
+    return this.statuses.update(id, dto, actor.id);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string, @CurrentAdmin() actor: AdminAuthUser) {
+    return this.statuses.remove(id, actor.id);
+  }
+
+  @Post(':id/image')
+  @UseInterceptors(imageUpload())
+  uploadImage(
+    @Param('id') id: string,
+    @CurrentAdmin() actor: AdminAuthUser,
+    @UploadedFile() file: UploadedMemFile,
+  ) {
+    return this.statuses.uploadImage(id, file, actor.id);
+  }
+
+  @Post(':id/poster')
+  @UseInterceptors(imageUpload())
+  uploadPoster(
+    @Param('id') id: string,
+    @CurrentAdmin() actor: AdminAuthUser,
+    @UploadedFile() file: UploadedMemFile,
+  ) {
+    return this.statuses.uploadPoster(id, file, actor.id);
+  }
+
+  @Post(':id/video/presign')
+  presignVideo(@Param('id') id: string, @Body() dto: PresignStatusVideoDto) {
+    return this.statuses.presignVideo(id, dto);
+  }
+
+  @Post(':id/video/complete')
+  completeVideo(
+    @Param('id') id: string,
+    @Body() dto: CompleteStatusVideoDto,
+    @CurrentAdmin() actor: AdminAuthUser,
+  ) {
+    return this.statuses.completeVideo(id, dto, actor.id);
+  }
+}

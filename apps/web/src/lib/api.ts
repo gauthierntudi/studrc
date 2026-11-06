@@ -2251,3 +2251,126 @@ export const adminArticlesApi = {
     return this.completeVideo(id, { key: signed.key, size: file.size });
   },
 };
+
+// ---------------------------------------------------------------- Statuts
+
+export type AdminStatusState = "draft" | "active" | "expired";
+
+export type AdminStatus = {
+  id: string;
+  state: AdminStatusState;
+  mediaType: "IMAGE" | "VIDEO" | null;
+  mediaKey: string | null;
+  mediaUrl: string | null;
+  posterUrl: string | null;
+  caption: string | null;
+  articleId: string | null;
+  article: {
+    id: string;
+    title: string;
+    slug: string;
+    isPublished: boolean;
+    coverUrl: string | null;
+  } | null;
+  durationSec: number;
+  isPublished: boolean;
+  publishedAt: string | null;
+  expiresAt: string;
+  viewCount: number;
+  author: { id: string; name: string } | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminStatusInput = {
+  caption?: string | null;
+  articleId?: string | null;
+  ttlHours?: number;
+  durationSec?: number;
+  isPublished?: boolean;
+  expiresAt?: string;
+  clearMedia?: boolean;
+};
+
+export type AdminStatusListResponse = {
+  items: AdminStatus[];
+  total: number;
+  take: number;
+  skip: number;
+};
+
+export const adminStatusesApi = {
+  list(params?: { state?: string; take?: number; skip?: number }) {
+    const qs = new URLSearchParams();
+    if (params?.state) qs.set("state", params.state);
+    if (params?.take != null) qs.set("take", String(params.take));
+    if (params?.skip != null) qs.set("skip", String(params.skip));
+    const suffix = qs.toString() ? `?${qs}` : "";
+    return apiFetch<AdminStatusListResponse>(`/admin/statuses${suffix}`);
+  },
+
+  get(id: string) {
+    return apiFetch<AdminStatus>(`/admin/statuses/${id}`);
+  },
+
+  create(input: AdminStatusInput) {
+    return apiFetch<AdminStatus>("/admin/statuses", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  },
+
+  update(id: string, input: AdminStatusInput) {
+    return apiFetch<AdminStatus>(`/admin/statuses/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    });
+  },
+
+  remove(id: string) {
+    return apiFetch<{ ok: boolean }>(`/admin/statuses/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  uploadImage(id: string, file: File, onProgress?: (percent: number) => void) {
+    const body = new FormData();
+    body.append("file", file);
+    return apiFetchForm<AdminStatus>(
+      `/admin/statuses/${id}/image`,
+      body,
+      false,
+      onProgress,
+    );
+  },
+
+  uploadPoster(id: string, file: File) {
+    const body = new FormData();
+    body.append("file", file);
+    return apiFetchForm<AdminStatus>(`/admin/statuses/${id}/poster`, body);
+  },
+
+  async uploadVideo(
+    id: string,
+    file: File,
+    opts?: { onProgress?: (percent: number) => void; signal?: AbortSignal },
+  ) {
+    const signed = await apiFetch<{
+      key: string;
+      uploadUrl: string;
+      headers: Record<string, string>;
+    }>(`/admin/statuses/${id}/video/presign`, {
+      method: "POST",
+      body: JSON.stringify({
+        filename: file.name,
+        size: file.size,
+        contentType: file.type || "video/mp4",
+      }),
+    });
+    await putFileToPresignedUrl(file, signed.uploadUrl, signed.headers, opts);
+    return apiFetch<AdminStatus>(`/admin/statuses/${id}/video/complete`, {
+      method: "POST",
+      body: JSON.stringify({ key: signed.key }),
+    });
+  },
+};

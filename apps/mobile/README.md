@@ -43,3 +43,14 @@ Si le build iOS échoue à cause de Swift Package Manager (`media_kit` / `flutte
 ```bash
 flutter config --no-enable-swift-package-manager
 ```
+
+## Play Store (Android)
+
+Préparer le keystore d’upload, puis l’AAB :
+
+```bash
+./tool/create-upload-keystore.sh
+flutter build appbundle --release
+```
+
+Détail (fiche Play, SHA-1 Google, données de sécurité) : [PLAY_STORE.md](./PLAY_STORE.md)

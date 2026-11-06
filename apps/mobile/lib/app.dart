@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/api.dart';
+import 'core/appearance.dart';
 import 'core/router.dart';
 import 'features/splash/splash_view.dart';
 import 'theme/app_theme.dart';
@@ -15,12 +18,14 @@ class StudrcApp extends ConsumerStatefulWidget {
   ConsumerState<StudrcApp> createState() => _StudrcAppState();
 }
 
-class _StudrcAppState extends ConsumerState<StudrcApp> {
+class _StudrcAppState extends ConsumerState<StudrcApp>
+    with WidgetsBindingObserver {
   late bool _splash = widget.showSplash;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations(const [
       DeviceOrientation.portraitUp,
@@ -32,14 +37,28 @@ class _StudrcAppState extends ConsumerState<StudrcApp> {
   }
 
   @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(ref.read(sessionProvider.notifier).restore());
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
+    final appearance = ref.watch(appearanceProvider);
     return MaterialApp.router(
       title: 'STUDRC',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      themeMode: ThemeMode.system,
+      themeMode: appearance.themeMode,
       routerConfig: router,
       builder: (context, child) {
         return NowPlayingOverlayHost(
