@@ -3,6 +3,7 @@ import { StatusImageFit } from '@prisma/client';
 import {
   IsBoolean,
   IsEnum,
+  IsIn,
   IsDateString,
   IsInt,
   IsOptional,
@@ -121,4 +122,9 @@ export class CompleteStatusVideoDto {
   @MinLength(8)
   @MaxLength(500)
   key!: string;
+}
+
+export class MoveStatusDto {
+  @IsIn(['up', 'down'])
+  direction!: 'up' | 'down';
 }

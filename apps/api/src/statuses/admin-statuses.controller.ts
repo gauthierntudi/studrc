@@ -22,6 +22,7 @@ import type { AdminAuthUser } from '../auth/strategies/jwt-admin.strategy';
 import {
   CompleteStatusVideoDto,
   CreateStatusDto,
+  MoveStatusDto,
   PresignStatusVideoDto,
   UpdateStatusDto,
 } from './dto/admin-status.dto';
@@ -81,6 +82,16 @@ export class AdminStatusesController {
     @CurrentAdmin() actor: AdminAuthUser,
   ) {
     return this.statuses.update(id, dto, actor.id);
+  }
+
+  /** Monte / descend un statut en ligne dans l’ordre des bulles */
+  @Post(':id/move')
+  move(
+    @Param('id') id: string,
+    @Body() dto: MoveStatusDto,
+    @CurrentAdmin() actor: AdminAuthUser,
+  ) {
+    return this.statuses.move(id, dto.direction, actor.id);
   }
 
   @Delete(':id')

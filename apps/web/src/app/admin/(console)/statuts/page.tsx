@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  ArrowDown,
+  ArrowUp,
   Eye,
   EyeOff,
   FileText,
@@ -213,6 +215,18 @@ export default function AdminStatusesPage() {
     }
   }
 
+  async function move(row: AdminStatus, direction: "up" | "down") {
+    setSaving(true);
+    try {
+      await adminStatusesApi.move(row.id, direction);
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Échec");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function confirmRemove() {
     if (!pendingDelete) return;
     setSaving(true);
@@ -233,6 +247,8 @@ export default function AdminStatusesPage() {
   }
 
   const formOpen = editing !== null;
+  /** Filtre « En ligne » : liste dans l’ordre de l’app, réordonnable */
+  const ordering = state === "active";
 
   return (
     <>
@@ -269,12 +285,18 @@ export default function AdminStatusesPage() {
             <option value="expired">Expirés</option>
           </select>
         </label>
+        <p className="admin-dash__muted admin-status-page__hint">
+          {ordering
+            ? "Ordre des bulles dans l’app : utilisez les flèches pour le modifier. Les nouveaux statuts arrivent en tête."
+            : "Filtrez sur « En ligne » pour définir l’ordre d’affichage dans l’app."}
+        </p>
       </div>
 
       <div className="admin-dash__table-wrap">
         <table className="admin-dash__table">
           <thead>
             <tr>
+              {ordering ? <th>Ordre</th> : null}
               <th>Statut</th>
               <th>État</th>
               <th>Vues</th>
@@ -285,19 +307,46 @@ export default function AdminStatusesPage() {
           <tbody>
             {loading && items.length === 0 ? (
               <tr>
-                <td colSpan={5} className="admin-dash__muted">
+                <td colSpan={ordering ? 6 : 5} className="admin-dash__muted">
                   Chargement…
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={5} className="admin-dash__muted">
+                <td colSpan={ordering ? 6 : 5} className="admin-dash__muted">
                   Aucun statut.
                 </td>
               </tr>
             ) : (
-              items.map((row) => (
+              items.map((row, i) => (
                 <tr key={row.id}>
+                  {ordering ? (
+                    <td>
+                      <div className="admin-status-page__order">
+                        <strong>{skip + i + 1}</strong>
+                        <button
+                          type="button"
+                          className="admin-dash__icon-action"
+                          disabled={saving || skip + i === 0}
+                          aria-label="Monter"
+                          title="Afficher plus tôt"
+                          onClick={() => void move(row, "up")}
+                        >
+                          <ArrowUp size={15} strokeWidth={2} />
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-dash__icon-action"
+                          disabled={saving || skip + i >= total - 1}
+                          aria-label="Descendre"
+                          title="Afficher plus tard"
+                          onClick={() => void move(row, "down")}
+                        >
+                          <ArrowDown size={15} strokeWidth={2} />
+                        </button>
+                      </div>
+                    </td>
+                  ) : null}
                   <td>
                     <div className="admin-sub__user">
                       <Thumb row={row} />

@@ -42,6 +42,13 @@ const HOUR_MS = 3_600_000;
 const DEFAULT_TTL_HOURS = 24;
 const IMAGE_MAX_BYTES = 10_000_000;
 
+/** Ordre des bulles : position choisie, puis les plus récents d’abord */
+const STATUS_DISPLAY_ORDER: Prisma.StatusOrderByWithRelationInput[] = [
+  { sortOrder: 'asc' },
+  { publishedAt: 'desc' },
+  { createdAt: 'desc' },
+];
+
 const ADMIN_STATUS_SELECT = {
   id: true,
   mediaType: true,
@@ -51,6 +58,7 @@ const ADMIN_STATUS_SELECT = {
   caption: true,
   articleId: true,
   durationSec: true,
+  sortOrder: true,
   isPublished: true,
   publishedAt: true,
   expiresAt: true,
@@ -111,7 +119,7 @@ export class StatusesService {
         publishedAt: { lte: now },
         expiresAt: { gt: now },
       },
-      orderBy: { publishedAt: 'desc' },
+      orderBy: STATUS_DISPLAY_ORDER,
       take: 50,
       select: PUBLIC_STATUS_SELECT,
     });
@@ -168,7 +176,11 @@ export class StatusesService {
     const [items, total] = await Promise.all([
       this.prisma.status.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        // « En ligne » : même ordre que l’app ; sinon les plus récents
+        orderBy:
+          filters.state === 'active'
+            ? STATUS_DISPLAY_ORDER
+            : { createdAt: 'desc' },
         take,
         skip,
         select: ADMIN_STATUS_SELECT,
@@ -182,6 +194,48 @@ export class StatusesService {
       take,
       skip,
     };
+  }
+
+  /**
+   * Échange un statut en ligne avec son voisin, puis renumérote toute la
+   * rangée (1…n) pour garder un ordre stable. Les nouveaux statuts (0)
+   * arrivent en tête.
+   */
+  async move(id: string, direction: 'up' | 'down', actorId: string) {
+    const now = new Date();
+    const active = await this.prisma.status.findMany({
+      where: { isPublished: true, expiresAt: { gt: now } },
+      orderBy: STATUS_DISPLAY_ORDER,
+      select: { id: true },
+    });
+    const index = active.findIndex((row) => row.id === id);
+    if (index < 0) {
+      throw new BadRequestException(
+        'Seuls les statuts en ligne peuvent être réordonnés',
+      );
+    }
+    const target = direction === 'up' ? index - 1 : index + 1;
+    if (target >= 0 && target < active.length) {
+      const ids = active.map((row) => row.id);
+      [ids[index], ids[target]] = [ids[target], ids[index]];
+      await this.prisma.$transaction(
+        ids.map((rowId, i) =>
+          this.prisma.status.update({
+            where: { id: rowId },
+            data: { sortOrder: i + 1 },
+          }),
+        ),
+      );
+      void this.activity.log({
+        actorType: ActivityActorType.ADMIN,
+        adminId: actorId,
+        action: 'status_reordered',
+        entity: 'status',
+        entityId: id,
+        meta: { direction, position: target + 1 },
+      });
+    }
+    return { ok: true };
   }
 
   async getById(id: string) {
@@ -582,6 +636,7 @@ export class StatusesService {
           }
         : null,
       durationSec: row.durationSec,
+      sortOrder: row.sortOrder,
       isPublished: row.isPublished,
       publishedAt: row.publishedAt?.toISOString() ?? null,
       expiresAt: row.expiresAt.toISOString(),

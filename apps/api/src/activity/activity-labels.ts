@@ -42,6 +42,7 @@ export const ACTIVITY_LABELS: Record<string, string> = {
   author_avatar_uploaded: 'Photo auteur uploadée',
   author_deleted: 'Auteur supprimé',
   status_created: 'Statut créé',
+  status_reordered: 'Ordre des statuts modifié',
   status_updated: 'Statut modifié',
   status_published: 'Statut publié',
   status_media_uploaded: 'Média statut uploadé',

@@ -356,7 +356,7 @@ export function AdminStatusForm({
 
           <div className="admin-status-form__row">
             <label className="admin-dash__field">
-              <span>{isEdit ? "Prolonger la visibilité" : "Visible pendant"}</span>
+              <span>{isEdit ? "Prolonger (dès maintenant)" : "Visible pendant"}</span>
               <select
                 value={ttlHours ?? ""}
                 disabled={saving}
@@ -367,7 +367,7 @@ export function AdminStatusForm({
                 {isEdit ? <option value="">Ne pas modifier</option> : null}
                 {TTL_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
-                    {isEdit ? `${o.label} à partir de maintenant` : o.label}
+                    {o.label}
                   </option>
                 ))}
               </select>

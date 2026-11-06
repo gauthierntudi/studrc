@@ -2276,6 +2276,8 @@ export type AdminStatus = {
     coverUrl: string | null;
   } | null;
   durationSec: number;
+  /** Position dans la rangée de bulles (0 = nouveau, en tête) */
+  sortOrder: number;
   isPublished: boolean;
   publishedAt: string | null;
   expiresAt: string;
@@ -2328,6 +2330,13 @@ export const adminStatusesApi = {
     return apiFetch<AdminStatus>(`/admin/statuses/${id}`, {
       method: "PATCH",
       body: JSON.stringify(input),
+    });
+  },
+
+  move(id: string, direction: "up" | "down") {
+    return apiFetch<{ ok: boolean }>(`/admin/statuses/${id}/move`, {
+      method: "POST",
+      body: JSON.stringify({ direction }),
     });
   },
 

@@ -497,6 +497,8 @@ model Status {
   articleId   String?
   /// Durée d’affichage d’une image (secondes)
   durationSec Int              @default(6)
+  /// Position dans la rangée de bulles (croissant ; 0 = nouveau, en tête)
+  sortOrder   Int              @default(0)
   isPublished Boolean          @default(false)
   publishedAt DateTime?
   expiresAt   DateTime
@@ -510,5 +512,6 @@ model Status {
 
   @@index([isPublished, expiresAt])
   @@index([articleId])
+  @@index([sortOrder])
   @@map("statuses")
 }
