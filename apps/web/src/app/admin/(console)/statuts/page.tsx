@@ -158,6 +158,7 @@ export default function AdminStatusesPage() {
           articleId: values.articleId,
           ttlHours: values.ttlHours ?? 24,
           durationSec: values.durationSec,
+          imageFit: values.imageFit,
           isPublished: needsUpload ? false : values.publish,
         });
         await uploadMedia(created.id, values);
@@ -171,6 +172,7 @@ export default function AdminStatusesPage() {
           caption: values.caption,
           articleId: values.articleId,
           durationSec: values.durationSec,
+          imageFit: values.imageFit,
         };
         if (values.clearMedia && !values.mediaFile) patch.clearMedia = true;
         if (values.ttlHours && !publishing) patch.ttlHours = values.ttlHours;

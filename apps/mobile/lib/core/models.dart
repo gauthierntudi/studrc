@@ -518,6 +518,7 @@ class StatusItem {
     this.mediaType,
     this.mediaUrl,
     this.posterUrl,
+    this.imageFit = 'COVER',
     this.caption,
     this.durationSec = 6,
     required this.publishedAt,
@@ -531,6 +532,9 @@ class StatusItem {
   final String? mediaType;
   final String? mediaUrl;
   final String? posterUrl;
+
+  /// 'COVER' (plein écran) | 'FIT' (image entière)
+  final String imageFit;
   final String? caption;
   final int durationSec;
   final DateTime publishedAt;
@@ -539,6 +543,7 @@ class StatusItem {
 
   bool get isVideo => mediaType == 'VIDEO' && (mediaUrl?.isNotEmpty ?? false);
   bool get isImage => mediaType == 'IMAGE' && (mediaUrl?.isNotEmpty ?? false);
+  bool get fitsImage => isImage && imageFit == 'FIT';
 
   /// Image affichée dans la bulle.
   String? get thumbUrl {
@@ -563,6 +568,7 @@ class StatusItem {
       mediaType: json['mediaType'] as String?,
       mediaUrl: json['mediaUrl'] as String?,
       posterUrl: json['posterUrl'] as String?,
+      imageFit: json['imageFit'] == 'FIT' ? 'FIT' : 'COVER',
       caption: json['caption'] as String?,
       durationSec: (json['durationSec'] as num?)?.toInt() ?? 6,
       publishedAt:

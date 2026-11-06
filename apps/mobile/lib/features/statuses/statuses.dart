@@ -767,6 +767,20 @@ class _StatusBackground extends StatelessWidget {
     }
 
     final url = status.isImage ? status.mediaUrl : status.article?.coverUrl;
+    if (url != null && url.isNotEmpty && status.fitsImage) {
+      // Fit : image entière sur fond noir, centrée selon sa taille.
+      return ColoredBox(
+        color: Colors.black,
+        child: Center(
+          child: CachedNetworkImage(
+            imageUrl: url,
+            fit: BoxFit.contain,
+            fadeInDuration: const Duration(milliseconds: 120),
+            errorWidget: (_, _, _) => const _TextBackground(),
+          ),
+        ),
+      );
+    }
     if (url != null && url.isNotEmpty) {
       return CachedNetworkImage(
         imageUrl: url,

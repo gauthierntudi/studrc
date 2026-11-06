@@ -5316,6 +5316,41 @@ a.snow-dash__rail-item:hover {
   object-fit: cover;
 }
 
+.admin-status-form__media.is-fit {
+  object-fit: contain;
+  background: #000;
+}
+
+.admin-status-form__fit {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.admin-status-form__fit-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--snow-line);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-status-form__fit-option small {
+  color: var(--snow-muted);
+}
+
+.admin-status-form__fit-option.is-active {
+  border-color: var(--snow-teal);
+  box-shadow: inset 0 0 0 1px var(--snow-teal);
+  background: color-mix(in srgb, var(--snow-teal) 8%, transparent);
+}
+
 .admin-status-form__bars {
   position: absolute;
   z-index: 2;

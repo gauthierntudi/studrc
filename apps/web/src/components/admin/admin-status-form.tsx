@@ -8,6 +8,7 @@ import {
   adminArticlesApi,
   type AdminArticle,
   type AdminStatus,
+  type AdminStatusImageFit,
 } from "@/lib/api";
 
 export type AdminStatusFormValues = {
@@ -15,6 +16,7 @@ export type AdminStatusFormValues = {
   articleId: string | null;
   ttlHours: number | null;
   durationSec: number;
+  imageFit: AdminStatusImageFit;
   publish: boolean;
   mediaFile: File | null;
   /** Miniature générée côté navigateur pour une vidéo */
@@ -216,6 +218,9 @@ export function AdminStatusForm({
   );
   const [ttlHours, setTtlHours] = useState<number | null>(isEdit ? null : 24);
   const [durationSec, setDurationSec] = useState(initial?.durationSec ?? 6);
+  const [imageFit, setImageFit] = useState<AdminStatusImageFit>(
+    initial?.imageFit ?? "COVER",
+  );
   const [publish, setPublish] = useState(initial ? initial.isPublished : true);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [posterFile, setPosterFile] = useState<File | null>(null);
@@ -292,6 +297,7 @@ export function AdminStatusForm({
       articleId: article?.id ?? null,
       ttlHours,
       durationSec,
+      imageFit,
       publish,
       mediaFile,
       posterFile,
@@ -384,6 +390,37 @@ export function AdminStatusForm({
             ) : null}
           </div>
 
+          {preview?.type === "IMAGE" ? (
+            <div className="admin-dash__field">
+              <span>Style d’image</span>
+              <div className="admin-status-form__fit" role="radiogroup">
+                {(
+                  [
+                    { value: "COVER", label: "Cover", hint: "Couvre tout l’écran" },
+                    { value: "FIT", label: "Fit", hint: "Image entière, selon sa taille" },
+                  ] as const
+                ).map((o) => (
+                  <button
+                    key={o.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={imageFit === o.value}
+                    disabled={saving}
+                    className={
+                      imageFit === o.value
+                        ? "admin-status-form__fit-option is-active"
+                        : "admin-status-form__fit-option"
+                    }
+                    onClick={() => setImageFit(o.value)}
+                  >
+                    <strong>{o.label}</strong>
+                    <small>{o.hint}</small>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <label className="admin-status-form__check">
             <input
               type="checkbox"
@@ -413,7 +450,15 @@ export function AdminStatusForm({
               />
             ) : bgUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={bgUrl} alt="" className="admin-status-form__media" />
+              <img
+                src={bgUrl}
+                alt=""
+                className={
+                  preview?.type === "IMAGE" && imageFit === "FIT"
+                    ? "admin-status-form__media is-fit"
+                    : "admin-status-form__media"
+                }
+              />
             ) : null}
             <div className="admin-status-form__overlay">
               {!preview && article ? (

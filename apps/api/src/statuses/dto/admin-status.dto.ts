@@ -1,6 +1,8 @@
 import { Type } from 'class-transformer';
+import { StatusImageFit } from '@prisma/client';
 import {
   IsBoolean,
+  IsEnum,
   IsDateString,
   IsInt,
   IsOptional,
@@ -15,6 +17,11 @@ import {
 export const STATUS_VIDEO_MAX_BYTES = 100_000_000;
 
 export class CreateStatusDto {
+  /** Cadrage de l’image : COVER ou FIT */
+  @IsOptional()
+  @IsEnum(StatusImageFit)
+  imageFit?: StatusImageFit;
+
   @IsOptional()
   @IsString()
   @MaxLength(500)
@@ -46,6 +53,11 @@ export class CreateStatusDto {
 }
 
 export class UpdateStatusDto {
+  /** Cadrage de l’image : COVER ou FIT */
+  @IsOptional()
+  @IsEnum(StatusImageFit)
+  imageFit?: StatusImageFit;
+
   @IsOptional()
   @IsString()
   @MaxLength(500)

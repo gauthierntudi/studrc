@@ -47,6 +47,7 @@ const ADMIN_STATUS_SELECT = {
   mediaType: true,
   mediaKey: true,
   posterKey: true,
+  imageFit: true,
   caption: true,
   articleId: true,
   durationSec: true,
@@ -73,6 +74,7 @@ const PUBLIC_STATUS_SELECT = {
   mediaType: true,
   mediaKey: true,
   posterKey: true,
+  imageFit: true,
   caption: true,
   durationSec: true,
   publishedAt: true,
@@ -128,6 +130,7 @@ export class StatusesService {
           mediaType: mediaUrl ? row.mediaType : null,
           mediaUrl,
           posterUrl: this.resolveMediaUrl(row.posterKey),
+          imageFit: row.imageFit,
           caption,
           durationSec: row.durationSec,
           publishedAt: (row.publishedAt ?? now).toISOString(),
@@ -203,6 +206,7 @@ export class StatusesService {
         caption,
         articleId,
         durationSec: dto.durationSec ?? 6,
+        ...(dto.imageFit ? { imageFit: dto.imageFit } : {}),
         isPublished: publish,
         publishedAt: publish ? now : null,
         expiresAt: new Date(now.getTime() + ttl * HOUR_MS),
@@ -241,6 +245,7 @@ export class StatusesService {
         : { disconnect: true };
     }
     if (dto.durationSec !== undefined) data.durationSec = dto.durationSec;
+    if (dto.imageFit !== undefined) data.imageFit = dto.imageFit;
     if (dto.expiresAt !== undefined) data.expiresAt = new Date(dto.expiresAt);
     if (dto.ttlHours !== undefined) {
       data.expiresAt = new Date(now.getTime() + dto.ttlHours * HOUR_MS);
@@ -564,6 +569,7 @@ export class StatusesService {
       mediaKey: row.mediaKey,
       mediaUrl: this.resolveMediaUrl(row.mediaKey),
       posterUrl: this.resolveMediaUrl(row.posterKey),
+      imageFit: row.imageFit,
       caption: row.caption,
       articleId: row.articleId,
       article: row.article

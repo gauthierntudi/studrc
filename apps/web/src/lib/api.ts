@@ -2256,6 +2256,8 @@ export const adminArticlesApi = {
 
 export type AdminStatusState = "draft" | "active" | "expired";
 
+export type AdminStatusImageFit = "COVER" | "FIT";
+
 export type AdminStatus = {
   id: string;
   state: AdminStatusState;
@@ -2263,6 +2265,7 @@ export type AdminStatus = {
   mediaKey: string | null;
   mediaUrl: string | null;
   posterUrl: string | null;
+  imageFit: AdminStatusImageFit;
   caption: string | null;
   articleId: string | null;
   article: {
@@ -2287,6 +2290,7 @@ export type AdminStatusInput = {
   articleId?: string | null;
   ttlHours?: number;
   durationSec?: number;
+  imageFit?: AdminStatusImageFit;
   isPublished?: boolean;
   expiresAt?: string;
   clearMedia?: boolean;

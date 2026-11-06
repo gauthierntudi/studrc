@@ -70,6 +70,11 @@ enum StatusMediaType {
   VIDEO
 }
 
+enum StatusImageFit {
+  COVER
+  FIT
+}
+
 model Subscriber {
   id                        String    @id @default(cuid())
   legacyId                  Int?      @unique
@@ -484,6 +489,8 @@ model Status {
   mediaKey    String?
   /// Miniature (vidéo) affichée dans la bulle
   posterKey   String?
+  /// Cadrage de l’image : COVER (plein écran rogné) ou FIT (image entière)
+  imageFit    StatusImageFit   @default(COVER)
   /// Texte superposé
   caption     String?
   /// Article lié (bouton « Lire l’article » ou statut article)
