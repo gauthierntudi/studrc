@@ -145,7 +145,7 @@ export default function AdminStatusesPage() {
   const [items, setItems] = useState<AdminStatus[]>([]);
   const [total, setTotal] = useState(0);
   const [skip, setSkip] = useState(0);
-  const [state, setState] = useState("");
+  const [state, setState] = useState("active");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
@@ -395,8 +395,8 @@ export default function AdminStatusesPage() {
               setState(e.target.value);
             }}
           >
-            <option value="">Tous</option>
             <option value="active">En ligne</option>
+            <option value="">Tous</option>
             <option value="draft">Brouillons</option>
             <option value="expired">Expirés</option>
           </select>
