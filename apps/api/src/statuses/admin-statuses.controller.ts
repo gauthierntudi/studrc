@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   UploadedFile,
   UseGuards,
@@ -22,9 +23,13 @@ import type { AdminAuthUser } from '../auth/strategies/jwt-admin.strategy';
 import {
   CompleteStatusVideoDto,
   CreateStatusDto,
+  CreateStatusSlideDto,
+  MergeStatusDto,
   MoveStatusDto,
   PresignStatusVideoDto,
+  ReorderStatusSlidesDto,
   UpdateStatusDto,
+  UpdateStatusSlideDto,
 } from './dto/admin-status.dto';
 import { StatusesService } from './statuses.service';
 
@@ -51,6 +56,8 @@ const imageUpload = () =>
 )
 export class AdminStatusesController {
   constructor(private readonly statuses: StatusesService) {}
+
+  // ------------------------------------------------------------- statuts
 
   @Get()
   list(
@@ -94,42 +101,92 @@ export class AdminStatusesController {
     return this.statuses.move(id, dto.direction, actor.id);
   }
 
+  /** Regroupe ce statut dans un autre (ses diapos passent à la suite) */
+  @Post(':id/merge')
+  merge(
+    @Param('id') id: string,
+    @Body() dto: MergeStatusDto,
+    @CurrentAdmin() actor: AdminAuthUser,
+  ) {
+    return this.statuses.merge(id, dto.targetId, actor.id);
+  }
+
   @Delete(':id')
   remove(@Param('id') id: string, @CurrentAdmin() actor: AdminAuthUser) {
     return this.statuses.remove(id, actor.id);
   }
 
-  @Post(':id/image')
+  // -------------------------------------------------------------- diapos
+
+  @Post(':id/slides')
+  createSlide(
+    @Param('id') id: string,
+    @Body() dto: CreateStatusSlideDto,
+    @CurrentAdmin() actor: AdminAuthUser,
+  ) {
+    return this.statuses.createSlide(id, dto, actor.id);
+  }
+
+  @Put(':id/slides/order')
+  reorderSlides(
+    @Param('id') id: string,
+    @Body() dto: ReorderStatusSlidesDto,
+    @CurrentAdmin() actor: AdminAuthUser,
+  ) {
+    return this.statuses.reorderSlides(id, dto.ids, actor.id);
+  }
+
+  @Patch('slides/:slideId')
+  updateSlide(
+    @Param('slideId') slideId: string,
+    @Body() dto: UpdateStatusSlideDto,
+    @CurrentAdmin() actor: AdminAuthUser,
+  ) {
+    return this.statuses.updateSlide(slideId, dto, actor.id);
+  }
+
+  @Delete('slides/:slideId')
+  removeSlide(
+    @Param('slideId') slideId: string,
+    @CurrentAdmin() actor: AdminAuthUser,
+  ) {
+    return this.statuses.removeSlide(slideId, actor.id);
+  }
+
+  @Post('slides/:slideId/image')
   @UseInterceptors(imageUpload())
   uploadImage(
-    @Param('id') id: string,
+    @Param('slideId') slideId: string,
     @CurrentAdmin() actor: AdminAuthUser,
     @UploadedFile() file: UploadedMemFile,
   ) {
-    return this.statuses.uploadImage(id, file, actor.id);
+    return this.statuses.uploadImage(slideId, file, actor.id);
   }
 
-  @Post(':id/poster')
+  @Post('slides/:slideId/poster')
   @UseInterceptors(imageUpload())
   uploadPoster(
-    @Param('id') id: string,
+    @Param('slideId') slideId: string,
     @CurrentAdmin() actor: AdminAuthUser,
     @UploadedFile() file: UploadedMemFile,
   ) {
-    return this.statuses.uploadPoster(id, file, actor.id);
+    return this.statuses.uploadPoster(slideId, file, actor.id);
   }
 
-  @Post(':id/video/presign')
-  presignVideo(@Param('id') id: string, @Body() dto: PresignStatusVideoDto) {
-    return this.statuses.presignVideo(id, dto);
+  @Post('slides/:slideId/video/presign')
+  presignVideo(
+    @Param('slideId') slideId: string,
+    @Body() dto: PresignStatusVideoDto,
+  ) {
+    return this.statuses.presignVideo(slideId, dto);
   }
 
-  @Post(':id/video/complete')
+  @Post('slides/:slideId/video/complete')
   completeVideo(
-    @Param('id') id: string,
+    @Param('slideId') slideId: string,
     @Body() dto: CompleteStatusVideoDto,
     @CurrentAdmin() actor: AdminAuthUser,
   ) {
-    return this.statuses.completeVideo(id, dto, actor.id);
+    return this.statuses.completeVideo(slideId, dto, actor.id);
   }
 }

@@ -2258,24 +2258,33 @@ export type AdminStatusState = "draft" | "active" | "expired";
 
 export type AdminStatusImageFit = "COVER" | "FIT";
 
-export type AdminStatus = {
+export type AdminStatusArticle = {
   id: string;
-  state: AdminStatusState;
+  title: string;
+  slug: string;
+  isPublished: boolean;
+  coverUrl: string | null;
+};
+
+/** Diapo d’un statut : image, vidéo, texte et/ou article lié */
+export type AdminStatusSlide = {
+  id: string;
+  position: number;
   mediaType: "IMAGE" | "VIDEO" | null;
-  mediaKey: string | null;
   mediaUrl: string | null;
   posterUrl: string | null;
   imageFit: AdminStatusImageFit;
   caption: string | null;
   articleId: string | null;
-  article: {
-    id: string;
-    title: string;
-    slug: string;
-    isPublished: boolean;
-    coverUrl: string | null;
-  } | null;
+  article: AdminStatusArticle | null;
   durationSec: number;
+};
+
+/** Statut = une bulle dans l’app, avec une ou plusieurs diapos */
+export type AdminStatus = {
+  id: string;
+  state: AdminStatusState;
+  slides: AdminStatusSlide[];
   /** Position dans la rangée de bulles (0 = nouveau, en tête) */
   sortOrder: number;
   isPublished: boolean;
@@ -2288,13 +2297,16 @@ export type AdminStatus = {
 };
 
 export type AdminStatusInput = {
-  caption?: string | null;
-  articleId?: string | null;
   ttlHours?: number;
-  durationSec?: number;
-  imageFit?: AdminStatusImageFit;
   isPublished?: boolean;
   expiresAt?: string;
+};
+
+export type AdminStatusSlideInput = {
+  caption?: string | null;
+  articleId?: string | null;
+  durationSec?: number;
+  imageFit?: AdminStatusImageFit;
   clearMedia?: boolean;
 };
 
@@ -2340,31 +2352,73 @@ export const adminStatusesApi = {
     });
   },
 
+  /** Regroupe `id` dans `targetId` : ses diapos passent à la suite. */
+  merge(id: string, targetId: string) {
+    return apiFetch<AdminStatus>(`/admin/statuses/${id}/merge`, {
+      method: "POST",
+      body: JSON.stringify({ targetId }),
+    });
+  },
+
   remove(id: string) {
     return apiFetch<{ ok: boolean }>(`/admin/statuses/${id}`, {
       method: "DELETE",
     });
   },
 
-  uploadImage(id: string, file: File, onProgress?: (percent: number) => void) {
+  createSlide(statusId: string, input: AdminStatusSlideInput) {
+    return apiFetch<AdminStatusSlide>(`/admin/statuses/${statusId}/slides`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  },
+
+  updateSlide(slideId: string, input: AdminStatusSlideInput) {
+    return apiFetch<AdminStatusSlide>(`/admin/statuses/slides/${slideId}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    });
+  },
+
+  removeSlide(slideId: string) {
+    return apiFetch<{ ok: boolean }>(`/admin/statuses/slides/${slideId}`, {
+      method: "DELETE",
+    });
+  },
+
+  reorderSlides(statusId: string, ids: string[]) {
+    return apiFetch<AdminStatus>(`/admin/statuses/${statusId}/slides/order`, {
+      method: "PUT",
+      body: JSON.stringify({ ids }),
+    });
+  },
+
+  uploadSlideImage(
+    slideId: string,
+    file: File,
+    onProgress?: (percent: number) => void,
+  ) {
     const body = new FormData();
     body.append("file", file);
-    return apiFetchForm<AdminStatus>(
-      `/admin/statuses/${id}/image`,
+    return apiFetchForm<AdminStatusSlide>(
+      `/admin/statuses/slides/${slideId}/image`,
       body,
       false,
       onProgress,
     );
   },
 
-  uploadPoster(id: string, file: File) {
+  uploadSlidePoster(slideId: string, file: File) {
     const body = new FormData();
     body.append("file", file);
-    return apiFetchForm<AdminStatus>(`/admin/statuses/${id}/poster`, body);
+    return apiFetchForm<AdminStatusSlide>(
+      `/admin/statuses/slides/${slideId}/poster`,
+      body,
+    );
   },
 
-  async uploadVideo(
-    id: string,
+  async uploadSlideVideo(
+    slideId: string,
     file: File,
     opts?: { onProgress?: (percent: number) => void; signal?: AbortSignal },
   ) {
@@ -2372,7 +2426,7 @@ export const adminStatusesApi = {
       key: string;
       uploadUrl: string;
       headers: Record<string, string>;
-    }>(`/admin/statuses/${id}/video/presign`, {
+    }>(`/admin/statuses/slides/${slideId}/video/presign`, {
       method: "POST",
       body: JSON.stringify({
         filename: file.name,
@@ -2381,9 +2435,12 @@ export const adminStatusesApi = {
       }),
     });
     await putFileToPresignedUrl(file, signed.uploadUrl, signed.headers, opts);
-    return apiFetch<AdminStatus>(`/admin/statuses/${id}/video/complete`, {
-      method: "POST",
-      body: JSON.stringify({ key: signed.key }),
-    });
+    return apiFetch<AdminStatusSlide>(
+      `/admin/statuses/slides/${slideId}/video/complete`,
+      {
+        method: "POST",
+        body: JSON.stringify({ key: signed.key }),
+      },
+    );
   },
 };

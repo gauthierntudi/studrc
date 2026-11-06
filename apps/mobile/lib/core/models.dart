@@ -511,9 +511,9 @@ class PurchaseItem {
   }
 }
 
-/// Statut éphémère (stories) publié depuis le dashboard admin.
-class StatusItem {
-  const StatusItem({
+/// Diapo d’un statut : image, vidéo, texte et/ou raccourci article.
+class StatusSlide {
+  const StatusSlide({
     required this.id,
     this.mediaType,
     this.mediaUrl,
@@ -521,8 +521,6 @@ class StatusItem {
     this.imageFit = 'COVER',
     this.caption,
     this.durationSec = 6,
-    required this.publishedAt,
-    required this.expiresAt,
     this.article,
   });
 
@@ -537,49 +535,92 @@ class StatusItem {
   final String imageFit;
   final String? caption;
   final int durationSec;
-  final DateTime publishedAt;
-  final DateTime expiresAt;
   final ArticleCard? article;
 
   bool get isVideo => mediaType == 'VIDEO' && (mediaUrl?.isNotEmpty ?? false);
   bool get isImage => mediaType == 'IMAGE' && (mediaUrl?.isNotEmpty ?? false);
   bool get fitsImage => isImage && imageFit == 'FIT';
 
-  /// Image affichée dans la bulle.
+  /// Image représentant la diapo (bulle, préchargement).
   String? get thumbUrl {
     if (isImage) return mediaUrl;
     if (isVideo) return posterUrl ?? article?.coverUrl;
     return article?.coverUrl;
   }
 
-  /// Libellé court sous la bulle.
-  String get label {
-    final text = caption?.trim();
-    if (text != null && text.isNotEmpty) return text;
-    final a = article;
-    if (a != null && a.categoryLabel.isNotEmpty) return a.categoryLabel;
-    return 'STUDRC';
-  }
-
-  factory StatusItem.fromJson(Map<String, dynamic> json) {
+  factory StatusSlide.fromJson(Map<String, dynamic> json, {String? fallbackId}) {
     final rawArticle = json['article'];
-    return StatusItem(
-      id: '${json['id']}',
+    return StatusSlide(
+      id: '${json['id'] ?? fallbackId}',
       mediaType: json['mediaType'] as String?,
       mediaUrl: json['mediaUrl'] as String?,
       posterUrl: json['posterUrl'] as String?,
       imageFit: json['imageFit'] == 'FIT' ? 'FIT' : 'COVER',
       caption: json['caption'] as String?,
       durationSec: (json['durationSec'] as num?)?.toInt() ?? 6,
+      article: rawArticle is Map
+          ? ArticleCard.fromJson(Map<String, dynamic>.from(rawArticle))
+          : null,
+    );
+  }
+}
+
+/// Statut éphémère (stories) publié depuis le dashboard admin :
+/// une bulle, une ou plusieurs diapos.
+class StatusItem {
+  const StatusItem({
+    required this.id,
+    required this.slides,
+    required this.publishedAt,
+    required this.expiresAt,
+  });
+
+  final String id;
+  final List<StatusSlide> slides;
+  final DateTime publishedAt;
+  final DateTime expiresAt;
+
+  StatusSlide get first => slides.first;
+
+  /// Image affichée dans la bulle.
+  String? get thumbUrl => first.thumbUrl;
+
+  bool get isVideo => first.isVideo;
+
+  /// Libellé court sous la bulle.
+  String get label {
+    for (final slide in slides) {
+      final text = slide.caption?.trim();
+      if (text != null && text.isNotEmpty) return text;
+    }
+    for (final slide in slides) {
+      final a = slide.article;
+      if (a != null && a.categoryLabel.isNotEmpty) return a.categoryLabel;
+    }
+    return 'STUDRC';
+  }
+
+  factory StatusItem.fromJson(Map<String, dynamic> json) {
+    final id = '${json['id']}';
+    final rawSlides = json['slides'];
+    final slides = rawSlides is List
+        ? rawSlides
+              .whereType<Map>()
+              .map((s) => StatusSlide.fromJson(Map<String, dynamic>.from(s)))
+              .toList()
+        // Ancien format (une seule diapo à plat)
+        : [StatusSlide.fromJson(json, fallbackId: id)];
+    return StatusItem(
+      id: id,
+      slides: slides.isEmpty
+          ? [StatusSlide.fromJson(json, fallbackId: id)]
+          : slides,
       publishedAt:
           DateTime.tryParse('${json['publishedAt']}')?.toLocal() ??
           DateTime.now(),
       expiresAt:
           DateTime.tryParse('${json['expiresAt']}')?.toLocal() ??
           DateTime.now().add(const Duration(hours: 24)),
-      article: rawArticle is Map
-          ? ArticleCard.fromJson(Map<String, dynamic>.from(rawArticle))
-          : null,
     );
   }
 }

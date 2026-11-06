@@ -12,7 +12,9 @@ export function AdminDropzone({
   previewUrl,
   variant = "file",
   thumbRatio = "portrait",
+  multiple = false,
   onFile,
+  onFiles,
 }: {
   accept: string;
   hint: string;
@@ -21,21 +23,28 @@ export function AdminDropzone({
   previewUrl?: string | null;
   variant?: "image" | "file";
   thumbRatio?: "portrait" | "wide" | "square";
-  onFile: (file: File | null) => void;
+  /** Accepte plusieurs fichiers : ils arrivent via `onFiles`. */
+  multiple?: boolean;
+  onFile?: (file: File | null) => void;
+  onFiles?: (files: File[]) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
-  function pick(file: File | null) {
-    onFile(file);
+  function pick(list: FileList | null | undefined) {
+    const files = Array.from(list ?? []);
+    if (multiple && onFiles) {
+      if (files.length) onFiles(files);
+      return;
+    }
+    onFile?.(files[0] ?? null);
   }
 
   function onDrop(e: React.DragEvent) {
     e.preventDefault();
     e.stopPropagation();
     setDragging(false);
-    const file = e.dataTransfer.files?.[0] ?? null;
-    if (file) pick(file);
+    if (e.dataTransfer.files?.length) pick(e.dataTransfer.files);
   }
 
   return (
@@ -75,9 +84,10 @@ export function AdminDropzone({
         ref={inputRef}
         type="file"
         accept={accept}
+        multiple={multiple}
         className="admin-mag__dropzone-input"
         onChange={(e) => {
-          pick(e.target.files?.[0] ?? null);
+          pick(e.target.files);
           e.target.value = "";
         }}
         onClick={(e) => e.stopPropagation()}

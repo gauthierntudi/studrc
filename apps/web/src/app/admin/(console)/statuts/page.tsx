@@ -7,6 +7,7 @@ import {
   Eye,
   EyeOff,
   FileText,
+  Layers,
   Pencil,
   Play,
   Plus,
@@ -19,12 +20,15 @@ import { AdminModal } from "@/components/admin/admin-modal";
 import { AdminPagination } from "@/components/admin/admin-pagination";
 import {
   AdminStatusForm,
+  statusLabel,
   type AdminStatusFormValues,
+  type StatusSlideDraft,
 } from "@/components/admin/admin-status-form";
 import {
   adminStatusesApi,
   type AdminStatus,
   type AdminStatusInput,
+  type AdminStatusSlide,
 } from "@/lib/api";
 
 const TAKE = 15;
@@ -64,36 +68,77 @@ function StateBadge({ row }: { row: AdminStatus }) {
 }
 
 function Thumb({ row }: { row: AdminStatus }) {
+  const first = row.slides[0];
   const src =
-    row.mediaType === "IMAGE"
-      ? row.mediaUrl
-      : row.mediaType === "VIDEO"
-        ? row.posterUrl
-        : row.article?.coverUrl;
+    first?.mediaType === "IMAGE"
+      ? first.mediaUrl
+      : first?.mediaType === "VIDEO"
+        ? first.posterUrl
+        : first?.article?.coverUrl;
   return (
     <span className="admin-status-thumb" aria-hidden>
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt="" />
-      ) : row.article ? (
+      ) : first?.article ? (
         <FileText size={18} />
       ) : (
         <Type size={18} />
       )}
-      {row.mediaType === "VIDEO" ? (
+      {first?.mediaType === "VIDEO" ? (
         <span className="admin-status-thumb__play">
           <Play size={12} fill="currentColor" />
         </span>
+      ) : null}
+      {row.slides.length > 1 ? (
+        <span className="admin-status-thumb__count">{row.slides.length}</span>
       ) : null}
     </span>
   );
 }
 
-function kindLabel(row: AdminStatus): string {
-  if (row.mediaType === "VIDEO") return "Vidéo";
-  if (row.mediaType === "IMAGE") return "Image";
-  if (row.article) return "Article";
+function slideKind(slide: AdminStatusSlide | undefined): string {
+  if (slide?.mediaType === "VIDEO") return "Vidéo";
+  if (slide?.mediaType === "IMAGE") return "Image";
+  if (slide?.article) return "Article";
   return "Texte";
+}
+
+function kindLabel(row: AdminStatus): string {
+  if (row.slides.length > 1) return `${row.slides.length} diapos`;
+  return slideKind(row.slides[0]);
+}
+
+/** Articles liés (dédoublonnés) pour la ligne de liste. */
+function linkedArticles(row: AdminStatus): string[] {
+  return [
+    ...new Set(
+      row.slides
+        .map((s) => s.article?.title)
+        .filter((t): t is string => Boolean(t)),
+    ),
+  ];
+}
+
+function slideFields(slide: StatusSlideDraft) {
+  return {
+    caption: slide.caption.trim() || null,
+    articleId: slide.article?.id ?? null,
+    durationSec: slide.durationSec,
+    imageFit: slide.imageFit,
+  };
+}
+
+function slideChanged(slide: StatusSlideDraft, original?: AdminStatusSlide) {
+  if (!original) return true;
+  const next = slideFields(slide);
+  return (
+    slide.clearMedia ||
+    next.caption !== (original.caption?.trim() || null) ||
+    next.articleId !== original.articleId ||
+    next.durationSec !== original.durationSec ||
+    next.imageFit !== original.imageFit
+  );
 }
 
 export default function AdminStatusesPage() {
@@ -103,9 +148,12 @@ export default function AdminStatusesPage() {
   const [state, setState] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [progress, setProgress] = useState<number | null>(null);
+  const [progress, setProgress] = useState<string | null>(null);
   const [editing, setEditing] = useState<AdminStatus | null | "new">(null);
   const [pendingDelete, setPendingDelete] = useState<AdminStatus | null>(null);
+  const [merging, setMerging] = useState<AdminStatus | null>(null);
+  const [mergeTargets, setMergeTargets] = useState<AdminStatus[]>([]);
+  const [mergeTarget, setMergeTarget] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -130,62 +178,101 @@ export default function AdminStatusesPage() {
     void load();
   }, [load]);
 
-  async function uploadMedia(id: string, values: AdminStatusFormValues) {
-    if (!values.mediaFile) return;
-    setProgress(0);
-    const isVideo =
-      values.mediaFile.type.startsWith("video/") ||
-      /\.(mp4|mov|m4v)$/i.test(values.mediaFile.name);
-    if (isVideo) {
-      await adminStatusesApi.uploadVideo(id, values.mediaFile, {
-        onProgress: setProgress,
+  async function uploadSlideMedia(
+    slideId: string,
+    slide: StatusSlideDraft,
+    label: string,
+  ) {
+    const file = slide.mediaFile;
+    if (!file) return;
+    const report = (pct: number) => setProgress(`${label} · envoi ${pct}%`);
+    report(0);
+    if (slide.preview?.type === "VIDEO") {
+      await adminStatusesApi.uploadSlideVideo(slideId, file, {
+        onProgress: report,
       });
-      if (values.posterFile) {
-        await adminStatusesApi.uploadPoster(id, values.posterFile).catch(() => {
-          toast.warn("Miniature vidéo non générée");
-        });
+      if (slide.posterFile) {
+        await adminStatusesApi
+          .uploadSlidePoster(slideId, slide.posterFile)
+          .catch(() => {
+            toast.warn("Miniature vidéo non générée");
+          });
       }
     } else {
-      await adminStatusesApi.uploadImage(id, values.mediaFile, setProgress);
+      await adminStatusesApi.uploadSlideImage(slideId, file, report);
+    }
+  }
+
+  /**
+   * Enregistre les diapos d’un statut : créations / modifications / médias,
+   * puis suppressions et ordre final.
+   */
+  async function persistSlides(
+    statusId: string,
+    values: AdminStatusFormValues,
+    original: AdminStatus | null,
+  ) {
+    const byId = new Map(original?.slides.map((s) => [s.id, s]) ?? []);
+    const ids: string[] = [];
+    for (const [i, slide] of values.slides.entries()) {
+      const label = `Diapo ${i + 1}/${values.slides.length}`;
+      setProgress(label);
+      let id = slide.id;
+      if (!id) {
+        id = (await adminStatusesApi.createSlide(statusId, slideFields(slide))).id;
+      } else if (slideChanged(slide, byId.get(id))) {
+        await adminStatusesApi.updateSlide(id, {
+          ...slideFields(slide),
+          ...(slide.clearMedia && !slide.mediaFile ? { clearMedia: true } : {}),
+        });
+      }
+      await uploadSlideMedia(id, slide, label);
+      ids.push(id);
+    }
+    for (const id of values.removedSlideIds) {
+      await adminStatusesApi.removeSlide(id);
+    }
+    if (original) {
+      const current = original.slides
+        .map((s) => s.id)
+        .filter((id) => !values.removedSlideIds.includes(id));
+      const added = ids.filter((id) => !byId.has(id));
+      const serverOrder = [...current, ...added];
+      if (ids.join() !== serverOrder.join()) {
+        await adminStatusesApi.reorderSlides(statusId, ids);
+      }
     }
   }
 
   async function saveStatus(values: AdminStatusFormValues) {
     setSaving(true);
     try {
-      if (editing === "new") {
-        const needsUpload = Boolean(values.mediaFile);
+      if (editing === "new" && values.targetId) {
+        // Ajout de diapos à un statut existant
+        await persistSlides(values.targetId, values, null);
+        toast.success(
+          `${values.slides.length} diapo${values.slides.length > 1 ? "s" : ""} ajoutée${values.slides.length > 1 ? "s" : ""} au statut`,
+        );
+      } else if (editing === "new") {
         const created = await adminStatusesApi.create({
-          caption: values.caption,
-          articleId: values.articleId,
           ttlHours: values.ttlHours ?? 24,
-          durationSec: values.durationSec,
-          imageFit: values.imageFit,
-          isPublished: needsUpload ? false : values.publish,
         });
-        await uploadMedia(created.id, values);
-        if (needsUpload && values.publish) {
+        await persistSlides(created.id, values, null);
+        if (values.publish) {
           await adminStatusesApi.update(created.id, { isPublished: true });
         }
         toast.success(values.publish ? "Statut publié" : "Brouillon enregistré");
       } else if (editing) {
         const publishing = values.publish && !editing.isPublished;
-        const patch: AdminStatusInput = {
-          caption: values.caption,
-          articleId: values.articleId,
-          durationSec: values.durationSec,
-          imageFit: values.imageFit,
-        };
-        if (values.clearMedia && !values.mediaFile) patch.clearMedia = true;
-        if (values.ttlHours && !publishing) patch.ttlHours = values.ttlHours;
-        if (!values.publish && editing.isPublished) patch.isPublished = false;
-        await adminStatusesApi.update(editing.id, patch);
-        await uploadMedia(editing.id, values);
-        if (publishing) {
-          await adminStatusesApi.update(editing.id, {
-            isPublished: true,
-            ...(values.ttlHours ? { ttlHours: values.ttlHours } : {}),
-          });
+        if (!values.publish && editing.isPublished) {
+          await adminStatusesApi.update(editing.id, { isPublished: false });
+        }
+        await persistSlides(editing.id, values, editing);
+        const patch: AdminStatusInput = {};
+        if (publishing) patch.isPublished = true;
+        if (values.ttlHours) patch.ttlHours = values.ttlHours;
+        if (Object.keys(patch).length) {
+          await adminStatusesApi.update(editing.id, patch);
         }
         toast.success("Statut mis à jour");
       }
@@ -199,6 +286,35 @@ export default function AdminStatusesPage() {
     } finally {
       setSaving(false);
       setProgress(null);
+    }
+  }
+
+  async function openMerge(row: AdminStatus) {
+    setMerging(row);
+    setMergeTarget("");
+    setMergeTargets([]);
+    try {
+      const res = await adminStatusesApi.list({ take: 50 });
+      setMergeTargets(
+        res.items.filter((s) => s.id !== row.id && s.state !== "expired"),
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erreur chargement");
+    }
+  }
+
+  async function confirmMerge() {
+    if (!merging || !mergeTarget) return;
+    setSaving(true);
+    try {
+      await adminStatusesApi.merge(merging.id, mergeTarget);
+      toast.success("Statuts regroupés");
+      setMerging(null);
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Échec du regroupement");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -352,12 +468,12 @@ export default function AdminStatusesPage() {
                       <Thumb row={row} />
                       <div className="admin-sub__user-meta">
                         <strong className="admin-status-page__caption">
-                          {row.caption || row.article?.title || "—"}
+                          {statusLabel(row)}
                         </strong>
                         <span className="admin-dash__muted">
                           {kindLabel(row)}
-                          {row.article && (row.caption || row.mediaType)
-                            ? ` · ${row.article.title}`
+                          {linkedArticles(row).length
+                            ? ` · ${linkedArticles(row).join(", ")}`
                             : ""}
                           {row.author ? ` · ${row.author.name}` : ""}
                         </span>
@@ -424,6 +540,16 @@ export default function AdminStatusesPage() {
                       )}
                       <button
                         type="button"
+                        className="admin-dash__icon-action"
+                        disabled={saving}
+                        aria-label="Regrouper avec…"
+                        title="Regrouper avec un autre statut"
+                        onClick={() => void openMerge(row)}
+                      >
+                        <Layers size={16} strokeWidth={2} />
+                      </button>
+                      <button
+                        type="button"
                         className="admin-dash__icon-action admin-dash__icon-action--delete"
                         disabled={saving}
                         aria-label="Supprimer"
@@ -482,16 +608,14 @@ export default function AdminStatusesPage() {
             <Trash2 size={22} strokeWidth={2} />
           </div>
           <p className="admin-delete-confirm__lead">
-            Cette action est <strong>définitive</strong> : le statut et son
-            média seront supprimés.
+            Cette action est <strong>définitive</strong> : le statut, ses
+            diapos et leurs médias seront supprimés.
           </p>
           {pendingDelete ? (
             <div className="admin-delete-confirm__target">
               <span className="admin-delete-confirm__label">Statut</span>
               <strong className="admin-delete-confirm__title">
-                {pendingDelete.caption ||
-                  pendingDelete.article?.title ||
-                  kindLabel(pendingDelete)}
+                {statusLabel(pendingDelete)}
               </strong>
             </div>
           ) : null}
@@ -515,6 +639,62 @@ export default function AdminStatusesPage() {
             </button>
           </div>
         </div>
+      </AdminModal>
+
+      <AdminModal
+        open={Boolean(merging)}
+        title="Regrouper avec un autre statut"
+        onClose={() => {
+          if (!saving) setMerging(null);
+        }}
+      >
+        {merging ? (
+          <div className="admin-status-merge">
+            <p className="admin-dash__muted">
+              Les {merging.slides.length} diapo
+              {merging.slides.length > 1 ? "s" : ""} de «{" "}
+              <strong>{statusLabel(merging)}</strong> » passeront à la suite du
+              statut choisi, qui garde sa visibilité et sa place dans les
+              bulles. Ce statut-ci disparaîtra.
+            </p>
+            <label className="admin-dash__field">
+              <span>Regrouper dans</span>
+              <select
+                value={mergeTarget}
+                disabled={saving}
+                onChange={(e) => setMergeTarget(e.target.value)}
+              >
+                <option value="">Choisir un statut…</option>
+                {mergeTargets.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {statusLabel(t)} ({t.slides.length} diapo
+                    {t.slides.length > 1 ? "s" : ""}
+                    {t.state === "draft" ? ", brouillon" : ", en ligne"})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="admin-sponsor-form__actions">
+              <button
+                type="button"
+                className="admin-dash__btn"
+                disabled={saving}
+                onClick={() => setMerging(null)}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                className="admin-dash__btn admin-dash__btn--primary"
+                disabled={saving || !mergeTarget}
+                onClick={() => void confirmMerge()}
+              >
+                <Layers size={16} aria-hidden />
+                {saving ? "Regroupement…" : "Regrouper"}
+              </button>
+            </div>
+          </div>
+        ) : null}
       </AdminModal>
     </>
   );

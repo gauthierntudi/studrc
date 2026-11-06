@@ -356,7 +356,7 @@ model Article {
   sponsor      Sponsor?   @relation(fields: [sponsorId], references: [id], onDelete: SetNull)
   comments Comment[]
   blocks   ArticleBlock[]
-  statuses Status[]
+  statusSlides StatusSlide[]
 
   @@index([isPublished, publishedAt])
   @@index([isFeatured, isPublished])
@@ -481,10 +481,35 @@ model ActivityLog {
   @@map("activity_logs")
 }
 
-/// Statut éphémère (stories) affiché en bulles sur l’app mobile
+/// Statut éphémère (stories) affiché en bulles sur l’app mobile.
+/// Une bulle = un statut ; il contient une ou plusieurs diapos.
 model Status {
+  id          String    @id @default(cuid())
+  /// Position dans la rangée de bulles (croissant ; 0 = nouveau, en tête)
+  sortOrder   Int       @default(0)
+  isPublished Boolean   @default(false)
+  publishedAt DateTime?
+  expiresAt   DateTime
+  viewCount   Int       @default(0)
+  authorId    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  author AdminUser?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  slides StatusSlide[]
+
+  @@index([isPublished, expiresAt])
+  @@index([sortOrder])
+  @@map("statuses")
+}
+
+/// Diapo d’un statut : image, vidéo, texte et/ou raccourci article
+model StatusSlide {
   id          String           @id @default(cuid())
-  /// Média plein écran (image ou MP4) — absent = raccourci article
+  statusId    String
+  /// Ordre dans le statut (croissant)
+  position    Int              @default(0)
+  /// Média plein écran (image ou MP4) — absent = texte / raccourci article
   mediaType   StatusMediaType?
   mediaKey    String?
   /// Miniature (vidéo) affichée dans la bulle
@@ -493,25 +518,17 @@ model Status {
   imageFit    StatusImageFit   @default(COVER)
   /// Texte superposé
   caption     String?
-  /// Article lié (bouton « Lire l’article » ou statut article)
+  /// Article lié (bouton « Lire l’article » ou diapo article)
   articleId   String?
   /// Durée d’affichage d’une image (secondes)
   durationSec Int              @default(6)
-  /// Position dans la rangée de bulles (croissant ; 0 = nouveau, en tête)
-  sortOrder   Int              @default(0)
-  isPublished Boolean          @default(false)
-  publishedAt DateTime?
-  expiresAt   DateTime
-  viewCount   Int              @default(0)
-  authorId    String?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
-  article Article?   @relation(fields: [articleId], references: [id], onDelete: SetNull)
-  author  AdminUser? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  status  Status   @relation(fields: [statusId], references: [id], onDelete: Cascade)
+  article Article? @relation(fields: [articleId], references: [id], onDelete: SetNull)
 
-  @@index([isPublished, expiresAt])
+  @@index([statusId, position])
   @@index([articleId])
-  @@index([sortOrder])
-  @@map("statuses")
+  @@map("status_slides")
 }

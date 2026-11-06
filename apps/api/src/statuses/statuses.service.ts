@@ -26,9 +26,12 @@ import {
 import {
   CompleteStatusVideoDto,
   CreateStatusDto,
+  CreateStatusSlideDto,
   PresignStatusVideoDto,
+  STATUS_MAX_SLIDES,
   STATUS_VIDEO_MAX_BYTES,
   UpdateStatusDto,
+  UpdateStatusSlideDto,
 } from './dto/admin-status.dto';
 
 type UploadFile = {
@@ -49,8 +52,15 @@ const STATUS_DISPLAY_ORDER: Prisma.StatusOrderByWithRelationInput[] = [
   { createdAt: 'desc' },
 ];
 
-const ADMIN_STATUS_SELECT = {
+const SLIDE_ORDER: Prisma.StatusSlideOrderByWithRelationInput[] = [
+  { position: 'asc' },
+  { createdAt: 'asc' },
+];
+
+const ADMIN_SLIDE_SELECT = {
   id: true,
+  statusId: true,
+  position: true,
   mediaType: true,
   mediaKey: true,
   posterKey: true,
@@ -58,14 +68,6 @@ const ADMIN_STATUS_SELECT = {
   caption: true,
   articleId: true,
   durationSec: true,
-  sortOrder: true,
-  isPublished: true,
-  publishedAt: true,
-  expiresAt: true,
-  viewCount: true,
-  createdAt: true,
-  updatedAt: true,
-  author: { select: { id: true, name: true } },
   article: {
     select: {
       id: true,
@@ -75,28 +77,53 @@ const ADMIN_STATUS_SELECT = {
       coverKey: true,
     },
   },
+} satisfies Prisma.StatusSlideSelect;
+
+const ADMIN_STATUS_SELECT = {
+  id: true,
+  sortOrder: true,
+  isPublished: true,
+  publishedAt: true,
+  expiresAt: true,
+  viewCount: true,
+  createdAt: true,
+  updatedAt: true,
+  author: { select: { id: true, name: true } },
+  slides: { orderBy: SLIDE_ORDER, select: ADMIN_SLIDE_SELECT },
 } satisfies Prisma.StatusSelect;
 
 const PUBLIC_STATUS_SELECT = {
   id: true,
-  mediaType: true,
-  mediaKey: true,
-  posterKey: true,
-  imageFit: true,
-  caption: true,
-  durationSec: true,
   publishedAt: true,
   expiresAt: true,
-  article: {
-    select: { ...PUBLIC_CARD_SELECT, isPublished: true },
+  slides: {
+    orderBy: SLIDE_ORDER,
+    select: {
+      id: true,
+      mediaType: true,
+      mediaKey: true,
+      posterKey: true,
+      imageFit: true,
+      caption: true,
+      durationSec: true,
+      article: {
+        select: { ...PUBLIC_CARD_SELECT, isPublished: true },
+      },
+    },
   },
 } satisfies Prisma.StatusSelect;
 
 type AdminStatusRow = Prisma.StatusGetPayload<{
   select: typeof ADMIN_STATUS_SELECT;
 }>;
+type AdminSlideRow = Prisma.StatusSlideGetPayload<{
+  select: typeof ADMIN_SLIDE_SELECT;
+}>;
 
 export type StatusState = 'draft' | 'active' | 'expired';
+
+const NO_CONTENT_MESSAGE =
+  'Ajoutez au moins une diapo avec un média, un texte ou un article lié avant de publier';
 
 @Injectable()
 export class StatusesService {
@@ -126,24 +153,36 @@ export class StatusesService {
 
     const items = rows
       .map((row) => {
-        const article =
-          row.article && row.article.isPublished
-            ? this.articles.toPublicCard(row.article)
-            : null;
-        const mediaUrl = this.resolveMediaUrl(row.mediaKey);
-        const caption = row.caption?.trim() || null;
-        if (!mediaUrl && !article && !caption) return null;
+        const slides = row.slides
+          .map((slide) => {
+            const article =
+              slide.article && slide.article.isPublished
+                ? this.articles.toPublicCard(slide.article)
+                : null;
+            const mediaUrl = this.resolveMediaUrl(slide.mediaKey);
+            const caption = slide.caption?.trim() || null;
+            if (!mediaUrl && !article && !caption) return null;
+            return {
+              id: slide.id,
+              mediaType: mediaUrl ? slide.mediaType : null,
+              mediaUrl,
+              posterUrl: this.resolveMediaUrl(slide.posterKey),
+              imageFit: slide.imageFit,
+              caption,
+              durationSec: slide.durationSec,
+              article,
+            };
+          })
+          .filter((x): x is NonNullable<typeof x> => x !== null);
+        const first = slides[0];
+        if (!first) return null;
         return {
+          // Compatibilité : les anciennes versions de l’app lisent la 1re diapo à plat
+          ...first,
           id: row.id,
-          mediaType: mediaUrl ? row.mediaType : null,
-          mediaUrl,
-          posterUrl: this.resolveMediaUrl(row.posterKey),
-          imageFit: row.imageFit,
-          caption,
-          durationSec: row.durationSec,
           publishedAt: (row.publishedAt ?? now).toISOString(),
           expiresAt: row.expiresAt.toISOString(),
-          article,
+          slides,
         };
       })
       .filter((x): x is NonNullable<typeof x> => x !== null);
@@ -242,27 +281,15 @@ export class StatusesService {
     return this.toAdmin(await this.findAdmin(id));
   }
 
+  /** Crée un statut (bulle) en brouillon : les diapos s’ajoutent ensuite. */
   async create(dto: CreateStatusDto, actorId: string) {
-    const articleId = await this.resolveArticleId(dto.articleId);
-    const caption = this.normalizeCaption(dto.caption);
+    if (dto.isPublished) throw new BadRequestException(NO_CONTENT_MESSAGE);
     const now = new Date();
     const ttl = dto.ttlHours ?? DEFAULT_TTL_HOURS;
-    const publish = dto.isPublished === true;
-
-    if (publish && !articleId && !caption) {
-      throw new BadRequestException(
-        'Ajoutez un média, un texte ou un article lié avant de publier',
-      );
-    }
 
     const created = await this.prisma.status.create({
       data: {
-        caption,
-        articleId,
-        durationSec: dto.durationSec ?? 6,
-        ...(dto.imageFit ? { imageFit: dto.imageFit } : {}),
-        isPublished: publish,
-        publishedAt: publish ? now : null,
+        isPublished: false,
         expiresAt: new Date(now.getTime() + ttl * HOUR_MS),
         authorId: actorId,
       },
@@ -275,7 +302,6 @@ export class StatusesService {
       action: 'status_created',
       entity: 'status',
       entityId: created.id,
-      meta: { articleId, published: publish },
     });
 
     return this.toAdmin(created);
@@ -286,32 +312,9 @@ export class StatusesService {
     const data: Prisma.StatusUpdateInput = {};
     const now = new Date();
 
-    let nextCaption = existing.caption;
-    let nextArticleId = existing.articleId;
-    if (dto.caption !== undefined) {
-      nextCaption = this.normalizeCaption(dto.caption);
-      data.caption = nextCaption;
-    }
-    if (dto.articleId !== undefined) {
-      nextArticleId = await this.resolveArticleId(dto.articleId);
-      data.article = nextArticleId
-        ? { connect: { id: nextArticleId } }
-        : { disconnect: true };
-    }
-    if (dto.durationSec !== undefined) data.durationSec = dto.durationSec;
-    if (dto.imageFit !== undefined) data.imageFit = dto.imageFit;
     if (dto.expiresAt !== undefined) data.expiresAt = new Date(dto.expiresAt);
     if (dto.ttlHours !== undefined) {
       data.expiresAt = new Date(now.getTime() + dto.ttlHours * HOUR_MS);
-    }
-
-    const oldMediaKeys: string[] = [];
-    if (dto.clearMedia) {
-      if (existing.mediaKey) oldMediaKeys.push(existing.mediaKey);
-      if (existing.posterKey) oldMediaKeys.push(existing.posterKey);
-      data.mediaKey = null;
-      data.mediaType = null;
-      data.posterKey = null;
     }
 
     let publishedNow = false;
@@ -334,15 +337,8 @@ export class StatusesService {
     }
 
     const willBePublished = dto.isPublished ?? existing.isPublished;
-    const nextContent = {
-      mediaKey: dto.clearMedia ? null : existing.mediaKey,
-      caption: nextCaption,
-      articleId: nextArticleId,
-    };
-    if (willBePublished && !this.hasContent(nextContent)) {
-      throw new BadRequestException(
-        'Ajoutez un média, un texte ou un article lié avant de publier',
-      );
+    if (willBePublished && !existing.slides.some((s) => this.hasContent(s))) {
+      throw new BadRequestException(NO_CONTENT_MESSAGE);
     }
 
     const updated = await this.prisma.status.update({
@@ -350,8 +346,6 @@ export class StatusesService {
       data,
       select: ADMIN_STATUS_SELECT,
     });
-
-    if (oldMediaKeys.length) void this.deleteKeys(oldMediaKeys);
 
     void this.activity.log({
       actorType: ActivityActorType.ADMIN,
@@ -366,11 +360,13 @@ export class StatusesService {
   }
 
   async remove(id: string, actorId: string) {
-    await this.findAdmin(id);
+    const existing = await this.findAdmin(id);
     await this.prisma.status.delete({ where: { id } });
 
+    void this.deleteKeys(existing.slides.flatMap((s) => this.slideKeys(s)));
     const r2 = createR2ClientFromEnv();
     if (r2) {
+      // Anciens médias rangés par statut (avant les diapos)
       void deleteR2Prefix(r2, `statuses/${id}/`).catch((err) =>
         this.logger.warn(`R2 cleanup statut ${id}: ${String(err)}`),
       );
@@ -387,52 +383,227 @@ export class StatusesService {
     return { ok: true as const };
   }
 
-  async uploadImage(id: string, file: UploadFile, actorId: string) {
-    const existing = await this.findAdmin(id);
+  /**
+   * Regroupe `id` dans `targetId` : ses diapos passent à la suite de celles
+   * de la cible, puis le statut source (vidé) est supprimé.
+   */
+  async merge(id: string, targetId: string, actorId: string) {
+    if (id === targetId) {
+      throw new BadRequestException('Choisissez un autre statut');
+    }
+    const [source, target] = await Promise.all([
+      this.findAdmin(id),
+      this.findAdmin(targetId),
+    ]);
+    if (source.slides.length + target.slides.length > STATUS_MAX_SLIDES) {
+      throw new BadRequestException(
+        `Un statut contient au maximum ${STATUS_MAX_SLIDES} diapos`,
+      );
+    }
+    const start = target.slides.length;
+    await this.prisma.$transaction([
+      ...source.slides.map((slide, i) =>
+        this.prisma.statusSlide.update({
+          where: { id: slide.id },
+          data: { statusId: targetId, position: start + i },
+        }),
+      ),
+      ...target.slides.map((slide, i) =>
+        this.prisma.statusSlide.update({
+          where: { id: slide.id },
+          data: { position: i },
+        }),
+      ),
+      // Les vues restent comptées sur la bulle conservée
+      this.prisma.status.update({
+        where: { id: targetId },
+        data: { viewCount: { increment: source.viewCount } },
+      }),
+      this.prisma.status.delete({ where: { id } }),
+    ]);
+
+    void this.activity.log({
+      actorType: ActivityActorType.ADMIN,
+      adminId: actorId,
+      action: 'status_merged',
+      entity: 'status',
+      entityId: targetId,
+      meta: { from: id, slides: source.slides.length },
+    });
+
+    return this.getById(targetId);
+  }
+
+  // ---------------------------------------------------------------- diapos
+
+  async createSlide(
+    statusId: string,
+    dto: CreateStatusSlideDto,
+    actorId: string,
+  ) {
+    const status = await this.findAdmin(statusId);
+    if (status.slides.length >= STATUS_MAX_SLIDES) {
+      throw new BadRequestException(
+        `Un statut contient au maximum ${STATUS_MAX_SLIDES} diapos`,
+      );
+    }
+    const articleId = await this.resolveArticleId(dto.articleId);
+    const last = status.slides[status.slides.length - 1];
+    const slide = await this.prisma.statusSlide.create({
+      data: {
+        statusId,
+        position: last ? last.position + 1 : 0,
+        caption: this.normalizeCaption(dto.caption),
+        articleId,
+        durationSec: dto.durationSec ?? 6,
+        ...(dto.imageFit ? { imageFit: dto.imageFit } : {}),
+      },
+      select: ADMIN_SLIDE_SELECT,
+    });
+    this.logSlide(actorId, statusId, 'status_slide_created', slide.id);
+    return this.toAdminSlide(slide);
+  }
+
+  async updateSlide(
+    slideId: string,
+    dto: UpdateStatusSlideDto,
+    actorId: string,
+  ) {
+    const existing = await this.findSlide(slideId);
+    const data: Prisma.StatusSlideUpdateInput = {};
+
+    if (dto.caption !== undefined) {
+      data.caption = this.normalizeCaption(dto.caption);
+    }
+    if (dto.articleId !== undefined) {
+      const articleId = await this.resolveArticleId(dto.articleId);
+      data.article = articleId
+        ? { connect: { id: articleId } }
+        : { disconnect: true };
+    }
+    if (dto.durationSec !== undefined) data.durationSec = dto.durationSec;
+    if (dto.imageFit !== undefined) data.imageFit = dto.imageFit;
+    const oldKeys: string[] = [];
+    if (dto.clearMedia) {
+      oldKeys.push(...this.slideKeys(existing));
+      data.mediaKey = null;
+      data.mediaType = null;
+      data.posterKey = null;
+    }
+    if (Object.keys(data).length === 0) {
+      throw new BadRequestException('Aucune modification');
+    }
+
+    const status = await this.findAdmin(existing.statusId);
+    if (status.isPublished) {
+      const next = {
+        mediaKey: dto.clearMedia ? null : existing.mediaKey,
+        caption:
+          dto.caption !== undefined
+            ? this.normalizeCaption(dto.caption)
+            : existing.caption,
+        articleId:
+          dto.articleId !== undefined
+            ? dto.articleId?.trim() || null
+            : existing.articleId,
+      };
+      const others = status.slides.filter((s) => s.id !== slideId);
+      if (!this.hasContent(next) && !others.some((s) => this.hasContent(s))) {
+        throw new BadRequestException(NO_CONTENT_MESSAGE);
+      }
+    }
+
+    const updated = await this.prisma.statusSlide.update({
+      where: { id: slideId },
+      data,
+      select: ADMIN_SLIDE_SELECT,
+    });
+    if (oldKeys.length) void this.deleteKeys(oldKeys);
+    this.logSlide(actorId, existing.statusId, 'status_slide_updated', slideId);
+    return this.toAdminSlide(updated);
+  }
+
+  async removeSlide(slideId: string, actorId: string) {
+    const existing = await this.findSlide(slideId);
+    const status = await this.findAdmin(existing.statusId);
+    if (
+      status.isPublished &&
+      !status.slides.some((s) => s.id !== slideId && this.hasContent(s))
+    ) {
+      throw new BadRequestException(
+        'Un statut publié doit garder au moins une diapo : masquez-le ou supprimez le statut',
+      );
+    }
+    await this.prisma.statusSlide.delete({ where: { id: slideId } });
+    void this.deleteKeys(this.slideKeys(existing));
+    this.logSlide(actorId, existing.statusId, 'status_slide_deleted', slideId);
+    return { ok: true as const };
+  }
+
+  /** Réordonne les diapos d’un statut (liste complète des ids, dans l’ordre). */
+  async reorderSlides(statusId: string, ids: string[], actorId: string) {
+    const status = await this.findAdmin(statusId);
+    const current = new Set(status.slides.map((s) => s.id));
+    if (
+      ids.length !== current.size ||
+      new Set(ids).size !== ids.length ||
+      ids.some((id) => !current.has(id))
+    ) {
+      throw new BadRequestException('Liste des diapos invalide');
+    }
+    await this.prisma.$transaction(
+      ids.map((id, position) =>
+        this.prisma.statusSlide.update({ where: { id }, data: { position } }),
+      ),
+    );
+    this.logSlide(actorId, statusId, 'status_slides_reordered');
+    return this.getById(statusId);
+  }
+
+  async uploadImage(slideId: string, file: UploadFile, actorId: string) {
+    const existing = await this.findSlide(slideId);
     this.assertImageFile(file);
     const ext = this.imageExt(file.originalname, file.mimetype);
-    const key = this.newKey(id, 'image', ext);
+    const key = this.newKey(slideId, 'image', ext);
     await this.putToR2(key, file, contentTypeForExt(ext));
 
-    const updated = await this.prisma.status.update({
-      where: { id },
+    const updated = await this.prisma.statusSlide.update({
+      where: { id: slideId },
       data: {
         mediaType: StatusMediaType.IMAGE,
         mediaKey: key,
         posterKey: null,
       },
-      select: ADMIN_STATUS_SELECT,
+      select: ADMIN_SLIDE_SELECT,
     });
 
-    void this.deleteKeys(
-      [existing.mediaKey, existing.posterKey].filter((k): k is string => !!k),
-    );
-    this.logMedia(actorId, id, key, file.size);
-    return this.toAdmin(updated);
+    void this.deleteKeys(this.slideKeys(existing));
+    this.logMedia(actorId, existing.statusId, key, file.size);
+    return this.toAdminSlide(updated);
   }
 
-  async uploadPoster(id: string, file: UploadFile, actorId: string) {
-    const existing = await this.findAdmin(id);
+  async uploadPoster(slideId: string, file: UploadFile, actorId: string) {
+    const existing = await this.findSlide(slideId);
     if (existing.mediaType !== StatusMediaType.VIDEO) {
       throw new BadRequestException('La miniature est réservée aux vidéos');
     }
     this.assertImageFile(file);
     const ext = this.imageExt(file.originalname, file.mimetype);
-    const key = this.newKey(id, 'poster', ext);
+    const key = this.newKey(slideId, 'poster', ext);
     await this.putToR2(key, file, contentTypeForExt(ext));
 
-    const updated = await this.prisma.status.update({
-      where: { id },
+    const updated = await this.prisma.statusSlide.update({
+      where: { id: slideId },
       data: { posterKey: key },
-      select: ADMIN_STATUS_SELECT,
+      select: ADMIN_SLIDE_SELECT,
     });
     if (existing.posterKey) void this.deleteKeys([existing.posterKey]);
-    this.logMedia(actorId, id, key, file.size);
-    return this.toAdmin(updated);
+    this.logMedia(actorId, existing.statusId, key, file.size);
+    return this.toAdminSlide(updated);
   }
 
-  async presignVideo(id: string, dto: PresignStatusVideoDto) {
-    await this.findAdmin(id);
+  async presignVideo(slideId: string, dto: PresignStatusVideoDto) {
+    await this.findSlide(slideId);
     if (dto.size > STATUS_VIDEO_MAX_BYTES) {
       throw new BadRequestException('La vidéo dépasse 100 Mo');
     }
@@ -440,7 +611,7 @@ export class StatusesService {
     const ext = this.videoExt(dto.filename, dto.contentType);
     const expiresIn = 1800;
     const signed = presignR2PutObject(r2, {
-      key: this.newKey(id, 'video', ext),
+      key: this.newKey(slideId, 'video', ext),
       contentType: contentTypeForExt(ext),
       expiresInSeconds: expiresIn,
     });
@@ -454,13 +625,13 @@ export class StatusesService {
   }
 
   async completeVideo(
-    id: string,
+    slideId: string,
     dto: CompleteStatusVideoDto,
     actorId: string,
   ) {
-    const existing = await this.findAdmin(id);
+    const existing = await this.findSlide(slideId);
     const key = dto.key.replace(/^\//, '');
-    if (!key.startsWith(`statuses/${id}/video_`)) {
+    if (!key.startsWith(`${this.slidePrefix(slideId)}video_`)) {
       throw new BadRequestException('Clé vidéo invalide');
     }
     const r2 = this.requireR2();
@@ -473,23 +644,19 @@ export class StatusesService {
       throw new BadRequestException('La vidéo dépasse 100 Mo');
     }
 
-    const updated = await this.prisma.status.update({
-      where: { id },
+    const updated = await this.prisma.statusSlide.update({
+      where: { id: slideId },
       data: {
         mediaType: StatusMediaType.VIDEO,
         mediaKey: key,
         posterKey: null,
       },
-      select: ADMIN_STATUS_SELECT,
+      select: ADMIN_SLIDE_SELECT,
     });
 
-    void this.deleteKeys(
-      [existing.mediaKey, existing.posterKey].filter(
-        (k): k is string => !!k && k !== key,
-      ),
-    );
-    this.logMedia(actorId, id, key, head.contentLength ?? 0);
-    return this.toAdmin(updated);
+    void this.deleteKeys(this.slideKeys(existing).filter((k) => k !== key));
+    this.logMedia(actorId, existing.statusId, key, head.contentLength ?? 0);
+    return this.toAdminSlide(updated);
   }
 
   // --------------------------------------------------------------- helpers
@@ -503,12 +670,28 @@ export class StatusesService {
     return row;
   }
 
+  private async findSlide(id: string) {
+    const row = await this.prisma.statusSlide.findUnique({
+      where: { id },
+      select: ADMIN_SLIDE_SELECT,
+    });
+    if (!row) throw new NotFoundException('Diapo introuvable');
+    return row;
+  }
+
   private hasContent(row: {
     mediaKey: string | null;
     caption: string | null;
     articleId: string | null;
   }) {
     return !!row.mediaKey || !!row.caption?.trim() || !!row.articleId;
+  }
+
+  private slideKeys(slide: {
+    mediaKey: string | null;
+    posterKey: string | null;
+  }) {
+    return [slide.mediaKey, slide.posterKey].filter((k): k is string => !!k);
   }
 
   private stateOf(row: AdminStatusRow): StatusState {
@@ -532,8 +715,13 @@ export class StatusesService {
     return trimmed ? trimmed : null;
   }
 
-  private newKey(id: string, kind: string, ext: string) {
-    return `statuses/${id}/${kind}_${Date.now()}_${randomBytes(4).toString('hex')}.${ext}`;
+  /** Médias rangés par diapo : ils la suivent si elle change de statut. */
+  private slidePrefix(slideId: string) {
+    return `statuses/slides/${slideId}/`;
+  }
+
+  private newKey(slideId: string, kind: string, ext: string) {
+    return `${this.slidePrefix(slideId)}${kind}_${Date.now()}_${randomBytes(4).toString('hex')}.${ext}`;
   }
 
   private logMedia(actorId: string, id: string, key: string, size: number) {
@@ -544,6 +732,22 @@ export class StatusesService {
       entity: 'status',
       entityId: id,
       meta: { key, size },
+    });
+  }
+
+  private logSlide(
+    actorId: string,
+    statusId: string,
+    action: string,
+    slideId?: string,
+  ) {
+    void this.activity.log({
+      actorType: ActivityActorType.ADMIN,
+      adminId: actorId,
+      action,
+      entity: 'status',
+      entityId: statusId,
+      meta: slideId ? { slideId } : undefined,
     });
   }
 
@@ -615,12 +819,11 @@ export class StatusesService {
     throw new BadRequestException('Formats vidéo : MP4 ou MOV (max 100 Mo)');
   }
 
-  private toAdmin(row: AdminStatusRow) {
+  private toAdminSlide(row: AdminSlideRow) {
     return {
       id: row.id,
-      state: this.stateOf(row),
+      position: row.position,
       mediaType: row.mediaType,
-      mediaKey: row.mediaKey,
       mediaUrl: this.resolveMediaUrl(row.mediaKey),
       posterUrl: this.resolveMediaUrl(row.posterKey),
       imageFit: row.imageFit,
@@ -636,6 +839,14 @@ export class StatusesService {
           }
         : null,
       durationSec: row.durationSec,
+    };
+  }
+
+  private toAdmin(row: AdminStatusRow) {
+    return {
+      id: row.id,
+      state: this.stateOf(row),
+      slides: row.slides.map((slide) => this.toAdminSlide(slide)),
       sortOrder: row.sortOrder,
       isPublished: row.isPublished,
       publishedAt: row.publishedAt?.toISOString() ?? null,

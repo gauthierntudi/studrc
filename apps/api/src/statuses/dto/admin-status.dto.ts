@@ -1,10 +1,13 @@
-import { Type } from 'class-transformer';
 import { StatusImageFit } from '@prisma/client';
+import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
   IsBoolean,
+  IsDateString,
   IsEnum,
   IsIn,
-  IsDateString,
   IsInt,
   IsOptional,
   IsString,
@@ -17,22 +20,11 @@ import {
 /** Vidéo de statut : MP4/MOV, 100 Mo max */
 export const STATUS_VIDEO_MAX_BYTES = 100_000_000;
 
+/** Nombre max de diapos dans un statut */
+export const STATUS_MAX_SLIDES = 20;
+
+/** Statut (bulle) : visibilité et publication. Le contenu vit dans les diapos. */
 export class CreateStatusDto {
-  /** Cadrage de l’image : COVER ou FIT */
-  @IsOptional()
-  @IsEnum(StatusImageFit)
-  imageFit?: StatusImageFit;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  caption?: string | null;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(64)
-  articleId?: string | null;
-
   /** Durée de vie en heures (1 h → 7 jours) */
   @IsOptional()
   @Type(() => Number)
@@ -42,40 +34,11 @@ export class CreateStatusDto {
   ttlHours?: number;
 
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(3)
-  @Max(15)
-  durationSec?: number;
-
-  @IsOptional()
   @IsBoolean()
   isPublished?: boolean;
 }
 
 export class UpdateStatusDto {
-  /** Cadrage de l’image : COVER ou FIT */
-  @IsOptional()
-  @IsEnum(StatusImageFit)
-  imageFit?: StatusImageFit;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  caption?: string | null;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(64)
-  articleId?: string | null;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(3)
-  @Max(15)
-  durationSec?: number;
-
   @IsOptional()
   @IsBoolean()
   isPublished?: boolean;
@@ -92,11 +55,58 @@ export class UpdateStatusDto {
   @Min(1)
   @Max(168)
   ttlHours?: number;
+}
 
-  /** Retire le média (statut → raccourci article) */
+export class CreateStatusSlideDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  caption?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  articleId?: string | null;
+
+  /** Cadrage de l’image : COVER ou FIT */
+  @IsOptional()
+  @IsEnum(StatusImageFit)
+  imageFit?: StatusImageFit;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(3)
+  @Max(15)
+  durationSec?: number;
+}
+
+export class UpdateStatusSlideDto extends CreateStatusSlideDto {
+  /** Retire le média (diapo → texte / raccourci article) */
   @IsOptional()
   @IsBoolean()
   clearMedia?: boolean;
+}
+
+export class ReorderStatusSlidesDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(STATUS_MAX_SLIDES)
+  @IsString({ each: true })
+  ids!: string[];
+}
+
+export class MoveStatusDto {
+  @IsIn(['up', 'down'])
+  direction!: 'up' | 'down';
+}
+
+/** Regroupe ce statut dans un autre : ses diapos passent à la suite */
+export class MergeStatusDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(64)
+  targetId!: string;
 }
 
 export class PresignStatusVideoDto {
@@ -122,9 +132,4 @@ export class CompleteStatusVideoDto {
   @MinLength(8)
   @MaxLength(500)
   key!: string;
-}
-
-export class MoveStatusDto {
-  @IsIn(['up', 'down'])
-  direction!: 'up' | 'down';
 }

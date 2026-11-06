@@ -296,7 +296,14 @@ class StatusViewerScreen extends ConsumerStatefulWidget {
 
 class _StatusViewerScreenState extends ConsumerState<StatusViewerScreen>
     with SingleTickerProviderStateMixin {
+  /// Statut (bulle) affiché
   late int _index = widget.initialIndex.clamp(0, widget.items.length - 1);
+
+  /// Diapo affichée dans ce statut
+  int _slide = 0;
+
+  /// Statuts déjà comptés comme vus pendant cette ouverture
+  final _counted = <String>{};
   late final AnimationController _timer = AnimationController(vsync: this)
     ..addStatusListener((s) {
       if (s == AnimationStatus.completed) _next();
@@ -312,9 +319,11 @@ class _StatusViewerScreenState extends ConsumerState<StatusViewerScreen>
   double _dragDy = 0;
   int _loadToken = 0;
 
-  StatusItem get _current => widget.items[_index];
+  StatusItem get _status => widget.items[_index];
+  StatusSlide get _current =>
+      _status.slides[_slide.clamp(0, _status.slides.length - 1)];
 
-  static bool _isTextOnly(StatusItem s) =>
+  static bool _isTextOnly(StatusSlide s) =>
       !s.isImage && !s.isVideo && s.article == null;
 
   @override
@@ -383,6 +392,7 @@ class _StatusViewerScreenState extends ConsumerState<StatusViewerScreen>
 
   Future<void> _show() async {
     final token = ++_loadToken;
+    final group = _status;
     final status = _current;
     _timer
       ..stop()
@@ -394,8 +404,10 @@ class _StatusViewerScreenState extends ConsumerState<StatusViewerScreen>
       _paused = false;
     });
 
-    unawaited(ref.read(seenStatusesProvider.notifier).markSeen(status.id));
-    unawaited(ref.read(apiClientProvider).markStatusViewed(status.id));
+    if (_counted.add(group.id)) {
+      unawaited(ref.read(seenStatusesProvider.notifier).markSeen(group.id));
+      unawaited(ref.read(apiClientProvider).markStatusViewed(group.id));
+    }
     _precacheNext();
 
     if (status.isVideo) {
@@ -436,13 +448,15 @@ class _StatusViewerScreenState extends ConsumerState<StatusViewerScreen>
   }
 
   void _precacheNext() {
-    if (_index + 1 >= widget.items.length) return;
-    final next = widget.items[_index + 1];
-    final url = next.isImage
-        ? next.mediaUrl
-        : next.isVideo
-        ? next.posterUrl
-        : next.article?.coverUrl;
+    final StatusSlide next;
+    if (_slide + 1 < _status.slides.length) {
+      next = _status.slides[_slide + 1];
+    } else if (_index + 1 < widget.items.length) {
+      next = widget.items[_index + 1].first;
+    } else {
+      return;
+    }
+    final url = next.thumbUrl;
     if (url == null || url.isEmpty) return;
     unawaited(
       precacheImage(
@@ -452,21 +466,43 @@ class _StatusViewerScreenState extends ConsumerState<StatusViewerScreen>
     );
   }
 
+  /// Diapo suivante, puis statut suivant ; ferme à la fin.
   void _next() {
+    if (_slide + 1 < _status.slides.length) {
+      setState(() => _slide++);
+      _show();
+      return;
+    }
+    _nextStatus();
+  }
+
+  /// Diapo précédente, sinon début du statut précédent.
+  void _prev() {
+    if (_slide > 0) {
+      setState(() => _slide--);
+      _show();
+      return;
+    }
+    _prevStatus();
+  }
+
+  void _nextStatus() {
     if (_index + 1 >= widget.items.length) {
       _close();
       return;
     }
-    setState(() => _index++);
+    setState(() {
+      _index++;
+      _slide = 0;
+    });
     _show();
   }
 
-  void _prev() {
-    if (_index == 0) {
-      _show();
-      return;
-    }
-    setState(() => _index--);
+  void _prevStatus() {
+    setState(() {
+      if (_index > 0) _index--;
+      _slide = 0;
+    });
     _show();
   }
 
@@ -505,6 +541,7 @@ class _StatusViewerScreenState extends ConsumerState<StatusViewerScreen>
 
   @override
   Widget build(BuildContext context) {
+    final group = _status;
     final status = _current;
     final pad = MediaQuery.paddingOf(context);
     final article = status.article;
@@ -519,6 +556,15 @@ class _StatusViewerScreenState extends ConsumerState<StatusViewerScreen>
             _prev();
           } else {
             _next();
+          }
+        },
+        // Balayage horizontal : statut suivant / précédent
+        onHorizontalDragEnd: (d) {
+          final v = d.primaryVelocity ?? 0;
+          if (v < -250) {
+            _nextStatus();
+          } else if (v > 250) {
+            _prevStatus();
           }
         },
         onLongPressStart: (_) => _pause(),
@@ -543,7 +589,7 @@ class _StatusViewerScreenState extends ConsumerState<StatusViewerScreen>
               fit: StackFit.expand,
               children: [
                 _StatusBackground(
-                  key: ValueKey(status.id),
+                  key: ValueKey('${group.id}/${status.id}'),
                   status: status,
                   video: status.isVideo ? _video : null,
                   videoReady: _videoReady,
@@ -584,8 +630,8 @@ class _StatusViewerScreenState extends ConsumerState<StatusViewerScreen>
                   child: Column(
                     children: [
                       _ProgressBars(
-                        count: widget.items.length,
-                        index: _index,
+                        count: group.slides.length,
+                        index: _slide,
                         timer: _timer,
                         videoProgress: status.isVideo ? _videoProgress : null,
                       ),
@@ -616,7 +662,7 @@ class _StatusViewerScreenState extends ConsumerState<StatusViewerScreen>
                                     ),
                                   ),
                                   TextSpan(
-                                    text: '  ${statusAgo(status.publishedAt)}',
+                                    text: '  ${statusAgo(group.publishedAt)}',
                                     style: const TextStyle(
                                       color: Colors.white70,
                                     ),
@@ -737,7 +783,7 @@ class _StatusBackground extends StatelessWidget {
     required this.videoReady,
   });
 
-  final StatusItem status;
+  final StatusSlide status;
   final VideoController? video;
   final bool videoReady;
 
@@ -813,7 +859,7 @@ class _TextBackground extends StatelessWidget {
 class _StatusFooter extends StatelessWidget {
   const _StatusFooter({required this.status, required this.onOpenArticle});
 
-  final StatusItem status;
+  final StatusSlide status;
   final VoidCallback? onOpenArticle;
 
   @override

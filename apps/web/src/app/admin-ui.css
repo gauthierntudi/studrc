@@ -5376,16 +5376,19 @@ a.snow-dash__rail-item:hover {
   top: 10px;
   left: 10px;
   right: 10px;
+  display: flex;
+  gap: 3px;
   height: 3px;
+}
+
+.admin-status-form__bars span {
+  flex: 1;
+  height: 100%;
   border-radius: 3px;
   background: rgba(255, 255, 255, 0.35);
 }
 
-.admin-status-form__bars span {
-  display: block;
-  width: 40%;
-  height: 100%;
-  border-radius: inherit;
+.admin-status-form__bars span.is-done {
   background: #fff;
 }
 
@@ -5450,4 +5453,111 @@ a.snow-dash__rail-item:hover {
 .admin-status-page__order strong {
   min-width: 1.4rem;
   font-variant-numeric: tabular-nums;
+}
+
+/* —— Diapos d’un statut —— */
+.admin-status-slides {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 2px 2px 6px;
+}
+
+.admin-status-slides__item,
+.admin-status-slides__add {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 96px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--snow-line);
+  border-radius: 10px;
+  background: var(--snow-active);
+  color: var(--snow-muted);
+  cursor: pointer;
+}
+
+.admin-status-slides__item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.admin-status-slides__item.is-active {
+  border-color: var(--snow-teal);
+  box-shadow: 0 0 0 2px var(--snow-teal);
+}
+
+.admin-status-slides__num {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  min-width: 18px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.admin-status-slides__add {
+  border-style: dashed;
+  background: transparent;
+}
+
+.admin-status-slides__add:hover {
+  color: var(--snow-teal);
+  border-color: var(--snow-teal);
+}
+
+.admin-status-slide {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.85rem;
+  padding: 0.85rem;
+  border: 1px solid var(--snow-line);
+  border-radius: 14px;
+}
+
+.admin-status-slide > * {
+  min-width: 0;
+}
+
+.admin-status-slide__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.admin-status-form__note {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.admin-status-thumb__count {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  min-width: 18px;
+  padding: 0 5px;
+  border: 2px solid var(--snow-panel);
+  border-radius: 999px;
+  background: var(--snow-teal);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.admin-status-merge {
+  display: grid;
+  gap: 1rem;
 }
