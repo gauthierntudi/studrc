@@ -81,6 +81,9 @@ export function toTopStory(a: PublicArticleCard): TopStory {
     author: a.authorName,
     dateLabel: a.dateLabel,
     featured: true,
+    sponsor: a.sponsor
+      ? { name: a.sponsor.name, logoUrl: a.sponsor.logoUrl }
+      : null,
   };
 }
 
@@ -96,6 +99,9 @@ export function toRubriqueStory(a: PublicArticleCard): RubriqueStory {
     tagTone: tagTone(a.categoryTone),
     videoHlsUrl: a.videoHlsUrl ?? null,
     videoPosterUrl: a.videoPosterUrl ?? null,
+    sponsor: a.sponsor
+      ? { name: a.sponsor.name, logoUrl: a.sponsor.logoUrl }
+      : null,
   };
 }
 

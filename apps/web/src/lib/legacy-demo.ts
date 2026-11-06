@@ -11,6 +11,7 @@ export type TopStory = {
   author: string;
   dateLabel: string;
   featured?: boolean;
+  sponsor?: { name: string; logoUrl: string | null } | null;
 };
 
 export type DemoMagazine = {
@@ -280,6 +281,7 @@ export type RubriqueStory = {
   tagTone?: "red" | "blue" | "teal" | "dark" | "gold" | "orange" | "yellow";
   videoHlsUrl?: string | null;
   videoPosterUrl?: string | null;
+  sponsor?: { name: string; logoUrl: string | null } | null;
 };
 
 export const DEMO_STARTUP_FEATURED: RubriqueStory = {

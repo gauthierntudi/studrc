@@ -14,6 +14,7 @@ import {
   type HomeRubriqueSplitProps,
 } from "@/components/site/home-rubrique-split";
 import { CoverImage } from "@/components/site/cover-image";
+import { ArticleThumbSponsor } from "@/components/site/article-thumb-sponsor";
 import { VideoPlay } from "@/components/site/video-play";
 import "./home-rubrique.css";
 
@@ -65,6 +66,7 @@ function OverlayCard({
       className={`opt-rub__featured${tile ? " opt-rub__featured--tile" : ""}`}
     >
       <CoverImage src={story.cover} className="opt-rub__featured-cover" />
+      <ArticleThumbSponsor sponsor={story.sponsor} compact={tile} />
       {video ? (
         <VideoPlay
           size={tile ? 18 : 26}
@@ -118,6 +120,7 @@ function PlusVusItem({ story }: { story: RubriqueStory }) {
       <div className="opt-rub__pv-body">
         <span className="opt-rub__pv-cat">{story.category}</span>
         <h3 className="opt-rub__pv-title">{story.titre}</h3>
+        <ArticleThumbSponsor sponsor={story.sponsor} inline />
       </div>
     </Link>
   );

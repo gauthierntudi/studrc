@@ -61,6 +61,7 @@ async function HomeContent() {
           dateLabel: s.dateLabel,
           videoHlsUrl: s.videoHlsUrl,
           videoPosterUrl: s.videoPosterUrl,
+          sponsor: s.sponsor,
         }))}
       />
       <HomeDossiers decryptages={articles.stuData} />

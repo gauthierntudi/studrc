@@ -14,7 +14,10 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "react-toastify";
+import { AdminAuthorPicker } from "@/components/admin/admin-author-picker";
+import { useAdminAuth } from "@/components/admin/admin-auth-provider";
 import { AdminDropzone } from "@/components/admin/admin-dropzone";
+import { AdminSponsorPicker } from "@/components/admin/admin-sponsor-picker";
 import { AdminArticleVideo } from "@/components/admin/admin-article-video";
 import { AdminProgressModal } from "@/components/admin/admin-progress-modal";
 import { AdminRichEditor } from "@/components/admin/admin-rich-editor";
@@ -56,6 +59,8 @@ type ArticleForm = {
   isPublished: boolean;
   isFeatured: boolean;
   magazineId: string;
+  sponsorId: string;
+  authorId: string;
   blocks: FormBlock[];
 };
 
@@ -81,6 +86,8 @@ function emptyForm(): ArticleForm {
     isPublished: false,
     isFeatured: false,
     magazineId: "",
+    sponsorId: "",
+    authorId: "",
     blocks: [newBlock()],
   };
 }
@@ -120,6 +127,8 @@ function fromArticle(a: AdminArticle): ArticleForm {
     isPublished: a.isPublished,
     isFeatured: Boolean(a.isFeatured),
     magazineId: a.magazineId ?? "",
+    sponsorId: a.sponsorId ?? "",
+    authorId: a.bylineAuthorId ?? a.bylineAuthor?.id ?? "",
     blocks,
   };
 }
@@ -134,6 +143,8 @@ function toPayload(form: ArticleForm) {
     isPublished: form.isPublished,
     isFeatured: form.isFeatured,
     magazineId: form.magazineId.trim() || null,
+    sponsorId: form.sponsorId.trim() || null,
+    bylineAuthorId: form.authorId.trim() || null,
     blocks: form.blocks.map((b, i) => ({
       id: b.id,
       title: b.title.trim() || null,
@@ -151,6 +162,7 @@ type AdminArticleFormProps = {
 
 export function AdminArticleForm({ mode, articleId }: AdminArticleFormProps) {
   const router = useRouter();
+  const { admin } = useAdminAuth();
   const isEdit = mode === "edit";
 
   const [form, setForm] = useState<ArticleForm>(emptyForm);
@@ -804,6 +816,37 @@ export function AdminArticleForm({ mode, articleId }: AdminArticleFormProps) {
                   </div>
                   <span className="admin-dash__switch-hint">
                     Affiché sur l’article avec un accès direct au kiosque
+                  </span>
+                </div>
+                <div className="admin-dash__field">
+                  <span>Auteur</span>
+                  <AdminAuthorPicker
+                    value={form.authorId}
+                    linked={savedArticle?.bylineAuthor}
+                    currentAdminId={admin?.id}
+                    disabled={saving}
+                    onChange={(authorId) =>
+                      setForm((f) => ({ ...f, authorId }))
+                    }
+                  />
+                  <span className="admin-dash__switch-hint">
+                    Par défaut vous-même. Choisissez ou créez un auteur si
+                    l’article n’est pas de vous.
+                  </span>
+                </div>
+                <div className="admin-dash__field">
+                  <span>Sponsor (logo)</span>
+                  <AdminSponsorPicker
+                    value={form.sponsorId}
+                    linked={savedArticle?.sponsor}
+                    disabled={saving}
+                    onChange={(sponsorId) =>
+                      setForm((f) => ({ ...f, sponsorId }))
+                    }
+                  />
+                  <span className="admin-dash__switch-hint">
+                    Un nouveau sponsor reste disponible pour les prochains
+                    articles
                   </span>
                 </div>
                 <label className="admin-dash__switch">

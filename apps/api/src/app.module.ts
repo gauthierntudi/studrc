@@ -7,6 +7,7 @@ import { config as loadEnv } from 'dotenv';
 import { ActivityModule } from './activity/activity.module';
 import { ArticlesModule } from './articles/articles.module';
 import { AuthModule } from './auth/auth.module';
+import { AuthorsModule } from './authors/authors.module';
 import { HealthModule } from './health/health.module';
 import { LibraryModule } from './library/library.module';
 import { MagazinesModule } from './magazines/magazines.module';
@@ -14,6 +15,7 @@ import { MailModule } from './mail/mail.module';
 import { NewsletterModule } from './newsletter/newsletter.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SettingsModule } from './settings/settings.module';
+import { SponsorsModule } from './sponsors/sponsors.module';
 import { SubscribersModule } from './subscribers/subscribers.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { PaymentsModule } from './payments/payments.module';
@@ -39,6 +41,8 @@ if (existsSync(envRoot)) loadEnv({ path: envRoot, override: true });
     LibraryModule,
     MagazinesModule,
     ArticlesModule,
+    SponsorsModule,
+    AuthorsModule,
     SubscriptionsModule,
     SubscribersModule,
     PaymentsModule,

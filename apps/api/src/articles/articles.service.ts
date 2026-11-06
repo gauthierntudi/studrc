@@ -67,6 +67,21 @@ const MAGAZINE_SUMMARY_SELECT = {
   theme: true,
 } satisfies Prisma.MagazineSelect;
 
+const SPONSOR_SUMMARY_SELECT = {
+  id: true,
+  name: true,
+  logoKey: true,
+  url: true,
+} satisfies Prisma.SponsorSelect;
+
+const AUTHOR_SUMMARY_SELECT = {
+  id: true,
+  name: true,
+  title: true,
+  avatarKey: true,
+  adminUserId: true,
+} satisfies Prisma.AuthorSelect;
+
 const ARTICLE_SELECT = {
   id: true,
   legacyId: true,
@@ -81,7 +96,9 @@ const ARTICLE_SELECT = {
   isPublished: true,
   isFeatured: true,
   authorId: true,
+  bylineAuthorId: true,
   magazineId: true,
+  sponsorId: true,
   videoSourceKey: true,
   videoHlsKey: true,
   videoPosterKey: true,
@@ -96,10 +113,17 @@ const ARTICLE_SELECT = {
       id: true,
       name: true,
       email: true,
+      avatarKey: true,
     },
+  },
+  bylineAuthor: {
+    select: AUTHOR_SUMMARY_SELECT,
   },
   magazine: {
     select: MAGAZINE_SUMMARY_SELECT,
+  },
+  sponsor: {
+    select: SPONSOR_SUMMARY_SELECT,
   },
   blocks: {
     orderBy: { position: 'asc' as const },
@@ -124,7 +148,11 @@ const PUBLIC_CARD_SELECT = {
   videoPosterKey: true,
   videoStatus: true,
   videoDurationSec: true,
-  author: { select: { name: true } },
+  author: { select: { name: true, avatarKey: true } },
+  bylineAuthor: { select: { name: true, avatarKey: true } },
+  sponsor: {
+    select: SPONSOR_SUMMARY_SELECT,
+  },
 } satisfies Prisma.ArticleSelect;
 
 @Injectable()
@@ -574,6 +602,7 @@ export class ArticlesService {
   ) {
     const meta = categoryDisplay(article.category);
     const when = article.publishedAt ?? article.createdAt;
+    const byline = article.bylineAuthor ?? article.author;
 
     return {
       id: article.id,
@@ -584,7 +613,8 @@ export class ArticlesService {
       category: article.category,
       categoryLabel: meta.label,
       categoryTone: meta.tone,
-      authorName: article.author?.name?.trim() || 'STUDRC',
+      authorName: byline?.name?.trim() || 'STUDRC',
+      authorAvatarUrl: this.resolveMediaUrl(byline?.avatarKey ?? null),
       publishedAt: article.publishedAt?.toISOString() ?? null,
       dateLabel: new Intl.DateTimeFormat('fr-FR', {
         day: 'numeric',
@@ -599,6 +629,14 @@ export class ArticlesService {
       videoPosterUrl: this.resolveMediaUrl(article.videoPosterKey),
       videoStatus: article.videoStatus,
       videoDurationSec: article.videoDurationSec,
+      sponsor: article.sponsor
+        ? {
+            id: article.sponsor.id,
+            name: article.sponsor.name,
+            logoUrl: this.resolveMediaUrl(article.sponsor.logoKey),
+            url: article.sponsor.url,
+          }
+        : null,
     };
   }
 
@@ -616,6 +654,10 @@ export class ArticlesService {
       '';
 
     const magazineId = await this.resolveMagazineId(dto.magazineId);
+    const sponsorId = await this.resolveSponsorId(dto.sponsorId);
+    const bylineAuthorId =
+      (await this.resolveBylineAuthorId(dto.bylineAuthorId)) ??
+      (await this.ensureAuthorIdForAdmin(actorId));
 
     const created = await this.prisma.$transaction(async (tx) => {
       const article = await tx.article.create({
@@ -631,6 +673,8 @@ export class ArticlesService {
           publishedAt: isPublished ? new Date() : null,
           authorId: actorId,
           ...(magazineId ? { magazineId } : {}),
+          ...(sponsorId ? { sponsorId } : {}),
+          ...(bylineAuthorId ? { bylineAuthorId } : {}),
         },
         select: { id: true },
       });
@@ -724,6 +768,20 @@ export class ArticlesService {
       data.magazine = magazineId
         ? { connect: { id: magazineId } }
         : { disconnect: true };
+    }
+
+    if (dto.sponsorId !== undefined) {
+      const sponsorId = await this.resolveSponsorId(dto.sponsorId);
+      data.sponsor = sponsorId
+        ? { connect: { id: sponsorId } }
+        : { disconnect: true };
+    }
+
+    if (dto.bylineAuthorId !== undefined) {
+      const bylineAuthorId =
+        (await this.resolveBylineAuthorId(dto.bylineAuthorId)) ??
+        (await this.ensureAuthorIdForAdmin(actorId));
+      data.bylineAuthor = { connect: { id: bylineAuthorId } };
     }
 
     const syncBlocks = dto.blocks !== undefined;
@@ -1241,6 +1299,100 @@ export class ArticlesService {
     return mag.id;
   }
 
+  private async resolveSponsorId(
+    raw: string | null | undefined,
+  ): Promise<string | null> {
+    if (raw === undefined) return null;
+    if (raw === null || !raw.trim()) return null;
+    const id = raw.trim();
+    const sponsor = await this.prisma.sponsor.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!sponsor) {
+      throw new BadRequestException('Sponsor introuvable');
+    }
+    return sponsor.id;
+  }
+
+  private async resolveBylineAuthorId(
+    raw: string | null | undefined,
+  ): Promise<string | null> {
+    if (raw === undefined) return null;
+    if (raw === null || !raw.trim()) return null;
+    const id = raw.trim();
+    const author = await this.prisma.author.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!author) {
+      throw new BadRequestException('Auteur introuvable');
+    }
+    return author.id;
+  }
+
+  /** Profil auteur lié au compte staff (créé à la volée si absent). */
+  private async ensureAuthorIdForAdmin(adminUserId: string): Promise<string> {
+    const existing = await this.prisma.author.findUnique({
+      where: { adminUserId },
+      select: { id: true },
+    });
+    if (existing) return existing.id;
+
+    const admin = await this.prisma.adminUser.findUnique({
+      where: { id: adminUserId },
+      select: {
+        id: true,
+        name: true,
+        title: true,
+        avatarKey: true,
+      },
+    });
+    if (!admin) {
+      throw new BadRequestException('Administrateur introuvable');
+    }
+
+    const taken = await this.prisma.author.findUnique({
+      where: { id: admin.id },
+      select: { id: true },
+    });
+
+    const created = await this.prisma.author.create({
+      data: {
+        ...(taken ? {} : { id: admin.id }),
+        name: admin.name,
+        title: admin.title,
+        avatarKey: admin.avatarKey,
+        adminUserId: admin.id,
+      },
+      select: { id: true },
+    });
+    return created.id;
+  }
+
+  private toAdminByline(
+    byline: {
+      id: string;
+      name: string;
+      avatarKey: string | null;
+    } | null,
+    publisher: {
+      id: string;
+      name: string;
+      email: string;
+      avatarKey: string | null;
+    } | null,
+  ) {
+    const person = byline ?? publisher;
+    if (!person) return null;
+    return {
+      id: person.id,
+      name: person.name,
+      email: publisher && person.id === publisher.id ? publisher.email : '',
+      avatarUrl: this.resolveMediaUrl(person.avatarKey),
+    };
+  }
+
   private toAdmin(
     article: Prisma.ArticleGetPayload<{ select: typeof ARTICLE_SELECT }>,
     opts?: { publicMagazineOnly?: boolean },
@@ -1254,9 +1406,13 @@ export class ArticlesService {
       videoStatus,
       _count,
       author,
+      bylineAuthor,
+      bylineAuthorId,
       blocks,
       magazine,
       magazineId,
+      sponsor,
+      sponsorId,
       ...rest
     } = article;
     const resolvedBlocks =
@@ -1290,6 +1446,8 @@ export class ArticlesService {
         : opts?.publicMagazineOnly
           ? null
           : magazineId,
+      sponsorId,
+      bylineAuthorId: bylineAuthor?.id ?? bylineAuthorId,
       coverKey,
       coverCaption,
       coverUrl: this.resolveMediaUrl(coverKey),
@@ -1312,6 +1470,14 @@ export class ArticlesService {
             theme: this.parseMagazineTheme(magazine.theme),
           }
         : null,
+      sponsor: sponsor
+        ? {
+            id: sponsor.id,
+            name: sponsor.name,
+            logoUrl: this.resolveMediaUrl(sponsor.logoKey),
+            url: sponsor.url,
+          }
+        : null,
       blocks:
         blocks.length > 0
           ? blocks.map((b) => ({
@@ -1327,9 +1493,21 @@ export class ArticlesService {
             }))
           : resolvedBlocks,
       commentsCount: _count.comments,
-      author: author
-        ? { id: author.id, name: author.name, email: author.email }
+      bylineAuthor: bylineAuthor
+        ? {
+            id: bylineAuthor.id,
+            name: bylineAuthor.name,
+            title: bylineAuthor.title,
+            avatarUrl: this.resolveMediaUrl(bylineAuthor.avatarKey),
+            adminUserId: opts?.publicMagazineOnly
+              ? null
+              : bylineAuthor.adminUserId,
+          }
         : null,
+      author: this.toAdminByline(
+        bylineAuthor,
+        author && opts?.publicMagazineOnly ? { ...author, email: '' } : author,
+      ),
       publishedAt: article.publishedAt?.toISOString() ?? null,
       createdAt: article.createdAt.toISOString(),
       updatedAt: article.updatedAt.toISOString(),

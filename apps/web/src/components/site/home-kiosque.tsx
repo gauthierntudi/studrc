@@ -12,6 +12,7 @@ import {
 } from "@/lib/legacy-demo";
 import { articleHref } from "@/lib/home-articles";
 import { CoverImage } from "@/components/site/cover-image";
+import { ArticleThumbSponsor } from "@/components/site/article-thumb-sponsor";
 import { VideoPlay } from "@/components/site/video-play";
 import { StoryHoverPreview } from "@/components/site/story-hover-preview";
 import { SUBSCRIPTIONS_ENABLED } from "@/lib/features";
@@ -30,6 +31,7 @@ export type HomeStoriesItem = {
   dateLabel: string;
   videoHlsUrl?: string | null;
   videoPosterUrl?: string | null;
+  sponsor?: { name: string; logoUrl: string | null } | null;
 };
 
 const DEMO_ITEMS: HomeStoriesItem[] = [
@@ -161,6 +163,7 @@ export function HomeKiosque({
                       />
                     ) : null}
                     <VideoPlay size={22} />
+                    <ArticleThumbSponsor sponsor={story.sponsor} compact />
                   </div>
                   <div className="opt-kiosque__meta">
                     <div className="opt-kiosque__meta-top">

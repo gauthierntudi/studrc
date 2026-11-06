@@ -131,10 +131,41 @@ model AdminUser {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  articles     Article[]
-  activityLogs ActivityLog[]
+  articles      Article[]
+  authorProfile Author?
+  activityLogs  ActivityLog[]
 
   @@map("admin_users")
+}
+
+/// Logo partenaire réutilisable sur les articles
+model Sponsor {
+  id        String   @id @default(cuid())
+  name      String
+  logoKey   String?
+  url       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  articles Article[]
+
+  @@map("sponsors")
+}
+
+/// Auteur de byline, réutilisable (staff ou invité)
+model Author {
+  id          String   @id @default(cuid())
+  name        String
+  title       String?
+  avatarKey   String?
+  adminUserId String?  @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  adminUser AdminUser? @relation(fields: [adminUserId], references: [id], onDelete: SetNull)
+  articles  Article[]
+
+  @@map("authors")
 }
 
 model Plan {
@@ -289,8 +320,12 @@ model Article {
   /// Mis en avant sur l’accueil (« À la une »)
   isFeatured  Boolean  @default(false)
   authorId    String?
+  /// Auteur affiché sur l’article (staff ou invité)
+  bylineAuthorId String?
   /// Magazine lié (affiché sur l’article + kiosque)
   magazineId  String?
+  /// Sponsor (logo réutilisable)
+  sponsorId   String?
   /// MP4 source (R2) — STU TALK / STU STORIES
   videoSourceKey   String?
   /// Playlist HLS master (R2)
@@ -304,14 +339,18 @@ model Article {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  author   AdminUser?    @relation(fields: [authorId], references: [id])
-  magazine Magazine?     @relation(fields: [magazineId], references: [id], onDelete: SetNull)
+  author       AdminUser? @relation(fields: [authorId], references: [id])
+  bylineAuthor Author?    @relation(fields: [bylineAuthorId], references: [id], onDelete: SetNull)
+  magazine     Magazine?  @relation(fields: [magazineId], references: [id], onDelete: SetNull)
+  sponsor      Sponsor?   @relation(fields: [sponsorId], references: [id], onDelete: SetNull)
   comments Comment[]
   blocks   ArticleBlock[]
 
   @@index([isPublished, publishedAt])
   @@index([isFeatured, isPublished])
   @@index([magazineId])
+  @@index([sponsorId])
+  @@index([bylineAuthorId])
   @@index([videoStatus])
   @@map("articles")
 }

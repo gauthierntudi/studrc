@@ -16,6 +16,7 @@ import {
 import { VideoPlay } from "@/components/site/video-play";
 import { HlsPlayer } from "@/components/site/hls-player";
 import { ArticleMagazineFloat } from "./article-magazine-float";
+import { ArticleThumbSponsor } from "@/components/site/article-thumb-sponsor";
 import "./article.css";
 import { preconnect, preload } from "react-dom";
 
@@ -154,7 +155,24 @@ export default async function ArticlePage({ params }: Props) {
       ) : null}
       <h1 className="opt-article__title">{article.title}</h1>
       <p className="opt-article__meta">
-        {article.author?.name ? <span>Par {article.author.name}</span> : null}
+        {article.author?.avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={article.author.avatarUrl}
+            alt=""
+            className="opt-article__meta-avatar"
+          />
+        ) : null}
+        {article.author?.name ? (
+          <span className="opt-article__meta-author">
+            Par {article.author.name}
+            {article.bylineAuthor?.title ? (
+              <span className="opt-article__meta-role">
+                {article.bylineAuthor.title}
+              </span>
+            ) : null}
+          </span>
+        ) : null}
         {dateLabel ? <span>{dateLabel}</span> : null}
       </p>
       {article.excerpt ? (
@@ -261,6 +279,43 @@ export default async function ArticlePage({ params }: Props) {
               )}
           </div>
 
+          {article.sponsor?.name || article.sponsor?.logoUrl ? (
+            <div className="opt-article__footer">
+              <p className="opt-article__sponsor">
+                <span className="opt-article__sponsor-label">
+                  Sponsorisé Par
+                </span>
+                {article.sponsor.url &&
+                /^https?:\/\//i.test(article.sponsor.url) ? (
+                  <a
+                    className="opt-article__sponsor-link"
+                    href={article.sponsor.url}
+                    target="_blank"
+                    rel="noopener noreferrer sponsored"
+                  >
+                    {article.sponsor.logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={article.sponsor.logoUrl}
+                        alt={article.sponsor.name}
+                      />
+                    ) : (
+                      <span>{article.sponsor.name}</span>
+                    )}
+                  </a>
+                ) : article.sponsor.logoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={article.sponsor.logoUrl}
+                    alt={article.sponsor.name}
+                  />
+                ) : (
+                  <span>{article.sponsor.name}</span>
+                )}
+              </p>
+            </div>
+          ) : null}
+
           {related.length > 0 ? (
             <section
               className="opt-article__more"
@@ -287,6 +342,7 @@ export default async function ArticlePage({ params }: Props) {
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={item.coverUrl} alt="" />
                       ) : null}
+                      <ArticleThumbSponsor sponsor={item.sponsor} compact />
                       {isVideoRubrique(item.category, item.categoryLabel) ? (
                         <VideoPlay size={14} className="opt-video-play--xs" />
                       ) : null}

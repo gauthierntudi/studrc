@@ -5,6 +5,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination, A11y } from "swiper/modules";
 import type { PublicArticleCard } from "@/lib/api";
 import { CoverImage } from "@/components/site/cover-image";
+import { ArticleThumbSponsor } from "@/components/site/article-thumb-sponsor";
 import { VideoPlay } from "@/components/site/video-play";
 import { isVideoRubrique } from "@/lib/rubriques";
 
@@ -84,6 +85,7 @@ export function RubriqueHeroCarousel({ items, video }: Props) {
                   <span className="opt-rubrique__ph" aria-hidden />
                 )}
               </span>
+              <ArticleThumbSponsor sponsor={item.sponsor} compact />
               {video ||
               isVideoRubrique(item.category, item.categoryLabel) ? (
                 <VideoPlay size={22} />

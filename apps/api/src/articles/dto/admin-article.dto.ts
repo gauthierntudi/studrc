@@ -89,6 +89,20 @@ export class CreateArticleDto {
   @MaxLength(64)
   magazineId?: string | null;
 
+  /** Lien optionnel vers un sponsor (`null` / omit = aucun) */
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null && v !== undefined)
+  @IsString()
+  @MaxLength(64)
+  sponsorId?: string | null;
+
+  /** Auteur de byline (`null` / omit = l’admin connecté) */
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null && v !== undefined)
+  @IsString()
+  @MaxLength(64)
+  bylineAuthorId?: string | null;
+
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
@@ -145,6 +159,20 @@ export class UpdateArticleDto {
   @IsString()
   @MaxLength(64)
   magazineId?: string | null;
+
+  /** Lien optionnel vers un sponsor (`null` / omit = aucun) */
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null && v !== undefined)
+  @IsString()
+  @MaxLength(64)
+  sponsorId?: string | null;
+
+  /** Auteur de byline (`null` / omit = l’admin connecté) */
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null && v !== undefined)
+  @IsString()
+  @MaxLength(64)
+  bylineAuthorId?: string | null;
 
   @IsOptional()
   @IsArray()

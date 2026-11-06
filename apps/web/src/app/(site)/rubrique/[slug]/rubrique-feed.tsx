@@ -7,6 +7,7 @@ import {
   type PublicArticleCard,
 } from "@/lib/api";
 import { CoverImage } from "@/components/site/cover-image";
+import { ArticleThumbSponsor } from "@/components/site/article-thumb-sponsor";
 import { VideoPlay } from "@/components/site/video-play";
 import { isVideoRubrique } from "@/lib/rubriques";
 
@@ -223,6 +224,7 @@ function FeedRow({
           ) : (
             <span className="opt-rubrique__ph" aria-hidden />
           )}
+          <ArticleThumbSponsor sponsor={article.sponsor} compact />
           {showPlay ? (
             <VideoPlay size={18} className="opt-video-play--sm" />
           ) : null}

@@ -20,7 +20,7 @@ export function AdminDropzone({
   fileName?: string | null;
   previewUrl?: string | null;
   variant?: "image" | "file";
-  thumbRatio?: "portrait" | "wide";
+  thumbRatio?: "portrait" | "wide" | "square";
   onFile: (file: File | null) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -90,6 +90,7 @@ export function AdminDropzone({
           className={cn(
             "admin-mag__dropzone-thumb",
             thumbRatio === "wide" && "admin-mag__dropzone-thumb--wide",
+            thumbRatio === "square" && "admin-mag__dropzone-thumb--square",
           )}
         />
       ) : (

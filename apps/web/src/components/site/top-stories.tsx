@@ -12,6 +12,7 @@ import {
 import { DEMO_FEATURED, DEMO_TOP_GRID, type TopStory } from "@/lib/legacy-demo";
 import { articleHref } from "@/lib/home-articles";
 import { CoverImage } from "@/components/site/cover-image";
+import { ArticleThumbSponsor } from "@/components/site/article-thumb-sponsor";
 import { VideoPlay } from "@/components/site/video-play";
 import { isVideoRubrique } from "@/lib/rubriques";
 import "./top-stories.css";
@@ -58,6 +59,7 @@ function GridCard({ story }: { story: TopStory }) {
       <Link href={articleHref(story)} className="opt-top__card-link">
         <div className="opt-top__card-media">
           <CoverImage src={story.cover} className="opt-top__card-cover" />
+          <ArticleThumbSponsor sponsor={story.sponsor} compact />
           {video ? <VideoPlay size={18} className="opt-video-play--sm" /> : null}
           <CategoryBadge label={story.category} tone={story.categoryTone} />
         </div>
@@ -76,6 +78,7 @@ function FeaturedSlide({ story }: { story: TopStory }) {
     <article className="opt-top__featured">
       <Link href={articleHref(story)} className="opt-top__featured-media">
         <CoverImage src={story.cover} />
+        <ArticleThumbSponsor sponsor={story.sponsor} />
         {video ? <VideoPlay size={26} /> : null}
         <div className="opt-top__featured-badges">
           <CategoryBadge label={story.category} tone={story.categoryTone} />

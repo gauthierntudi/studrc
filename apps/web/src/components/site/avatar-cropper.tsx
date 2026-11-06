@@ -21,6 +21,8 @@ type ImageCropperProps = {
   maxHeight?: number;
   maxBytes?: number;
   wide?: boolean;
+  /** jpeg = fond opaque ; png = conserve l’alpha ; auto = png si transparence */
+  output?: "jpeg" | "png" | "auto";
   onCancel: () => void;
   onConfirm: (file: File) => void | Promise<void>;
 };
@@ -43,42 +45,23 @@ async function createImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
-async function getCroppedBlob(
-  imageSrc: string,
-  pixelCrop: Area,
-  maxWidth: number,
-  maxHeight: number,
-  mime: "image/jpeg" | "image/png" = "image/jpeg",
+function canvasHasTransparency(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+): boolean {
+  const pixels = ctx.getImageData(0, 0, width, height).data;
+  for (let i = 3; i < pixels.length; i += 4) {
+    if ((pixels[i] ?? 255) < 255) return true;
+  }
+  return false;
+}
+
+function blobFromCanvas(
+  canvas: HTMLCanvasElement,
+  mime: "image/jpeg" | "image/png",
   quality = 0.92,
 ): Promise<Blob> {
-  const image = await createImage(imageSrc);
-  const scale = Math.min(
-    1,
-    maxWidth / pixelCrop.width,
-    maxHeight / pixelCrop.height,
-  );
-  const width = Math.max(1, Math.round(pixelCrop.width * scale));
-  const height = Math.max(1, Math.round(pixelCrop.height * scale));
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Canvas indisponible");
-
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(
-    image,
-    pixelCrop.x,
-    pixelCrop.y,
-    pixelCrop.width,
-    pixelCrop.height,
-    0,
-    0,
-    width,
-    height,
-  );
-
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
@@ -92,6 +75,43 @@ async function getCroppedBlob(
       quality,
     );
   });
+}
+
+async function getCroppedCanvas(
+  imageSrc: string,
+  pixelCrop: Area,
+  maxWidth: number,
+  maxHeight: number,
+): Promise<HTMLCanvasElement> {
+  const image = await createImage(imageSrc);
+  const scale = Math.min(
+    1,
+    maxWidth / pixelCrop.width,
+    maxHeight / pixelCrop.height,
+  );
+  const width = Math.max(1, Math.round(pixelCrop.width * scale));
+  const height = Math.max(1, Math.round(pixelCrop.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d", { alpha: true });
+  if (!ctx) throw new Error("Canvas indisponible");
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    width,
+    height,
+  );
+  return canvas;
 }
 
 export function ImageCropper({
@@ -109,6 +129,7 @@ export function ImageCropper({
   maxHeight = 1080,
   maxBytes = 5_000_000,
   wide = false,
+  output = "jpeg",
   onCancel,
   onConfirm,
 }: ImageCropperProps) {
@@ -143,33 +164,49 @@ export function ImageCropper({
     if (!croppedAreaPixels || busy || saving) return;
     setSaving(true);
     try {
-      let quality = 0.92;
-      let blob = await getCroppedBlob(
+      let width = maxWidth;
+      let height = maxHeight;
+      let canvas = await getCroppedCanvas(
         imageSrc,
         croppedAreaPixels,
-        maxWidth,
-        maxHeight,
-        "image/jpeg",
-        quality,
+        width,
+        height,
       );
-      while (blob.size > maxBytes && quality > 0.45) {
-        quality -= 0.1;
-        blob = await getCroppedBlob(
-          imageSrc,
-          croppedAreaPixels,
-          maxWidth,
-          maxHeight,
-          "image/jpeg",
-          quality,
-        );
+      const ctx = canvas.getContext("2d");
+      const hasAlpha = ctx
+        ? canvasHasTransparency(ctx, canvas.width, canvas.height)
+        : false;
+      const usePng = output === "png" || (output === "auto" && hasAlpha);
+      const mime = usePng ? "image/png" : "image/jpeg";
+      const ext = usePng ? "png" : "jpg";
+
+      let quality = 0.92;
+      let blob = await blobFromCanvas(canvas, mime, quality);
+      if (!usePng) {
+        while (blob.size > maxBytes && quality > 0.45) {
+          quality -= 0.1;
+          blob = await blobFromCanvas(canvas, mime, quality);
+        }
+      } else {
+        while (blob.size > maxBytes && width > 256 && height > 256) {
+          width = Math.round(width * 0.85);
+          height = Math.round(height * 0.85);
+          canvas = await getCroppedCanvas(
+            imageSrc,
+            croppedAreaPixels,
+            width,
+            height,
+          );
+          blob = await blobFromCanvas(canvas, mime);
+        }
       }
       if (blob.size > maxBytes) {
         const maxMo = Math.round((maxBytes / 1_000_000) * 10) / 10;
         toast.error(`L’image recadrée dépasse encore ${maxMo} Mo`);
         return;
       }
-      const file = new File([blob], `${filePrefix}-${Date.now()}.jpg`, {
-        type: "image/jpeg",
+      const file = new File([blob], `${filePrefix}-${Date.now()}.${ext}`, {
+        type: mime,
       });
       await onConfirm(file);
     } catch (err) {
@@ -206,7 +243,9 @@ export function ImageCropper({
         </header>
 
         <div
-          className={`opt-crop__stage${wide ? " opt-crop__stage--wide" : ""}`}
+          className={`opt-crop__stage${wide ? " opt-crop__stage--wide" : ""}${
+            output !== "jpeg" ? " opt-crop__stage--alpha" : ""
+          }`}
         >
           <Cropper
             image={imageSrc}
