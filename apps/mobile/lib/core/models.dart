@@ -14,6 +14,9 @@ class ArticleCard {
     this.videoPosterUrl,
     this.videoStatus,
     this.videoDurationSec,
+    this.authorAvatarUrl,
+    this.publishedAt,
+    this.viewCount = 0,
   });
 
   final String id;
@@ -30,6 +33,9 @@ class ArticleCard {
   final String? videoPosterUrl;
   final String? videoStatus;
   final int? videoDurationSec;
+  final String? authorAvatarUrl;
+  final String? publishedAt;
+  final int viewCount;
 
   bool get hasReadyVideo =>
       videoStatus == 'READY' && (videoHlsUrl?.isNotEmpty ?? false);
@@ -80,6 +86,10 @@ class ArticleCard {
       videoPosterUrl: json['videoPosterUrl'] as String?,
       videoStatus: json['videoStatus'] as String?,
       videoDurationSec: (json['videoDurationSec'] as num?)?.toInt(),
+      authorAvatarUrl:
+          (json['authorAvatarUrl'] ?? json['author']?['avatarUrl']) as String?,
+      publishedAt: json['publishedAt'] as String?,
+      viewCount: (json['viewCount'] as num?)?.toInt() ?? 0,
     );
   }
 }
