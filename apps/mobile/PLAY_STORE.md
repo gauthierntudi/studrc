@@ -1,6 +1,6 @@
 # Publication Android — Google Play
 
-Package : `com.studrc.studrc` · version `1.0.0+2` · API `https://api.studrc.com/api`
+Package : `com.studrc.studrc` · version `1.0.1+3` · API `https://api.studrc.com/api`
 
 ## 1. Keystore d’upload (une fois)
 
