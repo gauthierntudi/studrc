@@ -655,9 +655,9 @@ class _StatusViewerScreenState extends ConsumerState<StatusViewerScreen>
                             child: Text.rich(
                               TextSpan(
                                 children: [
-                                  const TextSpan(
-                                    text: 'STUDRC',
-                                    style: TextStyle(
+                                  TextSpan(
+                                    text: group.title ?? 'STUDRC',
+                                    style: const TextStyle(
                                       fontWeight: FontWeight.w800,
                                     ),
                                   ),

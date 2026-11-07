@@ -2283,6 +2283,8 @@ export type AdminStatusSlide = {
 /** Statut = une bulle dans l’app, avec une ou plusieurs diapos */
 export type AdminStatus = {
   id: string;
+  /** Titre sous la bulle ; null = déduit des diapos */
+  title: string | null;
   state: AdminStatusState;
   slides: AdminStatusSlide[];
   /** Position dans la rangée de bulles (0 = nouveau, en tête) */
@@ -2297,6 +2299,7 @@ export type AdminStatus = {
 };
 
 export type AdminStatusInput = {
+  title?: string | null;
   ttlHours?: number;
   isPublished?: boolean;
   expiresAt?: string;

@@ -485,6 +485,8 @@ model ActivityLog {
 /// Une bulle = un statut ; il contient une ou plusieurs diapos.
 model Status {
   id          String    @id @default(cuid())
+  /// Titre court affiché sous la bulle (sinon déduit des diapos)
+  title       String?
   /// Position dans la rangée de bulles (croissant ; 0 = nouveau, en tête)
   sortOrder   Int       @default(0)
   isPublished Boolean   @default(false)

@@ -255,6 +255,7 @@ export default function AdminStatusesPage() {
         );
       } else if (editing === "new") {
         const created = await adminStatusesApi.create({
+          title: values.title || null,
           ttlHours: values.ttlHours ?? 24,
         });
         await persistSlides(created.id, values, null);
@@ -271,6 +272,9 @@ export default function AdminStatusesPage() {
         const patch: AdminStatusInput = {};
         if (publishing) patch.isPublished = true;
         if (values.ttlHours) patch.ttlHours = values.ttlHours;
+        if (values.title !== (editing.title ?? "")) {
+          patch.title = values.title || null;
+        }
         if (Object.keys(patch).length) {
           await adminStatusesApi.update(editing.id, patch);
         }

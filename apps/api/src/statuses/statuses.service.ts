@@ -81,6 +81,7 @@ const ADMIN_SLIDE_SELECT = {
 
 const ADMIN_STATUS_SELECT = {
   id: true,
+  title: true,
   sortOrder: true,
   isPublished: true,
   publishedAt: true,
@@ -94,6 +95,7 @@ const ADMIN_STATUS_SELECT = {
 
 const PUBLIC_STATUS_SELECT = {
   id: true,
+  title: true,
   publishedAt: true,
   expiresAt: true,
   slides: {
@@ -180,6 +182,7 @@ export class StatusesService {
           // Compatibilité : les anciennes versions de l’app lisent la 1re diapo à plat
           ...first,
           id: row.id,
+          title: row.title?.trim() || null,
           publishedAt: (row.publishedAt ?? now).toISOString(),
           expiresAt: row.expiresAt.toISOString(),
           slides,
@@ -289,6 +292,7 @@ export class StatusesService {
 
     const created = await this.prisma.status.create({
       data: {
+        title: dto.title ?? null,
         isPublished: false,
         expiresAt: new Date(now.getTime() + ttl * HOUR_MS),
         authorId: actorId,
@@ -312,6 +316,7 @@ export class StatusesService {
     const data: Prisma.StatusUpdateInput = {};
     const now = new Date();
 
+    if (dto.title !== undefined) data.title = dto.title ?? null;
     if (dto.expiresAt !== undefined) data.expiresAt = new Date(dto.expiresAt);
     if (dto.ttlHours !== undefined) {
       data.expiresAt = new Date(now.getTime() + dto.ttlHours * HOUR_MS);
@@ -845,6 +850,7 @@ export class StatusesService {
   private toAdmin(row: AdminStatusRow) {
     return {
       id: row.id,
+      title: row.title,
       state: this.stateOf(row),
       slides: row.slides.map((slide) => this.toAdminSlide(slide)),
       sortOrder: row.sortOrder,

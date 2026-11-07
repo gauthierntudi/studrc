@@ -580,12 +580,16 @@ class StatusSlide {
 class StatusItem {
   const StatusItem({
     required this.id,
+    this.title,
     required this.slides,
     required this.publishedAt,
     required this.expiresAt,
   });
 
   final String id;
+
+  /// Titre choisi dans l’admin (null = déduit des diapos).
+  final String? title;
   final List<StatusSlide> slides;
   final DateTime publishedAt;
   final DateTime expiresAt;
@@ -599,6 +603,7 @@ class StatusItem {
 
   /// Libellé court sous la bulle.
   String get label {
+    if (title != null) return title!;
     for (final slide in slides) {
       final text = slide.caption?.trim();
       if (text != null && text.isNotEmpty) return text;
@@ -620,8 +625,10 @@ class StatusItem {
               .toList()
         // Ancien format (une seule diapo à plat)
         : [StatusSlide.fromJson(json, fallbackId: id)];
+    final rawTitle = (json['title'] as String?)?.trim();
     return StatusItem(
       id: id,
+      title: rawTitle == null || rawTitle.isEmpty ? null : rawTitle,
       slides: slides.isEmpty
           ? [StatusSlide.fromJson(json, fallbackId: id)]
           : slides,

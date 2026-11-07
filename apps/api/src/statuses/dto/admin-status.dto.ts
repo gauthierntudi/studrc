@@ -1,5 +1,5 @@
 import { StatusImageFit } from '@prisma/client';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayMinSize,
@@ -24,7 +24,18 @@ export const STATUS_VIDEO_MAX_BYTES = 100_000_000;
 export const STATUS_MAX_SLIDES = 20;
 
 /** Statut (bulle) : visibilité et publication. Le contenu vit dans les diapos. */
+export const STATUS_TITLE_MAX = 40;
+
 export class CreateStatusDto {
+  /** Titre court sous la bulle ; vide = déduit des diapos */
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim() || null : value,
+  )
+  @IsString()
+  @MaxLength(STATUS_TITLE_MAX)
+  title?: string | null;
+
   /** Durée de vie en heures (1 h → 7 jours) */
   @IsOptional()
   @Type(() => Number)
@@ -39,6 +50,15 @@ export class CreateStatusDto {
 }
 
 export class UpdateStatusDto {
+  /** Titre court sous la bulle ; vide = déduit des diapos */
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim() || null : value,
+  )
+  @IsString()
+  @MaxLength(STATUS_TITLE_MAX)
+  title?: string | null;
+
   @IsOptional()
   @IsBoolean()
   isPublished?: boolean;

@@ -52,11 +52,15 @@ export type StatusSlideDraft = {
 export type AdminStatusFormValues = {
   /** null = nouvelle bulle ; sinon id du statut auquel ajouter les diapos */
   targetId: string | null;
+  /** Titre sous la bulle (vide = automatique) */
+  title: string;
   ttlHours: number | null;
   publish: boolean;
   slides: StatusSlideDraft[];
   removedSlideIds: string[];
 };
+
+const STATUS_TITLE_MAX = 40;
 
 const TTL_OPTIONS = [
   { value: 6, label: "6 heures" },
@@ -132,6 +136,7 @@ function slideThumb(slide: StatusSlideDraft): string | null {
 export function statusLabel(status: AdminStatus): string {
   const first = status.slides[0];
   const text =
+    status.title?.trim() ||
     status.slides.map((s) => s.caption?.trim()).find(Boolean) ||
     first?.article?.title ||
     (first?.mediaType === "VIDEO"
@@ -351,6 +356,7 @@ export function AdminStatusForm({
   const [ttlHours, setTtlHours] = useState<number | null>(isEdit ? null : 24);
   const [publish, setPublish] = useState(initial ? initial.isPublished : true);
   const [targetId, setTargetId] = useState<string | null>(null);
+  const [title, setTitle] = useState(initial?.title ?? "");
   const [targets, setTargets] = useState<AdminStatus[]>([]);
 
   // Statuts existants auxquels ajouter des diapos (nouveau statut uniquement)
@@ -500,6 +506,7 @@ export function AdminStatusForm({
     }
     void onSubmit({
       targetId,
+      title: title.trim(),
       ttlHours,
       publish,
       slides: kept,
@@ -515,6 +522,10 @@ export function AdminStatusForm({
         ? slide.article?.coverUrl
         : null;
   const totalBars = existingCount + slides.length;
+  // Titre utilisé par l’app quand le champ est vide
+  const autoTitle =
+    slides.map((s) => s.caption.trim()).find(Boolean) ||
+    (slides.some((s) => s.article) ? "nom de la rubrique" : "STUDRC");
 
   return (
     <div className="admin-status-form">
@@ -537,6 +548,23 @@ export function AdminStatusForm({
                   </option>
                 ))}
               </select>
+            </label>
+          ) : null}
+
+          {!targetId ? (
+            <label className="admin-dash__field">
+              <span>Titre de la bulle (optionnel)</span>
+              <input
+                type="text"
+                value={title}
+                maxLength={STATUS_TITLE_MAX}
+                disabled={saving}
+                placeholder={autoTitle}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+              <small className="admin-dash__muted">
+                Affiché sous la bulle dans l’app. Vide : {autoTitle}.
+              </small>
             </label>
           ) : null}
 
