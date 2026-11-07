@@ -19,6 +19,7 @@ import '../features/rubrique/rubrique_screen.dart';
 import '../features/search/search_screen.dart';
 import '../features/shell/app_shell.dart';
 import '../features/shorts/shorts_feed.dart';
+import 'constants.dart';
 import 'onboarding.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -107,9 +108,8 @@ GoRouter createAppRouter(OnboardingController onboarding) {
       ),
       GoRoute(
         path: '/shorts/:slug',
-        builder: (context, state) => ShortsScreen(
-          initialSlug: state.pathParameters['slug'],
-        ),
+        builder: (context, state) =>
+            ShortsScreen(initialSlug: state.pathParameters['slug']),
       ),
       GoRoute(
         path: '/connexion',
@@ -142,6 +142,8 @@ GoRouter createAppRouter(OnboardingController onboarding) {
       ),
       GoRoute(
         path: '/acheter/:id',
+        redirect: (context, state) =>
+            kInAppPurchases ? null : '/magazine/${state.pathParameters['id']}',
         builder: (context, state) =>
             PurchaseScreen(magazineId: state.pathParameters['id']!),
       ),

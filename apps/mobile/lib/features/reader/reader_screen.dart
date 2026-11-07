@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:studrc/widgets/app_icons.dart';
 import '../../core/api.dart';
+import '../../core/constants.dart';
 import '../../core/models.dart';
 import '../../theme/app_theme.dart';
 
@@ -172,7 +173,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   }
 }
 
-class _PreviewBar extends StatelessWidget {
+class _PreviewBar extends ConsumerWidget {
   const _PreviewBar({
     required this.session,
     required this.magazineId,
@@ -184,7 +185,11 @@ class _PreviewBar extends StatelessWidget {
   final bool isFree;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final signedIn = ref.watch(sessionProvider)?.email.isNotEmpty ?? false;
+    // Sans achat in-app, seul le bouton de connexion reste utile.
+    final toLogin = isFree || !kInAppPurchases;
+    final showButton = kInAppPurchases || !signedIn;
     return SafeArea(
       top: false,
       child: Material(
@@ -204,32 +209,34 @@ class _PreviewBar extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              FilledButton(
-                onPressed: () => context.push(
-                  isFree ? '/connexion' : '/acheter/$magazineId',
-                ),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppTheme.gold,
-                  foregroundColor: AppTheme.navy,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
+              if (showButton) ...[
+                const SizedBox(width: 12),
+                FilledButton(
+                  onPressed: () => context.push(
+                    toLogin ? '/connexion' : '/acheter/$magazineId',
                   ),
-                  minimumSize: const Size(0, 40),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.gold,
+                    foregroundColor: AppTheme.navy,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    minimumSize: const Size(0, 40),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  child: Text(
+                    toLogin ? 'Connexion' : 'Acheter',
+                    style: AppTheme.sansText(
+                      size: 13,
+                      weight: FontWeight.w800,
+                      color: AppTheme.navy,
+                    ),
                   ),
                 ),
-                child: Text(
-                  isFree ? 'Connexion' : 'Acheter',
-                  style: AppTheme.sansText(
-                    size: 13,
-                    weight: FontWeight.w800,
-                    color: AppTheme.navy,
-                  ),
-                ),
-              ),
+              ],
             ],
           ),
         ),
@@ -238,28 +245,34 @@ class _PreviewBar extends StatelessWidget {
   }
 }
 
-class _Locked extends StatelessWidget {
+class _Locked extends ConsumerWidget {
   const _Locked({required this.session, required this.magazineId});
   final MagazineSession session;
   final String magazineId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final signedIn = ref.watch(sessionProvider)?.email.isNotEmpty ?? false;
+    final String message;
+    if (kInAppPurchases) {
+      message =
+          session.message ??
+          'Connectez-vous ou achetez ce numéro pour le lire.';
+    } else if (signedIn) {
+      message = 'Ce numéro n’est pas disponible avec votre compte.';
+    } else {
+      message = 'Connectez-vous pour lire les numéros de votre compte.';
+    }
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              AppIcons.lock,
-              color: AppTheme.gold,
-              size: 36,
-            ),
+            const Icon(AppIcons.lock, color: AppTheme.gold, size: 36),
             const SizedBox(height: 16),
             Text(
-              session.message ??
-                  'Connectez-vous ou achetez ce numéro pour le lire.',
+              message,
               textAlign: TextAlign.center,
               style: AppTheme.sansText(
                 size: 15,
@@ -267,40 +280,44 @@ class _Locked extends StatelessWidget {
                 color: Colors.white.withValues(alpha: 0.82),
               ),
             ),
-            const SizedBox(height: 22),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: FilledButton(
-                onPressed: () => context.push('/acheter/$magazineId'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppTheme.gold,
-                  foregroundColor: AppTheme.navy,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28),
+            if (kInAppPurchases) ...[
+              const SizedBox(height: 22),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: FilledButton(
+                  onPressed: () => context.push('/acheter/$magazineId'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.gold,
+                    foregroundColor: AppTheme.navy,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                  ),
+                  child: Text(
+                    'Acheter ce numéro',
+                    style: AppTheme.sansText(
+                      size: 15,
+                      weight: FontWeight.w800,
+                      color: AppTheme.navy,
+                    ),
                   ),
                 ),
+              ),
+            ],
+            if (!kInAppPurchases) const SizedBox(height: 12),
+            if (kInAppPurchases || !signedIn)
+              TextButton(
+                onPressed: () => context.push('/connexion'),
                 child: Text(
-                  'Acheter ce numéro',
+                  'Se connecter',
                   style: AppTheme.sansText(
-                    size: 15,
-                    weight: FontWeight.w800,
-                    color: AppTheme.navy,
+                    size: 14,
+                    weight: FontWeight.w700,
+                    color: Colors.white70,
                   ),
                 ),
               ),
-            ),
-            TextButton(
-              onPressed: () => context.push('/connexion'),
-              child: Text(
-                'Se connecter',
-                style: AppTheme.sansText(
-                  size: 14,
-                  weight: FontWeight.w700,
-                  color: Colors.white70,
-                ),
-              ),
-            ),
           ],
         ),
       ),

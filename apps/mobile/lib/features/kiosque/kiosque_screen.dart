@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api.dart';
+import '../../core/constants.dart';
 import '../../core/models.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cover.dart';
@@ -189,7 +190,7 @@ class _MagHero extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (!magazine.isFree) ...[
+                  if (!magazine.isFree && kInAppPurchases) ...[
                     const SizedBox(height: 10),
                     SizedBox(
                       width: double.infinity,

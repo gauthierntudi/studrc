@@ -114,3 +114,11 @@ bool isVideoRubrique(String? category, [String? label]) {
 
   return match(category) || match(label);
 }
+
+/// Achat de magazines dans l'app (Stripe / FlexPaie). Désactivé pour les
+/// stores : Apple et Google imposent leur propre système de paiement pour le
+/// contenu numérique. Les numéros déjà achetés restent lisibles après connexion.
+const bool kInAppPurchases = bool.fromEnvironment(
+  'IN_APP_PURCHASES',
+  defaultValue: false,
+);

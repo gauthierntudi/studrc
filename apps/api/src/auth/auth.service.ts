@@ -22,6 +22,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import {
   contentTypeForExt,
   createR2ClientFromEnv,
+  deleteR2Keys,
   putR2Object,
 } from '../storage/r2';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -514,6 +515,79 @@ export class AuthService {
     });
 
     return { ok: true, message: 'Mot de passe mis à jour' };
+  }
+
+  /**
+   * Suppression du compte demandée par l’abonné (exigence App Store / Play).
+   * Les données personnelles sont effacées et le compte désactivé ; les
+   * achats et paiements restent rattachés à un compte anonyme pour la
+   * comptabilité.
+   */
+  async deleteAccount(userId: string, res: Response, ip?: string | null) {
+    const subscriber = await this.prisma.subscriber.findFirst({
+      where: { id: userId, isActive: true },
+    });
+    if (!subscriber) {
+      throw new UnauthorizedException();
+    }
+
+    const avatarKey = subscriber.avatarKey?.trim() || null;
+    const passwordHash = await hashPassword(randomBytes(32).toString('hex'));
+
+    await this.prisma.$transaction([
+      this.prisma.notificationRead.deleteMany({
+        where: { subscriberId: subscriber.id },
+      }),
+      this.prisma.comment.updateMany({
+        where: { subscriberId: subscriber.id },
+        data: { subscriberId: null, authorName: null, isActive: false },
+      }),
+      this.prisma.subscriber.update({
+        where: { id: subscriber.id },
+        data: {
+          name: 'Compte supprimé',
+          email: `deleted-${subscriber.id}@deleted.studrc.invalid`,
+          phone: null,
+          passwordHash,
+          country: null,
+          countryCode: null,
+          address: null,
+          avatarKey: null,
+          emailVerifiedAt: null,
+          isActive: false,
+          passwordResetOtpHash: null,
+          passwordResetOtpExpiresAt: null,
+          passwordResetOtpAttempts: 0,
+          notificationsSeenAt: null,
+        },
+      }),
+    ]);
+
+    if (avatarKey && !/^https?:\/\//i.test(avatarKey)) {
+      const r2 = createR2ClientFromEnv();
+      if (r2) {
+        try {
+          await deleteR2Keys(r2, [avatarKey]);
+        } catch (err) {
+          this.logger.warn(
+            `Suppression avatar échouée (${avatarKey}) : ${String(err)}`,
+          );
+        }
+      }
+    }
+
+    this.clearAuthCookies(res);
+
+    void this.activity.log({
+      actorType: ActivityActorType.SUBSCRIBER,
+      subscriberId: subscriber.id,
+      action: 'subscriber_account_deleted',
+      entity: 'subscriber',
+      entityId: subscriber.id,
+      ip,
+    });
+
+    return { ok: true, message: 'Compte supprimé' };
   }
 
   async refresh(refreshToken: string | undefined, res: Response) {

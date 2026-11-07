@@ -26,6 +26,7 @@ class _TurnstileFieldState extends State<TurnstileField> {
   WebViewController? _controller;
   bool _failed = false;
   bool _challenge = false;
+  int _autoRetries = 0;
 
   @override
   void initState() {
@@ -125,6 +126,7 @@ boot();
         case 'ok':
           final token = '${data['v'] ?? ''}';
           if (token.isNotEmpty) {
+            _autoRetries = 0;
             setState(() {
               _failed = false;
               _challenge = false;
@@ -139,7 +141,13 @@ boot();
           setState(() => _challenge = false);
         case 'error':
           widget.onToken(null);
-          setState(() => _failed = true);
+          if (_autoRetries < 1) {
+            // Réseau lent : on relance une fois en silence avant d'afficher l'erreur.
+            _autoRetries++;
+            setState(_boot);
+          } else {
+            setState(() => _failed = true);
+          }
       }
     } catch (_) {
       final raw = msg.message.trim();

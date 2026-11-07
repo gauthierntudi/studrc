@@ -56,7 +56,7 @@ bool captchaIsRequired(AppSettings? settings) {
 
 Future<String?> waitForCaptchaToken(
   String? Function() read, {
-  Duration timeout = const Duration(seconds: 8),
+  Duration timeout = const Duration(seconds: 20),
 }) async {
   final end = DateTime.now().add(timeout);
   var token = read();

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Ip,
   Patch,
@@ -116,6 +117,17 @@ export class AuthController {
     @Ip() ip: string,
   ) {
     return this.auth.updateProfile(user.id, dto, ip);
+  }
+
+  @UseGuards(ThrottlerGuard, JwtAuthGuard)
+  @Throttle({ default: { limit: 5, ttl: 900_000 } })
+  @Delete('me')
+  deleteAccount(
+    @CurrentUser() user: AuthUser,
+    @Res({ passthrough: true }) res: Response,
+    @Ip() ip: string,
+  ) {
+    return this.auth.deleteAccount(user.id, res, ip);
   }
 
   @UseGuards(JwtAuthGuard)

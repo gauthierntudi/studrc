@@ -81,6 +81,12 @@ class SessionController extends StateNotifier<Subscriber?> {
     state = null;
   }
 
+  Future<void> deleteAccount() async {
+    _epoch++;
+    await _api.deleteAccount();
+    state = null;
+  }
+
   Future<void> refreshMe() async {
     final epoch = _epoch;
     final user = await _api.me();
@@ -487,6 +493,12 @@ class ApiClient {
     try {
       await _dio.post('/auth/logout');
     } catch (_) {}
+    await _store.clear();
+  }
+
+  /// Supprime définitivement le compte connecté, puis vide la session locale.
+  Future<void> deleteAccount() async {
+    await _dio.delete('/auth/me');
     await _store.clear();
   }
 

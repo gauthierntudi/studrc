@@ -130,6 +130,7 @@ class _SignedIn extends ConsumerStatefulWidget {
 
 class _SignedInState extends ConsumerState<_SignedIn> {
   bool _uploading = false;
+  bool _deleting = false;
 
   Future<void> _changePhoto() async {
     final path = await pickAndCropAvatar(context);
@@ -219,6 +220,88 @@ class _SignedInState extends ConsumerState<_SignedIn> {
     if (go == true && mounted) {
       HapticFeedback.lightImpact();
       await ref.read(sessionProvider.notifier).logout();
+    }
+  }
+
+  Future<void> _confirmDeleteAccount() async {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final go = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: dark ? const Color(0xFF0A2A4C) : Colors.white,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Supprimer votre compte ?',
+                  style: AppTheme.displayText(
+                    size: 20,
+                    weight: FontWeight.w800,
+                    color: scheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Votre profil, votre photo, vos commentaires et vos '
+                  'préférences seront effacés. Vous perdrez l’accès aux '
+                  'magazines achetés avec ce compte. Cette action est '
+                  'définitive.',
+                  textAlign: TextAlign.center,
+                  style: AppTheme.sansText(
+                    size: 14,
+                    color: scheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: FilledButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.red,
+                      foregroundColor: Colors.white,
+                      shape: const StadiumBorder(),
+                    ),
+                    child: const Text('Supprimer définitivement'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Annuler'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (go != true || !mounted) return;
+    HapticFeedback.mediumImpact();
+    setState(() => _deleting = true);
+    try {
+      await ref.read(sessionProvider.notifier).deleteAccount();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Votre compte a été supprimé.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(ref.read(apiClientProvider).apiError(e))),
+      );
+    } finally {
+      if (mounted) setState(() => _deleting = false);
     }
   }
 
@@ -327,7 +410,27 @@ class _SignedInState extends ConsumerState<_SignedIn> {
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
+        Center(
+          child: TextButton(
+            onPressed: _deleting ? null : _confirmDeleteAccount,
+            child: _deleting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(
+                    'Supprimer mon compte',
+                    style: AppTheme.sansText(
+                      size: 14,
+                      weight: FontWeight.w700,
+                      color: muted,
+                    ),
+                  ),
+          ),
+        ),
+        const SizedBox(height: 8),
         Text(
           'STUDRC',
           textAlign: TextAlign.center,
