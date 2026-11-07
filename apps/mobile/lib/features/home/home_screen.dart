@@ -12,6 +12,7 @@ import '../../widgets/article_tile.dart';
 import '../../widgets/cover.dart';
 import '../../widgets/studrc_filter_tabs.dart';
 import '../../widgets/studrc_masthead.dart';
+import '../rubrique/rubrique_screen.dart';
 import '../shorts/shorts_feed.dart';
 import '../statuses/statuses.dart';
 
@@ -127,12 +128,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   data: (data) {
                     final feed = data.feed;
                     final une = _unique([...feed.featured, ...feed.topGrid]);
-                    final byRubrique = [
-                      feed.stuNews,
-                      feed.stuData,
-                      feed.stuStories,
-                      feed.stuTalk,
-                    ];
                     return TabBarView(
                       controller: _tabs,
                       physics: shortTab
@@ -149,11 +144,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           },
                         ),
                         for (var i = 0; i < kRubriques.length; i++)
-                          _RubriquePage(
-                            items: byRubrique[i],
+                          RubriqueFeedView(
                             slug: kRubriques[i].slug,
-                            onRefresh: () async =>
-                                ref.refresh(homeProvider.future),
+                            embedded: true,
                           ),
                         ShortsFeedView(active: shortTab),
                       ],
@@ -242,105 +235,6 @@ class _UnePage extends StatelessWidget {
           if (magazines.isNotEmpty) _StuMagRail(magazines: magazines),
         ],
       ),
-    );
-  }
-}
-
-class _RubriquePage extends StatelessWidget {
-  const _RubriquePage({
-    required this.items,
-    required this.slug,
-    required this.onRefresh,
-  });
-
-  final List<ArticleCard> items;
-  final String slug;
-  final Future<void> Function() onRefresh;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    if (items.isEmpty) {
-      return Center(
-        child: Text(
-          'Rien à afficher ici.',
-          style: AppTheme.sansText(
-            color: scheme.onSurface.withValues(alpha: 0.6),
-          ),
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      color: AppTheme.gold,
-      onRefresh: onRefresh,
-      child: isPortraitRubrique(slug)
-          ? _PortraitRubriqueList(items: items, slug: slug)
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
-              children: [
-                FeaturedCard(article: items.first, showExcerpt: true),
-                const SizedBox(height: 8),
-                ...items.skip(1).map(
-                  (a) => ArticleTile(
-                    article: a,
-                    showMeta: false,
-                    showExcerpt: true,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: () => context.push('/rubrique/$slug'),
-                  child: const Text('Voir toute la rubrique'),
-                ),
-              ],
-            ),
-    );
-  }
-}
-
-class _PortraitRubriqueList extends StatelessWidget {
-  const _PortraitRubriqueList({required this.items, required this.slug});
-
-  final List<ArticleCard> items;
-  final String slug;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const gap = 12.0;
-        const pad = 20.0;
-        final width = constraints.maxWidth - pad * 2;
-        final cardWidth = (width - gap) / 2;
-        final coverHeight = cardWidth * 4 / 3;
-        return ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(pad, 16, pad, 40),
-          children: [
-            Wrap(
-              spacing: gap,
-              runSpacing: 16,
-              children: [
-                for (final article in items)
-                  SizedBox(
-                    width: cardWidth,
-                    child: _CoverCard(
-                      article: article,
-                      width: cardWidth,
-                      coverHeight: coverHeight,
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: () => context.push('/rubrique/$slug'),
-              child: const Text('Voir toute la rubrique'),
-            ),
-          ],
-        );
-      },
     );
   }
 }

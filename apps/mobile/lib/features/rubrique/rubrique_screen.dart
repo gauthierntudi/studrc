@@ -13,60 +13,95 @@ import '../../widgets/app_icons.dart';
 import '../../widgets/cover.dart';
 import '../shorts/shorts_feed.dart';
 
-final rubriqueProvider =
-    FutureProvider.family((ref, String slug) {
-  return ref.watch(apiClientProvider).byCategory(slug, take: 24);
+/// Flux d’une rubrique ; slug vide = toutes les actualités.
+final rubriqueProvider = FutureProvider.family<CategoryFeed, String>((
+  ref,
+  slug,
+) {
+  final api = ref.watch(apiClientProvider);
+  if (slug.isEmpty) return api.feed(take: 30);
+  return api.byCategory(slug, take: 30);
 });
 
 /// Nombre d’articles mis en avant dans le carrousel du haut.
 const _heroCount = 5;
 
-class RubriqueScreen extends ConsumerWidget {
+/// Écran plein d’une rubrique (ouvert depuis « Voir toute la rubrique »).
+class RubriqueScreen extends StatelessWidget {
   const RubriqueScreen({super.key, required this.slug});
 
   final String slug;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     if (isShortRubrique(slug)) {
       return const ShortsScreen();
     }
-    final async = ref.watch(rubriqueProvider(slug));
-    final feed = async.valueOrNull;
-    final label = capitalizeLabel(
-      (feed?.label.isNotEmpty ?? false) ? feed!.label : _labelOf(slug),
-    );
-    final tone = AppTheme.toneColor(feed?.tone ?? _toneOf(slug));
-
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: RefreshIndicator(
-          onRefresh: () => ref.refresh(rubriqueProvider(slug).future),
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(
-                child: _Header(label: label, tone: tone),
-              ),
-              ...async.when(
-                loading: () => [
-                  const SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                ],
-                error: (e, _) => [
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: _Message(ref.read(apiClientProvider).apiError(e)),
-                  ),
-                ],
-                data: (feed) => _content(feed, tone),
+        child: RubriqueFeedView(slug: slug),
+      ),
+    );
+  }
+}
+
+/// Mise en page « rubrique » : en-tête daté, carrousel, Populaires, liste.
+///
+/// [embedded] : affichée dans un onglet (Accueil, Actualités), sous le
+/// masthead — pas de bouton retour ni de logo.
+class RubriqueFeedView extends ConsumerWidget {
+  const RubriqueFeedView({
+    super.key,
+    required this.slug,
+    this.embedded = false,
+  });
+
+  final String slug;
+  final bool embedded;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(rubriqueProvider(slug));
+    final feed = async.valueOrNull;
+    final label = slug.isEmpty
+        ? 'Actualités'
+        : capitalizeLabel(
+            (feed?.label.isNotEmpty ?? false) ? feed!.label : _labelOf(slug),
+          );
+    final tone = AppTheme.toneColor(
+      slug.isEmpty ? 'red' : (feed?.tone ?? _toneOf(slug)),
+    );
+
+    return RefreshIndicator(
+      color: AppTheme.gold,
+      onRefresh: () => ref.refresh(rubriqueProvider(slug).future),
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(
+            child: _Header(label: label, tone: tone, embedded: embedded),
+          ),
+          ...async.when(
+            skipLoadingOnRefresh: true,
+            loading: () => [
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(child: CircularProgressIndicator()),
               ),
             ],
+            error: (e, _) => [
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: _Message(
+                  ref.read(apiClientProvider).apiError(e),
+                  onRetry: () => ref.invalidate(rubriqueProvider(slug)),
+                ),
+              ),
+            ],
+            data: (feed) => _content(feed, tone),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -93,28 +128,34 @@ class RubriqueScreen extends ConsumerWidget {
         .skip(heroCount)
         .where((a) => !popularIds.contains(a.id))
         .toList();
+    // Toutes rubriques confondues : on affiche la rubrique de chaque article.
+    final mixed = slug.isEmpty;
 
     return [
       SliverToBoxAdapter(child: _HeroCarousel(items: hero)),
       if (popular.isNotEmpty) ...[
         const SliverToBoxAdapter(child: _SectionTitle('Populaires')),
-        _list(popular, tone),
+        _list(popular, tone, mixed),
       ],
       if (rest.isNotEmpty) ...[
         const SliverToBoxAdapter(child: _SectionTitle('Derniers articles')),
-        _list(rest, tone),
+        _list(rest, tone, mixed),
       ],
       const SliverToBoxAdapter(child: SizedBox(height: 32)),
     ];
   }
 
-  Widget _list(List<ArticleCard> items, Color tone) {
+  Widget _list(List<ArticleCard> items, Color tone, bool mixed) {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       sliver: SliverList.separated(
         itemCount: items.length,
         separatorBuilder: (_, _) => const SizedBox(height: 6),
-        itemBuilder: (context, i) => _ListRow(article: items[i], tone: tone),
+        itemBuilder: (context, i) => ArticleListRow(
+          article: items[i],
+          tone: tone,
+          showCategory: mixed,
+        ),
       ),
     );
   }
@@ -136,33 +177,39 @@ String _toneOf(String slug) {
 
 // ------------------------------------------------------------------ en-tête
 
-class _Header extends ConsumerWidget {
-  const _Header({required this.label, required this.tone});
+class _Header extends StatelessWidget {
+  const _Header({
+    required this.label,
+    required this.tone,
+    required this.embedded,
+  });
 
   final String label;
   final Color tone;
+  final bool embedded;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final user = ref.watch(sessionProvider);
     final today = DateFormat('EEEE d MMMM', 'fr').format(DateTime.now());
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 24, 20),
+      padding: EdgeInsets.fromLTRB(16, embedded ? 18 : 8, 24, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          IconButton(
-            onPressed: () =>
-                context.canPop() ? context.pop() : context.go('/'),
-            tooltip: 'Retour',
-            icon: const Icon(AppIcons.arrowLeft, size: 22),
-            style: IconButton.styleFrom(
-              backgroundColor: scheme.onSurface.withValues(alpha: 0.06),
+          if (!embedded) ...[
+            IconButton(
+              onPressed: () =>
+                  context.canPop() ? context.pop() : context.go('/'),
+              tooltip: 'Retour',
+              icon: const Icon(AppIcons.arrowLeft, size: 22),
+              style: IconButton.styleFrom(
+                backgroundColor: scheme.onSurface.withValues(alpha: 0.06),
+              ),
             ),
-          ),
-          const SizedBox(height: 14),
+            const SizedBox(height: 14),
+          ],
           Padding(
             padding: const EdgeInsets.only(left: 8),
             child: Row(
@@ -188,7 +235,7 @@ class _Header extends ConsumerWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppTheme.displayText(
-                          size: 34,
+                          size: embedded ? 30 : 34,
                           weight: FontWeight.w800,
                           height: 1.1,
                           letterSpacing: -0.6,
@@ -198,17 +245,20 @@ class _Header extends ConsumerWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
-                _SquareAvatar(
-                  url: user?.avatarUrl,
-                  name: user?.name ?? '',
-                  size: 48,
-                  radius: 14,
-                  background: tone.withValues(alpha: 0.16),
-                  foreground: tone,
-                  onTap: () =>
-                      context.push(user == null ? '/connexion' : '/profil'),
-                ),
+                if (!embedded) ...[
+                  const SizedBox(width: 12),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Image.asset(
+                      'assets/brand/studrc-mark.png',
+                      width: 48,
+                      height: 48,
+                      fit: BoxFit.cover,
+                      filterQuality: FilterQuality.high,
+                      semanticLabel: 'STUDRC',
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -240,24 +290,34 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _Message extends StatelessWidget {
-  const _Message(this.text);
+  const _Message(this.text, {this.onRetry});
 
   final String text;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: AppTheme.sansText(
-            size: 14,
-            color: Theme.of(context).colorScheme.onSurface.withValues(
-                  alpha: 0.6,
-                ),
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              text,
+              textAlign: TextAlign.center,
+              style: AppTheme.sansText(
+                size: 14,
+                color: Theme.of(context).colorScheme.onSurface.withValues(
+                      alpha: 0.6,
+                    ),
+              ),
+            ),
+            if (onRetry != null) ...[
+              const SizedBox(height: 14),
+              FilledButton(onPressed: onRetry, child: const Text('Réessayer')),
+            ],
+          ],
         ),
       ),
     );
@@ -499,11 +559,18 @@ class _SaveButtonState extends State<_SaveButton> {
 
 // ------------------------------------------------------------------ liste
 
-class _ListRow extends StatelessWidget {
-  const _ListRow({required this.article, required this.tone});
+/// Ligne d’article : miniature carrée, surtitre, titre, date et vues.
+class ArticleListRow extends StatelessWidget {
+  const ArticleListRow({
+    super.key,
+    required this.article,
+    required this.tone,
+    this.showCategory = false,
+  });
 
   final ArticleCard article;
   final Color tone;
+  final bool showCategory;
 
   @override
   Widget build(BuildContext context) {
@@ -539,7 +606,10 @@ class _ListRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      article.authorName.toUpperCase(),
+                      (showCategory && article.categoryLabel.isNotEmpty
+                              ? capitalizeLabel(article.categoryLabel)
+                              : article.authorName)
+                          .toUpperCase(),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTheme.sansText(
@@ -547,7 +617,9 @@ class _ListRow extends StatelessWidget {
                         weight: FontWeight.w700,
                         height: 1.2,
                         letterSpacing: 0.5,
-                        color: tone,
+                        color: showCategory
+                            ? AppTheme.toneColor(articleToneOf(article))
+                            : tone,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -624,7 +696,6 @@ class _SquareAvatar extends StatelessWidget {
     required this.radius,
     required this.background,
     required this.foreground,
-    this.onTap,
   });
 
   final String? url;
@@ -633,7 +704,6 @@ class _SquareAvatar extends StatelessWidget {
   final double radius;
   final Color background;
   final Color foreground;
-  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -659,7 +729,6 @@ class _SquareAvatar extends StatelessWidget {
       borderRadius: BorderRadius.circular(radius),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: onTap,
         child: SizedBox.square(
           dimension: size,
           child: hasUrl

@@ -82,6 +82,7 @@ flutter:
     - assets/brand/studrc-logo.png
     - assets/brand/studrc-logo-white.png
     - assets/brand/splash-logo.png
+    - assets/brand/studrc-mark.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

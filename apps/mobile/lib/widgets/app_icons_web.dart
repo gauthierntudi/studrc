@@ -48,4 +48,6 @@ abstract final class AppIcons {
   static const volume2 = Icons.volume_up;
   static const volumeX = Icons.volume_off;
   static const x = Icons.close;
+  static const wifiOff = Icons.wifi_off;
+  static const searchX = Icons.search_off;
 }
