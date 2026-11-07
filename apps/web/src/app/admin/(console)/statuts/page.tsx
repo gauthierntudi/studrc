@@ -650,30 +650,72 @@ export default function AdminStatusesPage() {
       >
         {merging ? (
           <div className="admin-status-merge">
-            <p className="admin-dash__muted">
-              Les {merging.slides.length} diapo
-              {merging.slides.length > 1 ? "s" : ""} de «{" "}
-              <strong>{statusLabel(merging)}</strong> » passeront à la suite du
-              statut choisi, qui garde sa visibilité et sa place dans les
-              bulles. Ce statut-ci disparaîtra.
+            <div className="admin-status-merge__source">
+              <Thumb row={merging} />
+              <div className="admin-status-merge__meta">
+                <span className="admin-status-merge__label">À regrouper</span>
+                <strong className="admin-status-merge__title">
+                  {statusLabel(merging)}
+                </strong>
+                <span className="admin-dash__muted">
+                  {merging.slides.length} diapo
+                  {merging.slides.length > 1 ? "s" : ""}
+                </span>
+              </div>
+            </div>
+
+            <div className="admin-status-merge__arrow" aria-hidden>
+              <ArrowDown size={16} strokeWidth={2.2} />
+            </div>
+
+            <div className="admin-status-merge__pick">
+              <span className="admin-status-merge__label">Regrouper dans</span>
+              {mergeTargets.length === 0 ? (
+                <p className="admin-dash__muted admin-status-merge__empty">
+                  Aucun autre statut en ligne ou en brouillon.
+                </p>
+              ) : (
+                <div
+                  className="admin-status-merge__list"
+                  role="radiogroup"
+                  aria-label="Statut de destination"
+                >
+                  {mergeTargets.map((t) => {
+                    const selected = mergeTarget === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        disabled={saving}
+                        className={`admin-status-merge__option${selected ? " is-selected" : ""}`}
+                        onClick={() => setMergeTarget(t.id)}
+                      >
+                        <Thumb row={t} />
+                        <span className="admin-status-merge__meta">
+                          <span className="admin-status-merge__title">
+                            {statusLabel(t)}
+                          </span>
+                          <span className="admin-dash__muted">
+                            {t.slides.length} diapo
+                            {t.slides.length > 1 ? "s" : ""} ·{" "}
+                            {t.state === "draft" ? "Brouillon" : "En ligne"}
+                          </span>
+                        </span>
+                        <span className="admin-status-merge__radio" aria-hidden />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <p className="admin-status-merge__note">
+              Les diapos passeront à la suite du statut choisi, qui garde sa
+              visibilité et sa place dans les bulles. Ce statut-ci disparaîtra.
             </p>
-            <label className="admin-dash__field">
-              <span>Regrouper dans</span>
-              <select
-                value={mergeTarget}
-                disabled={saving}
-                onChange={(e) => setMergeTarget(e.target.value)}
-              >
-                <option value="">Choisir un statut…</option>
-                {mergeTargets.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {statusLabel(t)} ({t.slides.length} diapo
-                    {t.slides.length > 1 ? "s" : ""}
-                    {t.state === "draft" ? ", brouillon" : ", en ligne"})
-                  </option>
-                ))}
-              </select>
-            </label>
+
             <div className="admin-sponsor-form__actions">
               <button
                 type="button"

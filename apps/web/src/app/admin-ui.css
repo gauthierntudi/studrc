@@ -5559,5 +5559,139 @@ a.snow-dash__rail-item:hover {
 
 .admin-status-merge {
   display: grid;
-  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.admin-status-merge__source,
+.admin-status-merge__option {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-width: 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--snow-line);
+  border-radius: 0.85rem;
+  background: var(--snow-elevated);
+}
+
+.admin-status-merge__meta {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+  flex: 1;
+  text-align: left;
+}
+
+.admin-status-merge__meta .admin-dash__muted {
+  font-size: 0.8rem;
+}
+
+.admin-status-merge__label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--snow-muted);
+}
+
+.admin-status-merge__title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--snow-text);
+  word-break: break-word;
+}
+
+.admin-status-merge__arrow {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin: -0.35rem 0;
+  border-radius: 999px;
+  border: 1px solid var(--snow-line);
+  background: var(--snow-panel);
+  color: var(--snow-teal);
+}
+
+.admin-status-merge__pick {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.admin-status-merge__list {
+  display: grid;
+  gap: 0.5rem;
+  max-height: min(18rem, 40vh);
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.admin-status-merge__option {
+  width: 100%;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.admin-status-merge__option:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--snow-teal) 45%, var(--snow-line));
+}
+
+.admin-status-merge__option.is-selected {
+  border-color: var(--snow-teal);
+  background: color-mix(in srgb, var(--snow-teal) 10%, var(--snow-elevated));
+}
+
+.admin-status-merge__option:focus-visible {
+  outline: 2px solid var(--snow-teal);
+  outline-offset: 2px;
+}
+
+.admin-status-merge__radio {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 999px;
+  border: 2px solid var(--snow-line);
+  transition: border 0.15s ease;
+}
+
+.admin-status-merge__option.is-selected .admin-status-merge__radio {
+  border: 5px solid var(--snow-teal);
+}
+
+.admin-status-merge__empty {
+  margin: 0;
+  padding: 0.85rem;
+  border: 1px dashed var(--snow-line);
+  border-radius: 0.85rem;
+  text-align: center;
+}
+
+.admin-status-merge__note {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--snow-muted);
+}
+
+.admin-status-merge .admin-sponsor-form__actions {
+  flex-wrap: wrap;
+}
+
+.admin-status-merge .admin-dash__btn {
+  gap: 0.45rem;
 }
