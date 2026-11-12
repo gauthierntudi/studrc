@@ -19,7 +19,9 @@ export class PublicSettingsController {
   /** Config publique pour l’app mobile (captcha, API). */
   @Get('app')
   app() {
-    const captcha = this.turnstile.isEnabled();
+    // L’app mobile n’affiche plus Turnstile (WebView peu fiable, refus App
+    // Store 2.1) : l’API l’exempte (TurnstileService.isMobileClient).
+    const captcha = false;
     const siteKey =
       this.config.get<string>('TURNSTILE_SITE_KEY')?.trim() ||
       this.config.get<string>('NEXT_PUBLIC_TURNSTILE_SITE_KEY')?.trim() ||

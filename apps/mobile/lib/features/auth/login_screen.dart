@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/api.dart';
 import '../../core/google_auth.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/apple_sign_in_button.dart';
 import '../../widgets/auth_shell.dart';
 import '../../widgets/captcha_block.dart';
 import '../../widgets/google_sign_in_button.dart';
@@ -160,13 +161,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  Future<void> _submitApple() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final apple = await requestAppleCredential();
+      if (apple == null || !mounted) return;
+      await ref
+          .read(sessionProvider.notifier)
+          .loginWithApple(apple.identityToken, name: apple.name);
+      if (mounted) context.go('/compte');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = ref.read(apiClientProvider).apiError(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final withApple = AppleSignInButton.isSupported;
     return AuthShell(
       greeting: _signup ? 'Bienvenue !' : 'Bonjour !',
       subtitle: _signup
-          ? 'Créez votre compte avec votre e-mail ou Google.'
-          : 'Connectez-vous avec votre e-mail ou Google.',
+          ? (withApple
+                ? 'Créez votre compte avec votre e-mail, Apple ou Google.'
+                : 'Créez votre compte avec votre e-mail ou Google.')
+          : (withApple
+                ? 'Connectez-vous avec votre e-mail, Apple ou Google.'
+                : 'Connectez-vous avec votre e-mail ou Google.'),
       cardTitle: _signup ? 'Inscription' : 'Connexion',
       footer: Wrap(
         alignment: WrapAlignment.center,
@@ -309,6 +335,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   : 'Connexion rapide',
               onPressed: _submitGoogle,
             ),
+            AppleSignInButton(busy: _busy, onPressed: _submitApple),
           ],
         ),
       ),

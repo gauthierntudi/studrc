@@ -11,6 +11,7 @@ import {
   UploadedFile,
   UseGuards,
   UseInterceptors,
+  Headers,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
@@ -21,6 +22,7 @@ import type { AuthUser } from './decorators/current-user.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { AppleLoginDto } from './dto/apple-login.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -43,8 +45,9 @@ export class AuthController {
     @Body() dto: RegisterDto,
     @Res({ passthrough: true }) res: Response,
     @Ip() ip: string,
+    @Headers() headers: Record<string, unknown>,
   ) {
-    return this.auth.register(dto, res, ip);
+    return this.auth.register(dto, res, ip, headers);
   }
 
   @UseGuards(ThrottlerGuard)
@@ -54,8 +57,9 @@ export class AuthController {
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response,
     @Ip() ip: string,
+    @Headers() headers: Record<string, unknown>,
   ) {
-    return this.auth.login(dto, res, ip);
+    return this.auth.login(dto, res, ip, headers);
   }
 
   @UseGuards(ThrottlerGuard)
@@ -72,6 +76,17 @@ export class AuthController {
       ip,
       dto.turnstileToken,
     );
+  }
+
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: 900_000 } })
+  @Post('apple')
+  appleLogin(
+    @Body() dto: AppleLoginDto,
+    @Res({ passthrough: true }) res: Response,
+    @Ip() ip: string,
+  ) {
+    return this.auth.loginWithApple(dto.identityToken, dto.name, res, ip);
   }
 
   @Post('refresh')
@@ -177,8 +192,12 @@ export class AuthController {
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 5, ttl: 900_000 } })
   @Post('forgot-password')
-  forgotPassword(@Body() dto: ForgotPasswordDto, @Ip() ip: string) {
-    return this.auth.forgotPassword(dto, ip);
+  forgotPassword(
+    @Body() dto: ForgotPasswordDto,
+    @Ip() ip: string,
+    @Headers() headers: Record<string, unknown>,
+  ) {
+    return this.auth.forgotPassword(dto, ip, headers);
   }
 
   @Post('reset-password')

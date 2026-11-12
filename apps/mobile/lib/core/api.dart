@@ -58,6 +58,11 @@ class SessionController extends StateNotifier<Subscriber?> {
     );
   }
 
+  Future<void> loginWithApple(String identityToken, {String? name}) async {
+    _epoch++;
+    state = await _api.loginWithApple(identityToken, name: name);
+  }
+
   Future<void> register({
     required String name,
     required String email,
@@ -106,7 +111,10 @@ class ApiClient {
         baseUrl: kApiBaseUrl,
         connectTimeout: const Duration(seconds: 20),
         receiveTimeout: const Duration(seconds: 30),
-        headers: const {'Accept': 'application/json'},
+        headers: const {
+          'Accept': 'application/json',
+          'X-StuDRC-Client': 'mobile',
+        },
       ),
     );
     _refreshDio = Dio(
@@ -114,7 +122,10 @@ class ApiClient {
         baseUrl: kApiBaseUrl,
         connectTimeout: const Duration(seconds: 20),
         receiveTimeout: const Duration(seconds: 20),
-        headers: const {'Accept': 'application/json'},
+        headers: const {
+          'Accept': 'application/json',
+          'X-StuDRC-Client': 'mobile',
+        },
       ),
     );
     _dio.interceptors.add(
@@ -168,6 +179,7 @@ class ApiClient {
     return path.contains('/auth/refresh') ||
         path.contains('/auth/login') ||
         path.contains('/auth/google') ||
+        path.contains('/auth/apple') ||
         path.contains('/auth/register') ||
         path.contains('/auth/forgot-password') ||
         path.contains('/auth/reset-password') ||
@@ -374,6 +386,17 @@ class ApiClient {
         'email': email,
         'password': password,
         if (turnstileToken case final token?) 'turnstileToken': token,
+      },
+    );
+    return _saveSession(_map(res.data));
+  }
+
+  Future<Subscriber> loginWithApple(String identityToken, {String? name}) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/auth/apple',
+      data: {
+        'identityToken': identityToken,
+        if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
       },
     );
     return _saveSession(_map(res.data));

@@ -88,6 +88,8 @@ model Subscriber {
   subscriberCode            String?
   avatarKey                 String?
   emailVerifiedAt           DateTime?
+  /// Identifiant stable « Se connecter avec Apple » (claim sub)
+  appleSub                  String?   @unique
   isActive                  Boolean   @default(true)
   passwordResetOtpHash      String?
   passwordResetOtpExpiresAt DateTime?

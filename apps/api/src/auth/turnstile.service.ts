@@ -23,11 +23,27 @@ export class TurnstileService {
     return Boolean(this.config.get<string>('TURNSTILE_SECRET_KEY')?.trim());
   }
 
+  /**
+   * Requêtes de l’app mobile (Dio : User-Agent « Dart/… », ou en-tête
+   * X-StuDRC-Client: mobile). Turnstile en WebView échoue sur certains
+   * appareils et réseaux (refus App Store 2.1), l’app n’en envoie donc plus :
+   * ces routes restent limitées par le ThrottlerGuard.
+   */
+  static isMobileClient(headers?: Record<string, unknown>): boolean {
+    if (!headers) return false;
+    const client = String(headers['x-studrc-client'] ?? '').toLowerCase();
+    if (client === 'mobile') return true;
+    const ua = String(headers['user-agent'] ?? '');
+    return /^Dart\//.test(ua);
+  }
+
   async assertValid(
     token: string | undefined | null,
     ip?: string | null,
+    headers?: Record<string, unknown>,
   ): Promise<void> {
     if (!this.isEnabled()) return;
+    if (TurnstileService.isMobileClient(headers)) return;
 
     const secret = this.config.get<string>('TURNSTILE_SECRET_KEY')!.trim();
     const response = token?.trim() ?? '';

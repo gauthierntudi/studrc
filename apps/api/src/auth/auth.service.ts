@@ -12,7 +12,14 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { ActivityActorType } from '@prisma/client';
-import { createHash, randomBytes, randomInt, timingSafeEqual } from 'crypto';
+import {
+  createHash,
+  createPublicKey,
+  randomBytes,
+  randomInt,
+  timingSafeEqual,
+  verify as verifySignature,
+} from 'crypto';
 import { mkdir, writeFile } from 'fs/promises';
 import { extname, join, resolve } from 'path';
 import type { Response } from 'express';
@@ -70,8 +77,13 @@ export class AuthService {
     private readonly turnstile: TurnstileService,
   ) {}
 
-  async register(dto: RegisterDto, res: Response, ip?: string | null) {
-    await this.turnstile.assertValid(dto.turnstileToken, ip);
+  async register(
+    dto: RegisterDto,
+    res: Response,
+    ip?: string | null,
+    headers?: Record<string, unknown>,
+  ) {
+    await this.turnstile.assertValid(dto.turnstileToken, ip, headers);
     const email = dto.email.trim().toLowerCase();
 
     const existing = await this.prisma.subscriber.findUnique({
@@ -129,8 +141,13 @@ export class AuthService {
     return this.toAuthSession(subscriber, tokens);
   }
 
-  async login(dto: LoginDto, res: Response, ip?: string | null) {
-    await this.turnstile.assertValid(dto.turnstileToken, ip);
+  async login(
+    dto: LoginDto,
+    res: Response,
+    ip?: string | null,
+    headers?: Record<string, unknown>,
+  ) {
+    await this.turnstile.assertValid(dto.turnstileToken, ip, headers);
     const email = dto.email.trim().toLowerCase();
 
     const subscriber = await this.prisma.subscriber.findUnique({
@@ -240,6 +257,155 @@ export class AuthService {
   }
 
   /** Client IDs OAuth acceptés (web GSI + iOS / Android natifs). */
+  /**
+   * « Se connecter avec Apple » (exigé par l’App Store dès qu’une connexion
+   * tierce comme Google est proposée). Vérifie l’identityToken Apple, relie
+   * le compte par `appleSub` puis par e-mail, ou le crée.
+   */
+  async loginWithApple(
+    identityToken: string,
+    fullName: string | undefined,
+    res: Response,
+    ip?: string | null,
+  ) {
+    const appleUser = await this.verifyAppleIdentityToken(identityToken);
+    if (!appleUser) {
+      throw new UnauthorizedException('Vérification Apple échouée');
+    }
+
+    let subscriber = await this.prisma.subscriber.findUnique({
+      where: { appleSub: appleUser.sub },
+    });
+
+    if (!subscriber && appleUser.email) {
+      const byEmail = await this.prisma.subscriber.findUnique({
+        where: { email: appleUser.email },
+      });
+      if (byEmail?.isActive) {
+        subscriber = await this.prisma.subscriber.update({
+          where: { id: byEmail.id },
+          data: {
+            appleSub: appleUser.sub,
+            ...(byEmail.emailVerifiedAt ? {} : { emailVerifiedAt: new Date() }),
+          },
+        });
+      } else if (byEmail) {
+        throw new UnauthorizedException('Compte désactivé');
+      }
+    }
+
+    if (!subscriber) {
+      if (!appleUser.email) {
+        throw new BadRequestException(
+          'Apple n’a pas transmis d’adresse e-mail. Réessayez.',
+        );
+      }
+      const name =
+        fullName?.trim() || appleUser.email.split('@')[0] || 'Abonné STUDRC';
+      subscriber = await this.prisma.subscriber.create({
+        data: {
+          name,
+          email: appleUser.email,
+          appleSub: appleUser.sub,
+          passwordHash: await hashPassword(
+            `apple:${appleUser.sub}:${randomBytes(16).toString('hex')}`,
+          ),
+          subscriberCode: generateSubscriberCode(),
+          emailVerifiedAt: new Date(),
+        },
+      });
+    } else if (!subscriber.isActive) {
+      throw new UnauthorizedException('Compte désactivé');
+    }
+
+    const tokens = await this.setAuthCookies(res, subscriber.id, subscriber.email);
+
+    void this.activity.log({
+      actorType: ActivityActorType.SUBSCRIBER,
+      subscriberId: subscriber.id,
+      action: 'subscriber_apple_login',
+      entity: 'subscriber',
+      entityId: subscriber.id,
+      ip,
+    });
+
+    return this.toAuthSession(subscriber, tokens);
+  }
+
+  private appleKeysCache: {
+    keys: Array<Record<string, string>>;
+    fetchedAt: number;
+  } | null = null;
+
+  private async appleKeys(force = false) {
+    const fresh =
+      this.appleKeysCache &&
+      Date.now() - this.appleKeysCache.fetchedAt < 60 * 60 * 1000;
+    if (!force && fresh) return this.appleKeysCache!.keys;
+    const resp = await fetch('https://appleid.apple.com/auth/keys');
+    if (!resp.ok) throw new Error(`Apple keys HTTP ${resp.status}`);
+    const data = (await resp.json()) as { keys?: Array<Record<string, string>> };
+    this.appleKeysCache = { keys: data.keys ?? [], fetchedAt: Date.now() };
+    return this.appleKeysCache.keys;
+  }
+
+  private appleAudienceIds(): string[] {
+    const raw = (this.config.get<string>('APPLE_CLIENT_IDS') ?? 'com.studrc.studrc')
+      .split(/[,\s]+/)
+      .map((v) => v.trim())
+      .filter(Boolean);
+    return [...new Set(raw)];
+  }
+
+  private async verifyAppleIdentityToken(
+    token: string,
+  ): Promise<{ sub: string; email: string | null } | null> {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      const decode = (part: string) =>
+        JSON.parse(Buffer.from(part, 'base64url').toString('utf8'));
+      const header = decode(parts[0]) as { kid?: string; alg?: string };
+      const payload = decode(parts[1]) as {
+        iss?: string;
+        aud?: string;
+        exp?: number;
+        sub?: string;
+        email?: string;
+      };
+      if (header.alg !== 'RS256' || !header.kid) return null;
+
+      let jwk = (await this.appleKeys()).find((k) => k.kid === header.kid);
+      if (!jwk) {
+        jwk = (await this.appleKeys(true)).find((k) => k.kid === header.kid);
+      }
+      if (!jwk) return null;
+
+      const key = createPublicKey({ key: jwk, format: 'jwk' });
+      const ok = verifySignature(
+        'RSA-SHA256',
+        Buffer.from(`${parts[0]}.${parts[1]}`),
+        key,
+        Buffer.from(parts[2], 'base64url'),
+      );
+      if (!ok) return null;
+
+      if (payload.iss !== 'https://appleid.apple.com') return null;
+      if (!payload.aud || !this.appleAudienceIds().includes(payload.aud)) {
+        return null;
+      }
+      if (!payload.exp || payload.exp < Math.floor(Date.now() / 1000)) {
+        return null;
+      }
+      if (!payload.sub) return null;
+
+      const email = (payload.email ?? '').trim().toLowerCase();
+      return { sub: payload.sub, email: email.includes('@') ? email : null };
+    } catch {
+      return null;
+    }
+  }
+
   private googleAudienceIds(): string[] {
     const extra = (this.config.get<string>('GOOGLE_CLIENT_IDS') ?? '')
       .split(/[,\s]+/)
@@ -554,6 +720,7 @@ export class AuthService {
           address: null,
           avatarKey: null,
           emailVerifiedAt: null,
+          appleSub: null,
           isActive: false,
           passwordResetOtpHash: null,
           passwordResetOtpExpiresAt: null,
@@ -769,8 +936,12 @@ export class AuthService {
     }
   }
 
-  async forgotPassword(dto: ForgotPasswordDto, ip?: string | null) {
-    await this.turnstile.assertValid(dto.turnstileToken, ip);
+  async forgotPassword(
+    dto: ForgotPasswordDto,
+    ip?: string | null,
+    headers?: Record<string, unknown>,
+  ) {
+    await this.turnstile.assertValid(dto.turnstileToken, ip, headers);
     const email = dto.email.trim().toLowerCase();
     const subscriber = await this.prisma.subscriber.findUnique({
       where: { email },
